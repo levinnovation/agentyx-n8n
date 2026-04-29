@@ -5,7 +5,9 @@ tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
 status: scaffolded
-description: "Supabase project configuration."
+description: |
+  Supabase schema, migrations, storage buckets, and edge functions for
+  the Euromobilia kitchen quotation system.
 owner: "infra@euromobilia.com"
 observability:
   traces: none
