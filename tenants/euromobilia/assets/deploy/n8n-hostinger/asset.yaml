@@ -1,14 +1,17 @@
 id: n8n-hostinger
-name: n8n Community Edition on Hostinger VPS
+name: Euromobilia Ingress + n8n CE on Hostinger VPS
 type: deployment
 tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
-status: scaffolded
+status: active
+version: "1.1.0"
 description: |
-  Self-hosted n8n Community Edition on Hostinger (IP bootstrap: HTTP on port 80
-  via Caddy reverse proxy to n8n). Postgres backs the n8n database. Secrets
-  live only on the VPS in .env — never in Git.
+  Self-hosted n8n Community Edition + Caddy unified reverse proxy on Hostinger.
+  Caddy routes:
+    - /agent/*  → quotation-assistant (deployed separately in /opt/euromobilia-agent/)
+    - /         → n8n editor + webhooks
+  Postgres backs the n8n database. Secrets live only on the VPS in .env.
 owner: "ai-team@euromobilia.com"
 observability:
   traces: none
@@ -16,3 +19,56 @@ observability:
 deployment:
   platform: self-hosted
   region: hostinger
+  hostname: srv1616787.hstgr.cloud
+  ip: 187.127.252.161
+
+---
+
+# Ingress Routes
+
+| Path | Destination | Service | Container |
+|------|-------------|---------|-----------|
+| `/agent/*` | `http://euromobilia-agent-agent-1:8000` | quotation-assistant | `euromobilia-agent-agent-1` |
+| `/` | `http://n8n:5678` | n8n CE | `n8n-n8n-1` |
+
+## Agent Connectivity
+
+The agent container is deployed via a separate Docker Compose in `/opt/euromobilia-agent/`.
+It must be connected to the `n8n_default` network so Caddy can resolve it:
+
+```bash
+docker network connect n8n_default euromobilia-agent-agent-1
+```
+
+## Environment Variables
+
+Set in `/opt/n8n/.env`:
+
+```bash
+# n8n core
+N8N_HOST=187.127.252.161
+N8N_PROTOCOL=http
+WEBHOOK_URL=http://187.127.252.161/
+N8N_EDITOR_BASE_URL=http://187.127.252.161/
+N8N_SECURE_COOKIE=false
+N8N_ENCRYPTION_KEY=<openssl rand -hex 32>
+
+# Postgres
+POSTGRES_USER=n8n
+POSTGRES_PASSWORD=<strong-password>
+POSTGRES_DB=n8n
+
+# Workflow env vars
+KAPSO_API_KEY=...
+KAPSO_BASE_URL=https://api.kapso.io
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+SLACK_WEBHOOK_URL=...
+AGENT_BASE_URL=http://euromobilia-agent-agent-1:8000
+```
+
+## Restart
+
+```bash
+cd /opt/n8n && docker compose up -d --force-recreate caddy
+```

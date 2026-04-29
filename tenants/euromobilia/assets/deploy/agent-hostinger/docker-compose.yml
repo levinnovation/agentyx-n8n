@@ -1,0 +1,28 @@
+# Euromobilia Quotation Assistant — Hostinger VPS
+# Deploy: cd /opt/euromobilia-agent && docker compose up -d --build
+#
+# This container must be connected to the n8n_default network so that
+# the Caddy reverse proxy (in the n8n-hostinger deploy) can route /agent/*
+# to this service by container name.
+
+services:
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8000"
+    env_file:
+      - .env
+    volumes:
+      - agent_data:/app/.data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  agent_data:

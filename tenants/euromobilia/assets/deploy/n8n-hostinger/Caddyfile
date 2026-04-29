@@ -1,6 +1,18 @@
-# Reverse proxy: public HTTP :80 -> n8n :5678
-# For IP-only bootstrap. Replace with domain + TLS when DNS is ready.
+# Reverse proxy: public HTTP :80 -> services by path
+# Hostname: srv1616787.hstgr.cloud (Hostinger VPS)
+# IP: 187.127.252.161
+#
+# Routes:
+#   /agent/*  -> quotation-assistant (euromobilia-agent-agent-1:8000)
+#   /         -> n8n (n8n:5678)
+#
+# The agent container must be connected to the n8n_default network
+# so Caddy can resolve it by container name.
 
 :80 {
+	handle_path /agent/* {
+		reverse_proxy euromobilia-agent-agent-1:8000
+	}
+
 	reverse_proxy n8n:5678
 }

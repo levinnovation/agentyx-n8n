@@ -1,5 +1,9 @@
-# n8n CE + Postgres + Caddy (HTTP on host port 80).
-# Deploy on VPS from this directory after creating .env (see README.md).
+# Euromobilia Hostinger VPS — Unified Ingress + n8n + Postgres
+# Deploy: cd /opt/n8n && docker compose up -d
+#
+# The quotation-assistant agent is deployed separately in
+# /opt/euromobilia-agent/ but must be connected to this network:
+#   docker network connect n8n_default euromobilia-agent-agent-1
 
 services:
   postgres:

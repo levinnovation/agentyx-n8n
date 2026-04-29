@@ -1,0 +1,79 @@
+id: agent-hostinger
+name: Quotation Assistant on Hostinger VPS
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: active
+version: "1.1.0"
+description: |
+  FastAPI + LangGraph quotation-assistant deployed via Docker Compose on
+  the Hostinger VPS. Exposes port 8000 internally; public access is via
+  the Caddy reverse proxy in the n8n-hostinger deploy at /agent/*.
+owner: "ai-team@euromobilia.com"
+observability:
+  traces: langsmith
+  metrics: none
+deployment:
+  platform: self-hosted
+  region: hostinger
+  hostname: srv1616787.hstgr.cloud
+  ip: 187.127.252.161
+
+---
+
+# Network Attachment
+
+After first deploy, connect this container to the n8n_default network so
+Caddy can resolve it:
+
+```bash
+docker network connect n8n_default euromobilia-agent-agent-1
+```
+
+## Internal Endpoints (Docker network)
+
+| Endpoint | URL | Notes |
+|----------|-----|-------|
+| Health | `http://euromobilia-agent-agent-1:8000/health` | KB + catalog stats |
+| Invoke | `http://euromobilia-agent-agent-1:8000/agent/invoke` | Main agent entrypoint |
+| Webhook | `http://euromobilia-agent-agent-1:8000/webhooks/kapso/inbound` | Kapso direct (bypass n8n) |
+
+## Public Endpoints (via Caddy)
+
+| Endpoint | URL | Notes |
+|----------|-----|-------|
+| Health | `http://187.127.252.161/agent/health` | Through Caddy |
+| Invoke | `http://187.127.252.161/agent/agent/invoke` | Through Caddy |
+
+## Environment Variables
+
+Copy `.env.example` from the agent asset and fill in values:
+
+```bash
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+OPENROUTER_API_KEY=...
+LLM_MODEL=x-ai/grok-4.1-fast
+LANGCHAIN_API_KEY=...
+LANGCHAIN_PROJECT=agentyx
+TAVILY_API_KEY=...
+KAPSO_API_KEY=...
+KAPSO_BASE_URL=https://api.kapso.io
+KAPSO_WEBHOOK_SECRET=...
+COMPOSIO_API_KEY=...
+FAISS_INDEX_DIR=./.data/faiss_index
+```
+
+## Build & Run
+
+```bash
+cd /opt/euromobilia-agent
+docker compose up -d --build
+```
+
+## Restart
+
+```bash
+cd /opt/euromobilia-agent && docker compose up -d --force-recreate agent
+```
