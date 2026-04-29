@@ -1,0 +1,12 @@
+id: slack
+name: Slack Integration
+type: integration
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: "Internal notifications and alerts."
+owner: "ai-team@euromobilia.com"
+observability:
+  traces: none
+  metrics: none

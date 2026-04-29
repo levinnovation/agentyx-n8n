@@ -1,0 +1,12 @@
+id: whatsapp-kapso
+name: WhatsApp Kapso Channel
+type: channel-adapter
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: "WhatsApp Business API via Kapso provider."
+owner: "infra@euromobilia.com"
+observability:
+  traces: langfuse
+  metrics: none

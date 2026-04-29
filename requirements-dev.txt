@@ -1,0 +1,10 @@
+black
+isort
+flake8
+pyyaml
+jsonschema
+rich
+pytest
+typer
+jinja2
+python-dotenv

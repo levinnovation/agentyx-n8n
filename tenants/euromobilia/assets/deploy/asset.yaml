@@ -1,0 +1,8 @@
+id: deployment-render-railway-fly-cloudrun
+name: Deployment Configs
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+description: Multi-target deployment manifests for Render, Railway, Fly.io, and Cloud Run.
+status: scaffolded

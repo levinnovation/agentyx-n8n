@@ -1,0 +1,9 @@
+id: example-domain
+name: Example Domain
+tenant: "{{tenant_id}}"
+description: "Replace with domain description."
+capabilities:
+  - example-capability
+data_residency: "us-east-1"
+compliance:
+  - gdpr

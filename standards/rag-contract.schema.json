@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentyx.io/schemas/rag-contract.json",
+  "title": "RAG Contract Spec",
+  "type": "object",
+  "required": ["id", "name", "source_documents", "embedding_model", "retrieval_config"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string" },
+    "source_documents": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "embedding_model": { "type": "string" },
+    "vector_store": { "type": "string" },
+    "retrieval_config": {
+      "type": "object",
+      "properties": {
+        "top_k": { "type": "integer" },
+        "score_threshold": { "type": "number" },
+        "rerank": { "type": "boolean" }
+      }
+    }
+  }
+}

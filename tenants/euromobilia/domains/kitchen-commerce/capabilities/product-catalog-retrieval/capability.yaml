@@ -1,0 +1,15 @@
+id: product-catalog-retrieval
+name: Product Catalog Retrieval
+tenant: euromobilia
+domain: kitchen-commerce
+purpose: >
+  Search and retrieve product information, pricing, and availability from
+  the Supabase product catalog and vector store.
+assets:
+  - catalog-rag
+  - supabase
+status: scaffolded
+sla:
+  response_time_ms: 2000
+  availability: "99.9%"
+dependencies: []

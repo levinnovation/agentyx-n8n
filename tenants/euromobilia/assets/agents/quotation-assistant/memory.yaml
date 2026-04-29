@@ -1,0 +1,6 @@
+memory:
+  short_term: true
+  long_term: true
+  vector_store: supabase
+  backend: supabase
+  ttl_seconds: 86400

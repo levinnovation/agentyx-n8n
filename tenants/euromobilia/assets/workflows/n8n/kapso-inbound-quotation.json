@@ -1,0 +1,43 @@
+{
+  "name": "Kapso Inbound Quotation",
+  "nodes": [
+    {
+      "id": "webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kapso-inbound"
+      }
+    },
+    {
+      "id": "classify",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [450, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-runtime.com/api/classify"
+      }
+    },
+    {
+      "id": "reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [650, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-runtime.com/api/reply"
+      }
+    }
+  ],
+  "connections": {
+    "webhook": {
+      "main": [[{"node": "classify", "type": "main", "index": 0}]]
+    },
+    "classify": {
+      "main": [[{"node": "reply", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

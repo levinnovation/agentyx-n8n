@@ -1,0 +1,7 @@
+# Render deployment manifest (stub)
+services:
+  - type: web
+    name: quotation-assistant
+    runtime: docker
+    repo: https://github.com/viniciof1211/agentyx-vertical-assets
+    plan: standard

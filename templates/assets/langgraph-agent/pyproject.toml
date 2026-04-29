@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "{{asset_id}}"
+version = "0.1.0"
+description = "{{asset_name}}"
+requires-python = ">=3.11"
+dependencies = [
+    "langgraph",
+    "langchain",
+    "pydantic",
+    "python-dotenv",
+]

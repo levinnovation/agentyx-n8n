@@ -1,0 +1,14 @@
+id: example-capability
+name: Example Capability
+tenant: "{{tenant_id}}"
+domain: example-domain
+purpose: >
+  Replace with a clear, one-paragraph description of what this capability does,
+  what it receives as input, and what it produces as output.
+assets:
+  - example-asset
+status: scaffolded
+sla:
+  response_time_ms: 5000
+  availability: "99.9%"
+dependencies: []

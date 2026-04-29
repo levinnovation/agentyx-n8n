@@ -1,0 +1,12 @@
+id: product-catalog
+name: Product Catalog
+type: data-contract
+tenant: euromobilia
+domain: kitchen-commerce
+capability: product-catalog-retrieval
+status: scaffolded
+description: "Relational product catalog in Supabase."
+owner: "data@euromobilia.com"
+observability:
+  traces: none
+  metrics: none

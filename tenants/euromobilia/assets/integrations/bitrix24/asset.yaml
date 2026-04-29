@@ -1,0 +1,12 @@
+id: bitrix24
+name: Bitrix24 Integration
+type: integration
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: "CRM integration for lead and deal tracking."
+owner: "sales-ops@euromobilia.com"
+observability:
+  traces: none
+  metrics: none

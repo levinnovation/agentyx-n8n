@@ -1,0 +1,6 @@
+memory:
+  short_term: true
+  long_term: false
+  vector_store: none
+  backend: sqlite
+  ttl_seconds: 3600

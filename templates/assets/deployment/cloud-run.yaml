@@ -1,0 +1,16 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: "{{asset_id}}"
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    spec:
+      containers:
+        - image: "gcr.io/PROJECT_ID/{{asset_id}}"
+          ports:
+            - containerPort: 8000
+          env:
+            - name: ENV
+              value: production

@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentyx.io/schemas/deployment-contract.json",
+  "title": "Deployment Contract Spec",
+  "type": "object",
+  "required": ["id", "name", "target_platform", "artifacts"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string" },
+    "target_platform": {
+      "type": "string",
+      "enum": ["modal", "cloud-run", "render", "railway", "fly", "self-hosted", "docker"]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "env_vars": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "secrets": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "health_check": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string" },
+        "port": { "type": "integer" }
+      }
+    }
+  }
+}

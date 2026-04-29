@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentyx.io/schemas/agent-asset.json",
+  "title": "Agent Asset Spec",
+  "type": "object",
+  "required": ["id", "name", "agent_type", "runtime", "capabilities"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string" },
+    "agent_type": {
+      "type": "string",
+      "enum": ["conversational", "routing", "tool-calling", "multi-agent", "reflection"]
+    },
+    "runtime": { "type": "string", "enum": ["langgraph", "autogen", "crewai", "custom"] },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "tools": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "memory": {
+      "type": "object",
+      "properties": {
+        "short_term": { "type": "boolean" },
+        "long_term": { "type": "boolean" },
+        "vector_store": { "type": "string" }
+      }
+    },
+    "llm": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "temperature": { "type": "number" }
+      }
+    }
+  }
+}

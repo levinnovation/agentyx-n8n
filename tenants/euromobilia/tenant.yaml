@@ -1,0 +1,16 @@
+id: euromobilia
+name: Euromobilia
+version: "1.0.0"
+description: |
+  Euromobilia is a kitchen and home appliance retailer operating in Costa Rica.
+  They serve customers via WhatsApp (Kapso) and web chat, providing quotations
+  for kitchen furniture, appliances, and full kitchen designs.
+owner: "operations@euromobilia.com"
+contact: "operations@euromobilia.com"
+domains:
+  - kitchen-commerce
+tags:
+  - retail
+  - kitchens
+  - whatsapp
+  - costa-rica

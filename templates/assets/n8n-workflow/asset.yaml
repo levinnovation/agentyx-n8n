@@ -1,0 +1,15 @@
+id: "{{asset_id}}"
+name: "{{asset_name}}"
+type: n8n-workflow
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: scaffolded
+description: "Replace with workflow description."
+owner: "replace@example.com"
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: self-hosted
+  region: us-east-1

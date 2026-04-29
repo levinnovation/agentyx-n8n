@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentyx.io/schemas/tool-contract.json",
+  "title": "Tool Contract Spec",
+  "type": "object",
+  "required": ["id", "name", "input_schema", "output_schema"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string" },
+    "description": { "type": "string" },
+    "input_schema": { "type": "object" },
+    "output_schema": { "type": "object" },
+    "auth_required": { "type": "boolean" },
+    "rate_limit": {
+      "type": "object",
+      "properties": {
+        "requests_per_minute": { "type": "integer" }
+      }
+    }
+  }
+}

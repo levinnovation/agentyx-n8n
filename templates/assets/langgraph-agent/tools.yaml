@@ -1,0 +1,15 @@
+tools:
+  - id: example_tool
+    name: Example Tool
+    description: "Replace with real tool description."
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+      required: [query]
+    output_schema:
+      type: object
+      properties:
+        result:
+          type: string

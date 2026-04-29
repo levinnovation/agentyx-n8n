@@ -1,0 +1,12 @@
+id: storage
+name: Object Storage
+type: data-contract
+tenant: euromobilia
+domain: kitchen-commerce
+capability: quote-document-generation
+status: scaffolded
+description: "Supabase storage for PDF quotes and media."
+owner: "infra@euromobilia.com"
+observability:
+  traces: none
+  metrics: none

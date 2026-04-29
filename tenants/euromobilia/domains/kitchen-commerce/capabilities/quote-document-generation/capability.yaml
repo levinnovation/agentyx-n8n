@@ -1,0 +1,16 @@
+id: quote-document-generation
+name: Quote Document Generation
+tenant: euromobilia
+domain: kitchen-commerce
+purpose: >
+  Generate PDF quotation documents from approved quotations and send them
+  to customers via WhatsApp or email.
+assets:
+  - quote-pdf-function
+  - whatsapp-kapso
+status: scaffolded
+sla:
+  response_time_ms: 10000
+  availability: "99.5%"
+dependencies:
+  - kitchen-quotation

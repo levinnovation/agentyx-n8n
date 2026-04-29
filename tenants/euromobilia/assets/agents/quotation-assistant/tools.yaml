@@ -1,0 +1,51 @@
+tools:
+  - id: search_catalog
+    name: Search Catalog
+    description: "Search product catalog by query."
+    input_schema:
+      type: object
+      properties:
+        query:
+          type: string
+        top_k:
+          type: integer
+          default: 5
+      required: [query]
+    output_schema:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+      required: [results]
+  - id: sync_to_crm
+    name: Sync to CRM
+    description: "Sync lead to Bitrix24."
+    input_schema:
+      type: object
+      properties:
+        lead:
+          type: object
+      required: [lead]
+    output_schema:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+  - id: notify_slack
+    name: Notify Slack
+    description: "Send notification to Slack channel."
+    input_schema:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+    output_schema:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]

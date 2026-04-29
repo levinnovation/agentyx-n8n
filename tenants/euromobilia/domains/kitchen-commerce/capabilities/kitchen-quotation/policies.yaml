@@ -1,0 +1,13 @@
+policies:
+  - id: p1
+    name: "Intent Classification"
+    description: "Agent MUST classify intent before retrieving catalog."
+  - id: p2
+    name: "Price Accuracy"
+    description: "All prices MUST come from the catalog RAG; no hallucination."
+  - id: p3
+    name: "Human Escalation"
+    description: "Agent MUST escalate when confidence < 0.7 or customer requests human."
+  - id: p4
+    name: "GDPR"
+    description: "Customer PII MUST NOT be logged in plain text."

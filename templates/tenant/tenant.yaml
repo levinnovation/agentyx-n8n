@@ -1,0 +1,10 @@
+id: "{{tenant_id}}"
+name: "{{tenant_name}}"
+version: "0.1.0"
+description: "Replace with tenant description."
+owner: "replace@example.com"
+contact: "replace@example.com"
+domains:
+  - example-domain
+tags:
+  - template

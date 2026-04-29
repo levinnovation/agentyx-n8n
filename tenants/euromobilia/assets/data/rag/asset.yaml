@@ -1,0 +1,12 @@
+id: catalog-rag
+name: Catalog RAG
+type: rag-contract
+tenant: euromobilia
+domain: kitchen-commerce
+capability: product-catalog-retrieval
+status: scaffolded
+description: "Vector store for semantic product search."
+owner: "ai-team@euromobilia.com"
+observability:
+  traces: none
+  metrics: none

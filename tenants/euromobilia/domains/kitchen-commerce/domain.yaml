@@ -1,0 +1,14 @@
+id: kitchen-commerce
+name: Kitchen Commerce
+tenant: euromobilia
+description: |
+  All business capabilities related to selling kitchen furniture and appliances
+  via digital channels (WhatsApp, web).
+capabilities:
+  - kitchen-quotation
+  - human-handoff
+  - product-catalog-retrieval
+  - quote-document-generation
+data_residency: "us-east-1"
+compliance:
+  - gdpr

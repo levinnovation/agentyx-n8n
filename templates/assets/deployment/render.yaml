@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: "{{asset_id}}"
+    env: docker
+    plan: standard
+    envVars:
+      - key: ENV
+        value: production

@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentyx.io/schemas/asset-spec.json",
+  "title": "Asset Spec",
+  "type": "object",
+  "required": ["id", "name", "type", "tenant", "domain", "capability", "status"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "name": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": [
+        "langgraph-agent",
+        "n8n-workflow",
+        "channel-adapter",
+        "integration",
+        "data-contract",
+        "rag-contract",
+        "infra",
+        "deployment",
+        "prompt",
+        "eval"
+      ]
+    },
+    "tenant": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "domain": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "capability": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+    "status": {
+      "type": "string",
+      "enum": ["scaffolded", "validated", "compiled", "deployed", "monitored", "deprecated", "retired"]
+    },
+    "description": { "type": "string" },
+    "owner": { "type": "string" },
+    "observability": {
+      "type": "object",
+      "properties": {
+        "traces": { "type": "string", "enum": ["langfuse", "langsmith", "none"] },
+        "metrics": { "type": "string", "enum": ["prometheus", "datadog", "none"] }
+      }
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "platform": { "type": "string", "enum": ["modal", "cloud-run", "render", "railway", "fly", "self-hosted"] },
+        "region": { "type": "string" }
+      }
+    }
+  }
+}

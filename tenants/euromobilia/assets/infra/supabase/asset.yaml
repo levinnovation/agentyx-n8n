@@ -1,0 +1,12 @@
+id: supabase
+name: Supabase Infrastructure
+type: infra
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: "Supabase project configuration."
+owner: "infra@euromobilia.com"
+observability:
+  traces: none
+  metrics: none

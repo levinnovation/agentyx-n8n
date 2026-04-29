@@ -1,0 +1,16 @@
+id: human-handoff
+name: Human Handoff
+tenant: euromobilia
+domain: kitchen-commerce
+purpose: >
+  Escalate conversations from AI to human sales agents when the AI cannot
+  answer, the customer explicitly requests a human, or the quotation is
+  high-value.
+assets:
+  - handoff-workflow
+  - slack-notifier
+status: scaffolded
+sla:
+  response_time_ms: 30000
+  availability: "99.5%"
+dependencies: []

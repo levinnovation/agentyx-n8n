@@ -1,0 +1,12 @@
+id: "{{asset_id}}"
+name: "{{asset_name}}"
+type: infra
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: scaffolded
+description: "Supabase infrastructure scaffold."
+owner: "replace@example.com"
+observability:
+  traces: none
+  metrics: none
