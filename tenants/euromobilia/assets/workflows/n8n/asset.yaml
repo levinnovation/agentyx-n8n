@@ -8,8 +8,8 @@ status: validated
 version: "1.1.0"
 description: |
   Versioned n8n workflow JSON for kitchen-quotation. Runtime: self-hosted
-  n8n CE on Hostinger VPS. 3 of 4 workflows active; human-handoff pending
-  Slack webhook configuration.
+  n8n CE on Hostinger VPS. Workflow activation status and webhook paths are
+  documented in README.md in this directory (do not append Markdown to this file).
 owner: "ai-team@euromobilia.com"
 observability:
   traces: none
@@ -17,23 +17,3 @@ observability:
 deployment:
   platform: self-hosted
   region: hostinger
-
----
-
-# n8n Workflows Status
-
-| Workflow | File | n8n Status | Webhook Path |
-|----------|------|------------|--------------|
-| Kapso Inbound Quotation | `kapso-inbound-quotation.json` | Active | `POST /webhook/kapso-inbound` |
-| Quote Document Generation | `quote-document-generation.json` | Active | `POST /webhook/quote-document-generation` |
-| KB Ingest | `kb-ingest.json` | Active | (schedule) |
-| Human Handoff | `human-handoff.json` | Inactive | `POST /webhook/euromobilia-handoff` |
-
-## Required Environment Variables
-
-- `KAPSO_API_KEY`
-- `KAPSO_BASE_URL`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `SLACK_WEBHOOK_URL` (for human-handoff)
-- `AGENT_BASE_URL` (point to deployed quotation-assistant)

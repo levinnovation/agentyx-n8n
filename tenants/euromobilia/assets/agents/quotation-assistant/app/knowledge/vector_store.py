@@ -17,7 +17,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from config import LLM_API_KEY, LLM_BASE_URL, EMBEDDING_MODEL, EMBEDDING_DIMENSION, FAISS_INDEX_DIR
+from ..config import LLM_API_KEY, LLM_BASE_URL, EMBEDDING_MODEL, EMBEDDING_DIMENSION, FAISS_INDEX_DIR
 
 _store: FAISS | None = None
 _embeddings: OpenAIEmbeddings | None = None

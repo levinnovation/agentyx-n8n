@@ -16,7 +16,7 @@ from typing import Any
 
 from supabase import create_client, Client
 
-from config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+from .config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 _client: Client | None = None
 

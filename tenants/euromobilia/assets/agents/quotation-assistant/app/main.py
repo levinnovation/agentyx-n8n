@@ -18,28 +18,28 @@ from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.responses import JSONResponse
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from graph import get_agent, invoke_agent
-from models import (
+from .graph import get_agent, invoke_agent
+from .models import (
     AgentInvokeRequest,
     AgentInvokeResponse,
     HealthCheck,
     Intent,
     KapsoInboundPayload,
 )
-from memory import (
+from .memory import (
     append_message,
     get_messages,
     get_or_create_conversation,
     update_session_state,
 )
-from kapso import send_text, send_document, send_image
-from tools.catalog_search import query_product_catalog, list_price_lists
-from tools.document_search import search_documents, read_document_content
-from tools.nomenclature import decode_product_nomenclature
-from tools.web_search import web_search_product
-from tools.image_gen import generate_quotation_image, describe_reference_image
-from tools.product_image import search_product_image
-from tools.quote_pdf import generate_quotation_pdf
+from .kapso import send_text, send_document, send_image
+from .tools.catalog_search import query_product_catalog, list_price_lists
+from .tools.document_search import search_documents, read_document_content
+from .tools.nomenclature import decode_product_nomenclature
+from .tools.web_search import web_search_product
+from .tools.image_gen import generate_quotation_image, describe_reference_image
+from .tools.product_image import search_product_image
+from .tools.quote_pdf import generate_quotation_pdf
 
 app = FastAPI(title="Euromobilia Quotation Assistant")
 

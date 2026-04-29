@@ -11,7 +11,7 @@ import time
 
 import httpx
 
-from config import KAPSO_API_KEY, KAPSO_BASE_URL
+from .config import KAPSO_API_KEY, KAPSO_BASE_URL
 
 
 def _kapso_headers() -> dict:

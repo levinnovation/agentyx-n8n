@@ -11,8 +11,8 @@ from __future__ import annotations
 from langchain_core.tools import tool
 from supabase import create_client, Client
 
-from config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-from knowledge.vector_store import search as vector_search, get_store
+from ..config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+from ..knowledge.vector_store import search as vector_search, get_store
 
 _client: Client | None = None
 

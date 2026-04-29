@@ -27,7 +27,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 
-from config import (
+from .config import (
     LLM_API_KEY,
     LLM_BASE_URL,
     LLM_MODEL,

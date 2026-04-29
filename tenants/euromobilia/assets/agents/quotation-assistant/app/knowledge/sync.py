@@ -15,8 +15,8 @@ from datetime import datetime
 
 from supabase import create_client, Client
 
-from config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-from knowledge.vector_store import build_index, is_index_stale, get_store
+from ..config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+from .vector_store import build_index, is_index_stale, get_store
 
 _client: Client | None = None
 

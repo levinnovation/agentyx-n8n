@@ -18,7 +18,7 @@ import traceback
 import httpx
 from langchain_core.tools import tool
 
-from config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_BASE_URL
+from ..config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENROUTER_BASE_URL
 
 _user_attached_images: list[dict] = []
 _immutable_reference: bool = False

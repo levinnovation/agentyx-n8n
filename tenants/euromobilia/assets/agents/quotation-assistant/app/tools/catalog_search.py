@@ -14,8 +14,8 @@ from typing import Literal
 from langchain_core.tools import tool
 from supabase import create_client, Client
 
-from config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
-from knowledge.keyword_map import map_keywords_to_code_prefixes, extract_size_from_query
+from ..config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+from ..knowledge.keyword_map import map_keywords_to_code_prefixes, extract_size_from_query
 
 
 @dataclass

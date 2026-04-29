@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from langchain_core.tools import tool
 
-from config import TAVILY_API_KEY
+from ..config import TAVILY_API_KEY
 
 
 def _tavily_search(query: str, max_results: int = 3) -> list[dict]:
