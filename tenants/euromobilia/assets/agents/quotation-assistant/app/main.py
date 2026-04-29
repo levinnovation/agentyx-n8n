@@ -200,7 +200,7 @@ async def agent_invoke(request: AgentInvokeRequest):
 @app.get("/health")
 async def health():
     """Health check with KB and catalog stats."""
-    from knowledge.sync import ensure_index_loaded, fetch_product_count, fetch_price_entry_count
+    from .knowledge.sync import ensure_index_loaded, fetch_product_count, fetch_price_entry_count
 
     kb_ok = ensure_index_loaded()
     product_count = fetch_product_count()

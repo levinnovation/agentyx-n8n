@@ -161,7 +161,7 @@ def build_agent_graph(tools: list) -> StateGraph:
 
     def ensure_kb(state: AgentState) -> AgentState:
         """Load FAISS index if not already in memory."""
-        from knowledge.sync import ensure_index_loaded
+        from .knowledge.sync import ensure_index_loaded
         ensure_index_loaded()
         return state
 
