@@ -3,7 +3,10 @@ name: Kitchen Commerce
 tenant: euromobilia
 description: |
   All business capabilities related to selling kitchen furniture and appliances
-  via digital channels (WhatsApp, web).
+  via digital channels (WhatsApp via Kapso, web).
+  
+  This domain covers the full quotation lifecycle: inbound intent classification,
+  catalog retrieval, pricing with commercial rules, human handoff, and document
 capabilities:
   - kitchen-quotation
   - human-handoff

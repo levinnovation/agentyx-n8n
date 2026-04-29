@@ -1,6 +1,6 @@
 # Quotation Assistant
 
-LangGraph agent for the `kitchen-quotation` capability.
+LangGraph agent for the `kitchen-quotation` capability. The agent implements **business** quotation logic; **which** customer surface (WhatsApp, web chat, Slack, etc.) calls it is determined by **channel** and **workflow** assets, not by this folder alone (see ADR-0007).
 
 ## Structure
 
@@ -9,7 +9,7 @@ LangGraph agent for the `kitchen-quotation` capability.
 - `app/memory.py` — Conversation memory
 - `app/config.py` — Runtime config
 - `app/models.py` — Pydantic models
-- `app/kapso.py` — Kapso WhatsApp channel adapter
+- `app/kapso.py` — Outbound helper for the **Kapso WhatsApp** channel asset (first wired surface; other channels use their own adapters)
 - `system-prompt.md` — System prompt
 - `tools.yaml` — Tool registry
 - `memory.yaml` — Memory config
@@ -25,5 +25,5 @@ python -m app.main
 
 - [ ] Implement real intent classification
 - [ ] Integrate catalog RAG
-- [ ] Add Kapso webhook handler
+- [ ] Harden channel ingress (Kapso webhook today; keep handler thin so other channels can reuse the same agent entrypoint)
 - [ ] Configure Langfuse tracing

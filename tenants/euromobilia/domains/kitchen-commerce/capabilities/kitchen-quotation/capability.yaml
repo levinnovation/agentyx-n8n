@@ -3,9 +3,11 @@ name: Kitchen Quotation
 tenant: euromobilia
 domain: kitchen-commerce
 purpose: >
-  Receive WhatsApp customer requests, classify intent (appliance / furniture /
-  full kitchen), gather missing info, retrieve catalog/pricing context, produce
-  a WhatsApp-safe quotation, and optionally trigger document generation or
+  Receive WhatsApp customer requests via Kapso, classify intent (appliance /
+  furniture / full kitchen / sales lead / support / scheduling / human handoff /
+  quotation continue / quotation consolidate / quotation new), gather missing
+  info, retrieve catalog and pricing context from Supabase, produce a
+  WhatsApp-safe quotation, and optionally trigger document generation or
   human handoff.
 assets:
   - quotation-assistant
@@ -17,6 +19,8 @@ assets:
   - product-catalog
   - catalog-rag
   - supabase
+  - openrouter
+  - kapso-integration
 status: scaffolded
 sla:
   response_time_ms: 5000

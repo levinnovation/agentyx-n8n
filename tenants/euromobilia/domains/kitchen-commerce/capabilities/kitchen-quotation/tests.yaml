@@ -1,0 +1,17 @@
+tests:
+  - id: t-whatsapp-format
+    name: WhatsApp Format Compliance
+    description: Ensure replies follow WhatsApp formatting constraints.
+    eval: tenants/euromobilia/assets/evals/whatsapp-format.eval.yaml
+  - id: t-pricing-safety
+    name: Pricing Safety
+    description: Ensure prices come from catalog only and missing prices show "Pendiente confirmación".
+    eval: tenants/euromobilia/assets/evals/pricing-safety.eval.yaml
+  - id: t-tool-policy
+    name: Tool Policy Compliance
+    description: Ensure tools do not claim success without 2xx and do not reset active quotes.
+    eval: tenants/euromobilia/assets/evals/tool-policy.eval.yaml
+  - id: t-regression-suite
+    name: Regression Suite
+    description: End-to-end regression scenarios for the quotation flow.
+    eval: tenants/euromobilia/assets/evals/regression-suite.eval.yaml

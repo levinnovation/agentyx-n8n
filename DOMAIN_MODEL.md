@@ -44,6 +44,8 @@ flowchart TD
     CapQuote --> AssetDeploy["Asset: deployment / render+railway+fly+cloud-run"]
 ```
 
+`whatsapp-kapso` is one example channel. The same capability can reference additional channel adapters (Slack, Teams, web chat, Telegram, etc.) without changing the domain model; see [ADR-0007](knowledge/decisions/0007-multi-interface-deployment-for-tenant-assets.md).
+
 ## Invariants
 
 1. Every asset belongs to exactly one capability.
@@ -66,6 +68,6 @@ States are tracked in `asset.yaml`.
 |------|------------|
 | Capability | A business function with a defined input, output, and SLA |
 | Asset | A deployable artifact that realizes (part of) a capability |
-| Channel | A communication surface (WhatsApp, web, email, etc.) |
+| Channel | A communication surface (WhatsApp, web chat, Slack, Teams, Telegram, email, etc.); each surface is typically a **channel-adapter** asset, and a capability may support **several** in parallel (see ADR-0007) |
 | Contract | A schema-bound interface between assets |
 | Scaffold | A reusable template for creating new instances |

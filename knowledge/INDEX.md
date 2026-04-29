@@ -31,6 +31,7 @@
 
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
 - [change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md](change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md)
+- [change-log/2026/04/2026-04-29-multi-interface-channels-adr.md](change-log/2026/04/2026-04-29-multi-interface-channels-adr.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -55,6 +56,7 @@
 - [decisions/0004-common-utils-as-platform-operator-layer.md](decisions/0004-common-utils-as-platform-operator-layer.md)
 - [decisions/0005-knowledge-system-as-evolutionary-architecture-ledger.md](decisions/0005-knowledge-system-as-evolutionary-architecture-ledger.md)
 - [decisions/0006-agent-context-files-as-repo-operating-memory.md](decisions/0006-agent-context-files-as-repo-operating-memory.md)
+- [decisions/0007-multi-interface-deployment-for-tenant-assets.md](decisions/0007-multi-interface-deployment-for-tenant-assets.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 

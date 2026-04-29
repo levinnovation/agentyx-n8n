@@ -5,8 +5,34 @@ tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
 status: scaffolded
-description: "Internal notifications and alerts."
+description: |
+  Slack notifications for human handoff, errors, and sales alerts.
 owner: "ai-team@euromobilia.com"
 observability:
   traces: none
   metrics: none
+
+documentation: |
+  # Slack Integration
+
+  ## Configuration
+
+  - Webhook URL: `SLACK_WEBHOOK_URL`
+  - Target channel: `#sales-alerts`
+
+  ## Message Types
+
+  | Type | Trigger |
+  |------|---------|
+  | handoff | Agent escalates to human |
+  | error | Tool or runtime error |
+  | lead | New lead created in Bitrix24 |
+
+  ## Required Env
+
+  - `SLACK_WEBHOOK_URL`
+
+  ## Failure Behavior
+
+  - Slack failure is non-blocking
+  - Log error, continue agent flow

@@ -1,0 +1,98 @@
+id: whatsapp-kapso
+name: WhatsApp Kapso Channel
+type: channel-adapter
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  WhatsApp Business API channel via Kapso provider.
+  Inbound messages are received via webhook POST; outbound messages
+  are sent via Kapso REST API.
+owner: "infra@euromobilia.com"
+observability:
+  traces: langfuse
+  metrics: none
+deployment:
+  platform: self-hosted
+  region: us-east-1
+
+documentation: |
+  # WhatsApp Kapso Channel Contract
+
+  ## Inbound Webhook
+
+  - **Path:** `POST /webhooks/kapso/inbound`
+  - **Content-Type:** `application/json`
+  - **Authentication:** `X-Kapso-Signature` HMAC-SHA256 header
+
+  ### Payload normalization
+
+  ```json
+  {
+    "message_id": "msg_abc123",
+    "phone_number": "+50688888888",
+    "contact_name": "Johnny Fernández",
+    "timestamp": "2026-04-29T14:30:00Z",
+    "message_type": "text",
+    "text": "Hola, quiero cotizar una cocina",
+    "media_url": null,
+    "caption": null
+  }
+  ```
+
+  ### Deduplication
+
+  - Dedup key: `message_id`
+  - Cache TTL: 300 seconds
+  - Behavior: if `message_id` seen within TTL, return `204 No Content` immediately
+
+  ## Outbound Contracts
+
+  ### Text message
+
+  ```json
+  {
+    "phone_number": "+50688888888",
+    "message_type": "text",
+    "text": "Gracias por tu interés. Estoy preparando tu cotización."
+  }
+  ```
+
+  ### Document (PDF)
+
+  ```json
+  {
+    "phone_number": "+50688888888",
+    "message_type": "document",
+    "document_url": "https://.../Cotizacion-Euromobilia.pdf",
+    "caption": "Tu cotización está lista"
+  }
+  ```
+
+  ### Image
+
+  ```json
+  {
+    "phone_number": "+50688888888",
+    "message_type": "image",
+    "image_url": "https://.../render.png",
+    "caption": "Así se vería tu cocina"
+  }
+  ```
+
+  ## WhatsApp Formatting Constraints
+
+  - No markdown tables
+  - No fenced code blocks
+  - Max 1200 characters per message (split into multiple if longer)
+  - One question at a time
+  - Use emojis sparingly
+  - Currency format: `$1,234.56`
+  - Dates: `DD/MM/YYYY`
+
+  ## Failure Behavior
+
+  - Kapso 5xx → retry 3x with exponential backoff (1s, 2s, 4s)
+  - Kapso 4xx → log error, do NOT retry
+  - Do NOT claim success unless Kapso returns 2xx

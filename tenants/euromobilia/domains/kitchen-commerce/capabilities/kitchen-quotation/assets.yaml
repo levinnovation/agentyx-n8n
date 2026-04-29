@@ -1,0 +1,56 @@
+assets:
+  - id: quotation-assistant
+    name: Quotation Assistant
+    type: langgraph-agent
+    description: LangGraph agent that handles WhatsApp kitchen quotations end-to-end.
+    path: tenants/euromobilia/assets/agents/quotation-assistant
+  - id: kapso-inbound-quotation
+    name: Kapso Inbound Quotation Workflow
+    type: n8n-workflow
+    description: n8n workflow that receives Kapso webhooks and routes to the agent.
+    path: tenants/euromobilia/assets/workflows/n8n/kapso-inbound-quotation.json
+  - id: whatsapp-kapso
+    name: WhatsApp Kapso Channel
+    type: channel-adapter
+    description: WhatsApp Business API via Kapso provider.
+    path: tenants/euromobilia/assets/channels/whatsapp-kapso
+  - id: bitrix24
+    name: Bitrix24 Integration
+    type: integration
+    description: CRM integration for lead and deal tracking.
+    path: tenants/euromobilia/assets/integrations/bitrix24
+  - id: slack
+    name: Slack Integration
+    type: integration
+    description: Internal notifications and alerts.
+    path: tenants/euromobilia/assets/integrations/slack
+  - id: composio
+    name: Composio Integration
+    type: integration
+    description: Tool orchestration via Composio.
+    path: tenants/euromobilia/assets/integrations/composio
+  - id: kapso-integration
+    name: Kapso Integration
+    type: integration
+    description: Kapso API client for WhatsApp outbound messages.
+    path: tenants/euromobilia/assets/integrations/kapso
+  - id: openrouter
+    name: OpenRouter Integration
+    type: integration
+    description: LLM routing via OpenRouter with free-fallback tiers.
+    path: tenants/euromobilia/assets/integrations/openrouter
+  - id: product-catalog
+    name: Product Catalog Data Contract
+    type: data-contract
+    description: Structured product catalog (brands, categories, products, price_entries).
+    path: tenants/euromobilia/assets/data/product-catalog
+  - id: catalog-rag
+    name: Catalog RAG Contract
+    type: rag-contract
+    description: FAISS-based semantic search over technical documents.
+    path: tenants/euromobilia/assets/data/rag
+  - id: supabase
+    name: Supabase Infrastructure
+    type: infra
+    description: Supabase schema, migrations, storage, and edge functions.
+    path: tenants/euromobilia/assets/infra/supabase

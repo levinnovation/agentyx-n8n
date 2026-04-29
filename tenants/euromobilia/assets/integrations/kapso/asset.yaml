@@ -1,0 +1,45 @@
+id: kapso-integration
+name: Kapso Integration
+type: integration
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  Kapso API client for WhatsApp outbound messages (text, document, image).
+owner: "infra@euromobilia.com"
+observability:
+  traces: none
+  metrics: none
+
+documentation: |
+  # Kapso Integration
+
+  ## Configuration
+
+  - API key: `KAPSO_API_KEY`
+  - Base URL: `KAPSO_BASE_URL` (default: https://api.kapso.io)
+
+  ## Operations
+
+  | Operation | Description |
+  |-----------|-------------|
+  | send_text | Send plain text message |
+  | send_document | Send PDF document |
+  | send_image | Send image with optional caption |
+
+  ## Retry Policy
+
+  - 5xx: 3 retries with exponential backoff (1s, 2s, 4s)
+  - 4xx: no retry, log error
+  - Do NOT claim success unless 2xx returned
+
+  ## Required Env
+
+  - `KAPSO_API_KEY`
+  - `KAPSO_BASE_URL` (optional)
+
+  ## Failure Behavior
+
+  - On total failure: log to LangSmith trace, alert Slack
+  - Do NOT acknowledge success to user if Kapso fails

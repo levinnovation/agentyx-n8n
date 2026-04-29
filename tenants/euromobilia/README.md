@@ -8,7 +8,7 @@ Canonical tenant for the vertical-domain asset framework.
 
 ## Capabilities
 
-1. `kitchen-quotation` — AI-driven WhatsApp quotation flow
+1. `kitchen-quotation` — AI-driven kitchen quotation (multiple channels may attach; WhatsApp via Kapso is the first example)
 2. `human-handoff` — Escalation to human sales agents
 3. `product-catalog-retrieval` — Search and retrieve product info
 4. `quote-document-generation` — Generate PDF quotations

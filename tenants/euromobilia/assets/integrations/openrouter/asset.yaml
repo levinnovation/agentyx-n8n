@@ -1,0 +1,45 @@
+id: openrouter
+name: OpenRouter Integration
+type: integration
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  LLM routing via OpenRouter with free-fallback tiers and LangSmith tracing.
+owner: "ai-team@euromobilia.com"
+observability:
+  traces: langsmith
+  metrics: none
+
+documentation: |
+  # OpenRouter Integration
+
+  ## Configuration
+
+  - API key: `OPENROUTER_API_KEY`
+  - Base URL: `https://openrouter.ai/api/v1`
+
+  ## Fallback Tiers
+
+  | Tier | Models |
+  |------|--------|
+  | reasoning | deepseek/deepseek-r1:free, google/gemini-2.0-flash-exp:free, meta-llama/llama-3.3-70b:free |
+  | fast | google/gemini-2.0-flash-exp:free, meta-llama/llama-3.3-70b:free, deepseek/deepseek-r1:free |
+  | coding | google/gemini-2.0-flash-exp:free, deepseek/deepseek-r1:free, meta-llama/llama-3.3-70b:free |
+
+  ## Fallback Trigger
+
+  - On OpenRouter credit/rate/billing errors (402, 429, "credit", etc.)
+  - Try free models in tier order
+  - Preserve tool binding across fallbacks
+
+  ## Required Env
+
+  - `OPENROUTER_API_KEY`
+  - `LANGCHAIN_API_KEY` (for tracing)
+  - `LANGCHAIN_PROJECT` (default: "euromobilia-quotation")
+
+  ## Failure Behavior
+
+  - If all fallbacks fail: return error to user, log to LangSmith, alert Slack

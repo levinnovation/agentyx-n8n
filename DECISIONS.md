@@ -59,3 +59,14 @@
 **Context:** This repo establishes structure and governance first.
 
 **Decision:** All code assets (agents, workflows) are intentionally scaffolded with TODOs. Production logic is added in follow-up PRs with proper testing.
+
+## ADR-007: Multi-interface deployment (not single-channel)
+
+**Status:** Accepted  
+**Date:** 2026-04-29
+
+**Context:** A first tenant may go live on one messenger (e.g. WhatsApp via Kapso). That must not be documented as if the **architecture** were WhatsApp- or vendor-first.
+
+**Decision:** Capabilities and core agents remain **interface-agnostic**. Each customer or operator surface is a **channel-adapter** (and related workflow) asset; more surfaces (Slack, Microsoft Teams, web widget, web chat, Telegram, etc.) are added as assets, not as a redesign of the domain model.
+
+**Canonical detail:** [knowledge/decisions/0007-multi-interface-deployment-for-tenant-assets.md](knowledge/decisions/0007-multi-interface-deployment-for-tenant-assets.md).

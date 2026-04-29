@@ -1,0 +1,55 @@
+id: catalog-rag
+name: Catalog RAG Contract
+type: rag-contract
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  FAISS-based semantic search over technical documents (catalogs,
+  nomenclature files, price lists). Used for technical details ONLY.
+  NEVER a price source.
+owner: "ai-team@euromobilia.com"
+observability:
+  traces: none
+  metrics: none
+
+documentation: |
+  # RAG Contract
+
+  ## Scope
+
+  - Technical specifications
+  - Product dimensions
+  - Nomenclature decoding reference
+  - Installation guides
+  - Catalog descriptions
+
+  ## Out of Scope
+
+  - Prices (use `query_product_catalog` only)
+  - Availability
+  - Delivery times
+
+  ## Index
+
+  - Backend: FAISS (cpu)
+  - Embeddings: OpenAI `text-embedding-3-small` (1536d)
+  - Chunk size: 1000 tokens, overlap 200
+  - Persistence: local disk (`FAISS_INDEX_DIR`)
+
+  ## Document Categories
+
+  | Category | Description |
+  |----------|-------------|
+  | catalog | Product catalogs |
+  | catalog_electro | Appliance catalogs |
+  | catalog_muebles | Furniture catalogs |
+  | price_list | Price lists (for reference, not pricing) |
+  | nomenclatura | Nomenclature decode tables |
+
+  ## Sync
+
+  - Trigger: on startup if index missing, or via n8n `kb-ingest` workflow
+  - Source: `document_contents` table in Supabase
+  - Frequency: daily or on-demand

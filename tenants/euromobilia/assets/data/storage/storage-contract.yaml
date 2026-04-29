@@ -1,0 +1,39 @@
+id: catalog-storage
+name: Catalog Storage Contract
+type: data-contract
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  Supabase Storage buckets for generated artifacts.
+owner: "infra@euromobilia.com"
+observability:
+  traces: none
+  metrics: none
+
+documentation: |
+  # Storage Contract
+
+  ## Buckets
+
+  ### quotation-pdfs
+  - Purpose: Generated PDF quotations
+  - Public access: yes (signed URLs not required for short-lived shares)
+  - Lifecycle: auto-delete after 90 days (recommended)
+  - Path pattern: `quotes/{YYYYMMdd-HHmmss}/{uuid}/Cotizacion-Euromobilia.pdf`
+
+  ### image-renders
+  - Purpose: Generated kitchen environment images
+  - Public access: yes
+  - Lifecycle: auto-delete after 90 days (recommended)
+  - Path pattern: `q-{uuid}.png`
+
+  ### artifacts (legacy)
+  - Used by legacy quote-pdf edge function
+  - Retained for backward compatibility
+
+  ## Policies
+
+  - Anonymous read allowed for public buckets
+  - Write restricted to service role key

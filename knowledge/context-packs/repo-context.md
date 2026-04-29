@@ -10,6 +10,8 @@ This repository is a **vertical-domain-centric AI asset framework**.
 
 LangGraph agents, n8n workflows, channel adapters, prompts, integrations, data contracts, RAG contracts, Supabase infra, deployment templates, evals, runbooks, and (when introduced) **common utilities** under `common/utils/`.
 
+**Interfaces:** Customer and operator surfaces (WhatsApp, Slack, Microsoft Teams, web widget, web chat, Telegram, email, etc.) attach through **channel-adapter** and related workflow assets. A capability may reference **several** channels over time. Do not describe the repository as a single-channel or single-vendor product—see **ADR-0007** in `knowledge/decisions/`.
+
 ## Prime rule
 
 Do **not** create top-level `agents/`, `workflows/`, `apps/`, `bots/`, or other runtime-centric roots.

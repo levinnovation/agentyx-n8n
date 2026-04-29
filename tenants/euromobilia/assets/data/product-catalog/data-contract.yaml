@@ -1,0 +1,81 @@
+id: product-catalog
+name: Product Catalog Data Contract
+type: data-contract
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  Structured product catalog: brands → product_categories → products → price_entries.
+  This is the PRIMARY and ONLY source of truth for prices.
+owner: "data-team@euromobilia.com"
+observability:
+  traces: none
+  metrics: none
+
+documentation: |
+  # Product Catalog Data Contract
+
+  ## Schema
+
+  ### brands
+  | Column | Type | Notes |
+  |--------|------|-------|
+  | id | UUID PK | |
+  | name | TEXT UNIQUE | e.g. "Wolf", "Sub-Zero" |
+  | segment | TEXT CHECK | 'electrodomesticos' or 'muebles' |
+  | logo_url | TEXT | |
+  | website | TEXT | |
+
+  ### product_categories
+  | Column | Type | Notes |
+  |--------|------|-------|
+  | id | UUID PK | |
+  | brand_id | UUID FK → brands | |
+  | name | TEXT | e.g. "Cocción", "Refrigeración" |
+  | description | TEXT | |
+
+  ### products
+  | Column | Type | Notes |
+  |--------|------|-------|
+  | id | UUID PK | |
+  | category_id | UUID FK → product_categories | |
+  | code | TEXT | e.g. "SRT366" |
+  | description | TEXT | |
+  | sku_correlation_description | TEXT | Decoded SKU text |
+  | specs | TEXT | |
+  | image_url | TEXT | |
+  | product_url | TEXT | |
+  | is_active | BOOLEAN DEFAULT true | |
+
+  ### price_entries
+  | Column | Type | Notes |
+  |--------|------|-------|
+  | id | UUID PK | |
+  | price_list_id | UUID FK → price_lists | |
+  | product_id | UUID FK → products | |
+  | unit_price | NUMERIC(12,2) | IVI sale price |
+  | project_price | NUMERIC(12,2) | Project price |
+  | margin_pct | NUMERIC | From data model |
+  | discount_pct | NUMERIC | From data model |
+
+  ### price_lists
+  | Column | Type | Notes |
+  |--------|------|-------|
+  | id | UUID PK | |
+  | name | TEXT | e.g. "Lista WOLF LATAM 2026" |
+  | segment | TEXT CHECK | |
+  | effective_date | DATE | |
+  | expiry_date | DATE | |
+  | currency | TEXT DEFAULT 'USD' | |
+
+  ## Pricing Rules
+
+  - `commercial_pricing_rules` table provides dynamic overrides.
+  - `get_effective_pricing(product_id)` RPC applies rules in priority order.
+
+  ## Constraints
+
+  - RAG / document search is NEVER a price source.
+  - If a product has no price entry, display "Pendiente confirmación".
+  - Do not invent prices.

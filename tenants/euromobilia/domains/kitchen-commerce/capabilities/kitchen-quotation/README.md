@@ -4,7 +4,7 @@ The primary AI-driven quotation flow for Euromobilia.
 
 ## Purpose
 
-Automate end-to-end kitchen quotations via WhatsApp.
+Automate end-to-end kitchen quotations. **Channel-agnostic capability:** customer traffic can enter via WhatsApp (Kapso), and over time via other channel assets (Slack, Teams, web widget, web chat, Telegram, etc.).
 
 ## Assets
 

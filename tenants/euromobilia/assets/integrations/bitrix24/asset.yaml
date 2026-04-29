@@ -5,8 +5,38 @@ tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
 status: scaffolded
-description: "CRM integration for lead and deal tracking."
+description: |
+  Bitrix24 CRM integration for lead creation, contact management,
+  timeline events, deals, and PDF attachment.
 owner: "sales-ops@euromobilia.com"
 observability:
   traces: none
   metrics: none
+
+documentation: |
+  # Bitrix24 Integration
+
+  ## Endpoints
+
+  - Webhook URL: `BITRIX24_WEBHOOK_URL` (incoming webhook configured in Bitrix24)
+  - REST API: via Bitrix24 incoming webhook base URL
+
+  ## Operations
+
+  | Operation | Method | Endpoint |
+  |-----------|--------|----------|
+  | Create lead | POST | `{webhook}/crm.lead.add` |
+  | Update lead | POST | `{webhook}/crm.lead.update` |
+  | Add contact | POST | `{webhook}/crm.contact.add` |
+  | Add timeline | POST | `{webhook}/crm.timeline.comment.add` |
+  | Create deal | POST | `{webhook}/crm.deal.add` |
+
+  ## Required Env
+
+  - `BITRIX24_WEBHOOK_URL`
+
+  ## Failure Behavior
+
+  - 5xx → retry 3x with backoff
+  - 4xx → log and alert Slack #sales-alerts
+  - Do NOT block agent reply on CRM failure
