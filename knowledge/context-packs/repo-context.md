@@ -10,6 +10,8 @@ This repository is a **vertical-domain-centric AI asset framework**.
 
 LangGraph agents, n8n workflows, channel adapters, prompts, integrations, data contracts, RAG contracts, Supabase infra, deployment templates, evals, runbooks, and (when introduced) **common utilities** under `common/utils/`.
 
+**n8n runtime:** Euromobilia may use a **self-hosted** n8n CE stack documented under `tenants/euromobilia/assets/deploy/n8n-hostinger/`; workflow JSON remains under `tenants/euromobilia/assets/workflows/n8n/`.
+
 **Interfaces:** Customer and operator surfaces (WhatsApp, Slack, Microsoft Teams, web widget, web chat, Telegram, email, etc.) attach through **channel-adapter** and related workflow assets. A capability may reference **several** channels over time. Do not describe the repository as a single-channel or single-vendor product—see **ADR-0007** in `knowledge/decisions/`.
 
 ## Prime rule

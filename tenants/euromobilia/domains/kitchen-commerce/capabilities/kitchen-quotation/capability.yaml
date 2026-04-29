@@ -11,6 +11,8 @@ purpose: >
   human handoff.
 assets:
   - quotation-assistant
+  - n8n-hostinger
+  - n8n
   - kapso-inbound-quotation
   - whatsapp-kapso
   - bitrix24

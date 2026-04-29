@@ -30,6 +30,7 @@
 ### `change-log/`
 
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
+- [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
 - [change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md](change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md)
 - [change-log/2026/04/2026-04-29-multi-interface-channels-adr.md](change-log/2026/04/2026-04-29-multi-interface-channels-adr.md)
@@ -59,6 +60,7 @@
 - [decisions/0006-agent-context-files-as-repo-operating-memory.md](decisions/0006-agent-context-files-as-repo-operating-memory.md)
 - [decisions/0007-multi-interface-deployment-for-tenant-assets.md](decisions/0007-multi-interface-deployment-for-tenant-assets.md)
 - [decisions/0008-migrate-aurea-to-euromobilia-kitchen-commerce.md](decisions/0008-migrate-aurea-to-euromobilia-kitchen-commerce.md)
+- [decisions/0009-self-hosted-n8n-ce-on-hostinger-vps.md](decisions/0009-self-hosted-n8n-ce-on-hostinger-vps.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -95,6 +97,7 @@
 - [prompts/cursor/0002-add-common-platform-utils.md](prompts/cursor/0002-add-common-platform-utils.md)
 - [prompts/cursor/0003-add-knowledge-system.md](prompts/cursor/0003-add-knowledge-system.md)
 - [prompts/cursor/0004-add-agent-context-files.md](prompts/cursor/0004-add-agent-context-files.md)
+- [prompts/cursor/0005-hostinger-n8n-self-host.md](prompts/cursor/0005-hostinger-n8n-self-host.md)
 - [prompts/cursor/0005-migrate-aurea-to-euromobilia.md](prompts/cursor/0005-migrate-aurea-to-euromobilia.md)
 - [prompts/cursor/README.md](prompts/cursor/README.md)
 - [prompts/open-codex/README.md](prompts/open-codex/README.md)

@@ -31,4 +31,6 @@ See **ADR-0007** (`knowledge/decisions/0007-multi-interface-deployment-for-tenan
 ## Example asset IDs
 
 - LangGraph agent asset: `quotation-assistant`
-- n8n workflow asset: `kapso-inbound-quotation`
+- n8n workflow export bundle (directory `assets/workflows/n8n/`): `n8n`
+- n8n workflow JSON files: `kapso-inbound-quotation`, `human-handoff`, etc.
+- Self-hosted n8n **runtime** (Docker on Hostinger): deployment asset `n8n-hostinger` under `tenants/euromobilia/assets/deploy/n8n-hostinger/`

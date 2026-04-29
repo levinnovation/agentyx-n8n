@@ -1,0 +1,18 @@
+id: n8n-hostinger
+name: n8n Community Edition on Hostinger VPS
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  Self-hosted n8n Community Edition on Hostinger (IP bootstrap: HTTP on port 80
+  via Caddy reverse proxy to n8n). Postgres backs the n8n database. Secrets
+  live only on the VPS in .env — never in Git.
+owner: "ai-team@euromobilia.com"
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: self-hosted
+  region: hostinger

@@ -1,0 +1,6 @@
+# Reverse proxy: public HTTP :80 -> n8n :5678
+# For IP-only bootstrap. Replace with domain + TLS when DNS is ready.
+
+:80 {
+	reverse_proxy n8n:5678
+}
