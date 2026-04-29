@@ -1,0 +1,64 @@
+{
+  "name": "quote-document-generation",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "quote-document-generation"
+    },
+    {
+      "parameters": {
+        "options": {},
+        "requestMethod": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/quote-pdf",
+        "body": {
+          "quote_json": "={{ $json.body.quote_json }}"
+        }
+      },
+      "id": "supabase-function",
+      "name": "Supabase Function",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "requestMethod": "POST",
+        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
+        "headers": {
+          "Authorization": "Bearer {{ $env.KAPSO_API_KEY }}"
+        },
+        "body": {
+          "phone_number": "={{ $json.body.phone_number }}",
+          "message_type": "document",
+          "document_url": "={{ $json.body.pdf_url }}",
+          "caption": "Tu cotización está lista"
+        }
+      },
+      "id": "kapso-send",
+      "name": "Kapso Send Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{"node": "Supabase Function", "type": "main", "index": 0}]]
+    },
+    "Supabase Function": {
+      "main": [[{"node": "Kapso Send Document", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}

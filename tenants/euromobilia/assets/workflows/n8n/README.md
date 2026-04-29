@@ -1,15 +1,24 @@
 # n8n Workflows
 
-n8n workflow assets for Euromobilia. Workflows orchestrate **ingress and routing**; they are not the architectural root. Multiple customer interfaces can each have workflows (or shared branches) that normalize traffic before calling the same LangGraph agent (ADR-0007).
+## Import Order
 
-## Workflows
+1. `kapso-inbound-quotation.json` — Main inbound webhook flow
+2. `kb-ingest.json` — Knowledge base sync trigger
+3. `human-handoff.json` — Human escalation flow
+4. `quote-document-generation.json` — PDF generation and delivery
 
-- `kapso-inbound-quotation.json` — Inbound flow for the **Kapso WhatsApp** channel asset (first example surface)
-- `kb-ingest.json` — Knowledge base / catalog ingestion
-- `human-handoff.json` — Human escalation notifications
+## Credential Setup
 
-## Import/Export
+All workflows reference environment variables only. Set these in your n8n instance:
 
-```bash
-make compile-n8n TENANT=euromobilia DOMAIN=kitchen-commerce CAPABILITY=kitchen-quotation ASSET=kapso-inbound-quotation
-```
+- `KAPSO_API_KEY`
+- `KAPSO_BASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `AGENT_BASE_URL` (for `/agent/invoke`)
+- `SLACK_WEBHOOK_URL`
+
+## Notes
+
+- Do not commit credentials to Git.
+- These are starter scaffolds; customize nodes as needed.
