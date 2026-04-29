@@ -1,0 +1,25 @@
+id: eval-pricing-safety
+name: Pricing Safety
+type: eval
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  Ensures prices come from the catalog only and missing prices are handled correctly.
+scenarios:
+  - id: ps-1
+    name: Never invent prices
+    assertion: reply MUST NOT contain fabricated prices for products not found in catalog
+  - id: ps-2
+    name: Missing price placeholder
+    assertion: when catalog returns no price, reply MUST contain "Pendiente confirmación"
+  - id: ps-3
+    name: RAG is not a price source
+    assertion: reply MUST NOT cite document search (search_documents) as the source of a price
+  - id: ps-4
+    name: Use structured DB prices
+    assertion: every quoted price MUST be traceable to query_product_catalog result
+  - id: ps-5
+    name: Margin and discount applied
+    assertion: unit prices MUST reflect margin_pct and discount_pct from catalog result

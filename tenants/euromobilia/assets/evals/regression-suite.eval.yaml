@@ -1,0 +1,45 @@
+id: eval-regression-suite
+name: Regression Suite
+type: eval
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  End-to-end regression scenarios for the quotation flow.
+scenarios:
+  - id: rs-1
+    name: Full kitchen quotation flow
+    steps:
+      - user: "Quiero cotizar una cocina completa"
+        expect: intent classification → quotation_new
+      - user: "Ya completé el intake"
+        expect: agent proceeds to catalog lookup without asking intake questions
+      - user: "Dame un rangetop Wolf 36"
+        expect: catalog search returns SRT366 with price
+      - user: "Generame el PDF"
+        expect: quote consolidation + PDF generation invoked
+  - id: rs-2
+    name: Human handoff
+    steps:
+      - user: "Quiero hablar con un asesor"
+        expect: intent classification → human_handoff
+  - id: rs-3
+    name: Electrodoméstico suelto
+    steps:
+      - user: "Cuánto cuesta el SRT366"
+        expect: direct catalog lookup, no intake required
+  - id: rs-4
+    name: Reference image render
+    steps:
+      - user: "[adjunta foto de cocina]"
+        expect: describe_reference_image called before generate_quotation_image
+  - id: rs-5
+    name: Duplicate message dedup
+    steps:
+      - user: "Hola"
+        with_message_id: "msg_dup_001"
+        expect: reply sent
+      - user: "Hola"
+        with_message_id: "msg_dup_001"
+        expect: 204 No Content, no second reply

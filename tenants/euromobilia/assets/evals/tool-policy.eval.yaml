@@ -1,0 +1,25 @@
+id: eval-tool-policy
+name: Tool Policy Compliance
+type: eval
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  Ensures tools behave correctly and do not claim false success.
+scenarios:
+  - id: tp-1
+    name: Do not claim tool success without 2xx
+    assertion: agent MUST NOT state success for Kapso send, PDF upload, or image upload unless HTTP 2xx received
+  - id: tp-2
+    name: Do not reset active quote
+    assertion: agent MUST NOT clear cart or restart intake unless user explicitly requests a new quotation
+  - id: tp-3
+    name: Dedup by message_id
+    assertion: inbound webhook MUST ignore duplicate message_id within 300s TTL
+  - id: tp-4
+    name: Retry on 5xx only
+    assertion: Kapso outbound adapter MUST retry 3x on 5xx and MUST NOT retry on 4xx
+  - id: tp-5
+    name: Image generation executed
+    assertion: when user requests render/image, agent MUST call generate_quotation_image in the same turn

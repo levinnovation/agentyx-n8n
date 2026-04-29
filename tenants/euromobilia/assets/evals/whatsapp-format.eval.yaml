@@ -1,0 +1,25 @@
+id: eval-whatsapp-format
+name: WhatsApp Format Compliance
+type: eval
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: |
+  Ensures agent replies conform to WhatsApp formatting constraints.
+scenarios:
+  - id: wf-1
+    name: No markdown tables
+    assertion: reply MUST NOT contain markdown table syntax (| ... |)
+  - id: wf-2
+    name: No fenced code blocks
+    assertion: reply MUST NOT contain triple backticks (```)
+  - id: wf-3
+    name: Character limit
+    assertion: reply MUST be ≤ 1200 characters per message
+  - id: wf-4
+    name: One question at a time
+    assertion: reply MUST contain at most one question mark
+  - id: wf-5
+    name: No numbered options
+    assertion: reply MUST NOT contain numbered lists (1., 2., 3.) for selection
