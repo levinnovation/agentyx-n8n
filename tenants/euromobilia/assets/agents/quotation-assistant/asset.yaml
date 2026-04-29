@@ -5,14 +5,40 @@ tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
 status: scaffolded
+runtime: langgraph-fastapi
+legacy_source: aurea-aragroupcr
+depends_on:
+  - product-catalog
+  - catalog-rag
+  - supabase
+  - whatsapp-kapso
+  - bitrix24
+  - slack
+  - openrouter
+required_env:
+  - OPENROUTER_API_KEY
+  - OPENAI_API_KEY
+  - SUPABASE_URL
+  - SUPABASE_SERVICE_ROLE_KEY
+  - KAPSO_API_KEY
+  - KAPSO_BASE_URL
+  - KAPSO_WEBHOOK_SECRET
+  - BITRIX24_WEBHOOK_URL
+  - SLACK_WEBHOOK_URL
+  - COMPOSIO_API_KEY
+  - LANGCHAIN_API_KEY
+  - LANGCHAIN_PROJECT
+  - TAVILY_API_KEY
+  - REPLICATE_API_TOKEN
+  - FAISS_INDEX_DIR
 description: |
   LangGraph agent that handles WhatsApp kitchen quotations end-to-end.
   Classifies intent, retrieves catalog context, composes replies, and
   triggers handoff or document generation when needed.
 owner: "ai-team@euromobilia.com"
 observability:
-  traces: langfuse
+  traces: langsmith
   metrics: none
 deployment:
-  platform: modal
+  platform: render
   region: us-east-1

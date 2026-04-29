@@ -1,6 +1,20 @@
 memory:
+  backend: supabase
   short_term: true
   long_term: true
-  vector_store: supabase
-  backend: supabase
+  vector_store: faiss
   ttl_seconds: 86400
+  schema:
+    sessions_table: chat_sessions
+    messages_table: chat_messages
+  key_fields:
+    - phone_number
+    - conversation_id
+  tracked_state:
+    - contact_name
+    - intake_progress
+    - cart
+    - handoff_state
+  rules:
+    - Do not reset active quote unless user explicitly requests a new quotation.
+    - Dedup inbound messages by message_id with 300s TTL.

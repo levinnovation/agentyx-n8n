@@ -1,51 +1,150 @@
 tools:
-  - id: search_catalog
-    name: Search Catalog
-    description: "Search product catalog by query."
+  - id: query_product_catalog
+    name: Query Product Catalog
+    description: "Search the structured product catalog (primary price source)."
     input_schema:
       type: object
       properties:
         query:
           type: string
-        top_k:
-          type: integer
-          default: 5
       required: [query]
     output_schema:
       type: object
       properties:
         results:
-          type: array
-          items:
-            type: object
-      required: [results]
-  - id: sync_to_crm
-    name: Sync to CRM
-    description: "Sync lead to Bitrix24."
+          type: string
+  - id: list_price_lists
+    name: List Price Lists
+    description: "List all available price lists, optionally filtered by brand."
     input_schema:
       type: object
       properties:
-        lead:
-          type: object
-      required: [lead]
+        brand:
+          type: string
+      required: []
     output_schema:
       type: object
       properties:
-        status:
+        results:
           type: string
-      required: [status]
-  - id: notify_slack
-    name: Notify Slack
-    description: "Send notification to Slack channel."
+  - id: search_documents
+    name: Search Documents
+    description: "Search indexed catalogs and documents for technical specs."
     input_schema:
       type: object
       properties:
-        message:
+        query:
           type: string
-      required: [message]
+        document_type:
+          type: string
+          default: all
+      required: [query]
     output_schema:
       type: object
       properties:
-        status:
+        results:
           type: string
-      required: [status]
+  - id: read_document_content
+    name: Read Document Content
+    description: "Read the full text content of a specific document."
+    input_schema:
+      type: object
+      properties:
+        filename:
+          type: string
+      required: [filename]
+    output_schema:
+      type: object
+      properties:
+        content:
+          type: string
+  - id: decode_product_nomenclature
+    name: Decode Product Nomenclature
+    description: "Decode Wolf, Sub-Zero, or Cove product codes into human-readable specs."
+    input_schema:
+      type: object
+      properties:
+        codes:
+          type: string
+      required: [codes]
+    output_schema:
+      type: object
+      properties:
+        decoded:
+          type: string
+  - id: web_search_product
+    name: Web Search Product
+    description: "Search the web for official product pages."
+    input_schema:
+      type: object
+      properties:
+        product_name:
+          type: string
+        brand:
+          type: string
+      required: [product_name]
+    output_schema:
+      type: object
+      properties:
+        results:
+          type: string
+  - id: generate_quotation_image
+    name: Generate Quotation Image
+    description: "Generate a photorealistic kitchen environment image."
+    input_schema:
+      type: object
+      properties:
+        visual_description:
+          type: string
+        detailed_scene_description:
+          type: string
+        is_final_pdf:
+          type: boolean
+      required: [visual_description]
+    output_schema:
+      type: object
+      properties:
+        image_url:
+          type: string
+  - id: describe_reference_image
+    name: Describe Reference Image
+    description: "Analyze a reference image and produce a detailed scene description."
+    input_schema:
+      type: object
+      properties: {}
+      required: []
+    output_schema:
+      type: object
+      properties:
+        description:
+          type: string
+  - id: search_product_image
+    name: Search Product Image
+    description: "Find the product image URL for a specific product code."
+    input_schema:
+      type: object
+      properties:
+        product_code:
+          type: string
+        brand:
+          type: string
+      required: [product_code]
+    output_schema:
+      type: object
+      properties:
+        image_url:
+          type: string
+  - id: generate_quotation_pdf
+    name: Generate Quotation PDF
+    description: "Generate a branded Euromobilia PDF quotation."
+    input_schema:
+      type: object
+      properties:
+        quote_json_str:
+          type: string
+      required: [quote_json_str]
+    output_schema:
+      type: object
+      properties:
+        pdf_url:
+          type: string
