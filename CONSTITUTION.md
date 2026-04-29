@@ -56,3 +56,11 @@ Every new tenant, domain, capability, or asset type MUST have its design documen
 ## 10. Runtime Agnosticism
 
 This repository contains **specs and scaffolds**, not running infrastructure. The runtime (Modal, Cloud Run, LangGraph Cloud, etc.) consumes assets from this repo via CI/CD.
+
+## 11. Agent Context Law
+
+AI coding agents must be given **durable repo-native context**.
+
+Stable architectural instructions belong in **`AGENTS.md`**, **`knowledge/context-packs/`**, and **tool-specific context files** (e.g. `.cursor/rules/`, `.claude/CLAUDE.md`, `.opencode/`, `.open-codex/`, `.github/copilot-instructions.md`) — not only in chat prompts.
+
+When architecture, validation, or onboarding expectations change, maintainers must update these files alongside `CONSTITUTION.md` / `DOMAIN_MODEL.md` as appropriate.

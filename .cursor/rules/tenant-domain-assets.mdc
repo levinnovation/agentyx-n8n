@@ -1,0 +1,23 @@
+---
+description: Tenant layout, Euromobilia example, asset.yaml requirement
+alwaysApply: true
+---
+
+# Tenants, domains, capabilities, assets
+
+## Layout
+
+- Tenant specs: `tenants/{tenant}/tenant.yaml`
+- Domains: `tenants/{tenant}/domains/{domain}/domain.yaml`
+- Capabilities: `tenants/{tenant}/domains/{domain}/capabilities/{capability}/capability.yaml`
+- Assets: `tenants/{tenant}/assets/{asset-type}/{asset-name}/`
+
+## Euromobilia
+
+Canonical tenant `euromobilia` — see `tenants/euromobilia/README.md` and `knowledge/context-packs/euromobilia-context.md`.
+
+## asset.yaml
+
+Every asset directory **must** include `asset.yaml` (+ `README.md` per `CONSTITUTION.md`).
+
+Do not reference other tenants' assets.

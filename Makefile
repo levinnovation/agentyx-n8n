@@ -1,6 +1,8 @@
 # Build / validate / test / deploy
 .DEFAULT_GOAL := validate
 
+PYTHON    ?= python3
+
 TENANT    ?= euromobilia
 DOMAIN    ?= kitchen-commerce
 CAPABILITY?= kitchen-quotation
@@ -8,34 +10,42 @@ TARGET    ?= langgraph
 ENV       ?= dev
 ASSET     ?= quotation-assistant
 
-.PHONY: help validate test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords
+.PHONY: help validate validate-specs validate-agent-context knowledge-index test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords
 
 help:
-	@echo "Targets: validate, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords"
+	@echo "Targets: validate, validate-specs, validate-agent-context, knowledge-index, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords"
 
-validate:
-	python scripts/validate_specs.py
+validate: validate-specs validate-agent-context
+
+validate-specs:
+	$(PYTHON) scripts/validate_specs.py
+
+validate-agent-context:
+	$(PYTHON) scripts/validate_agent_context.py
+
+knowledge-index:
+	$(PYTHON) scripts/knowledge_index.py
 
 test:
-	pytest scripts/ -q
+	$(PYTHON) -m pytest scripts/ -q
 
 scaffold-tenant:
-	python scripts/scaffold_tenant.py --tenant $(TENANT)
+	$(PYTHON) scripts/scaffold_tenant.py --tenant $(TENANT)
 
 scaffold-domain:
-	python scripts/scaffold_domain.py --tenant $(TENANT) --domain $(DOMAIN)
+	$(PYTHON) scripts/scaffold_domain.py --tenant $(TENANT) --domain $(DOMAIN)
 
 scaffold-capability:
-	python scripts/scaffold_capability.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY)
+	$(PYTHON) scripts/scaffold_capability.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY)
 
 scaffold-asset:
-	python scripts/scaffold_asset.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY) --asset $(ASSET) --type $(TARGET)
+	$(PYTHON) scripts/scaffold_asset.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY) --asset $(ASSET) --type $(TARGET)
 
 compile-langgraph:
-	python scripts/compile_langgraph_asset.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY) --asset $(ASSET)
+	$(PYTHON) scripts/compile_langgraph_asset.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY) --asset $(ASSET)
 
 compile-n8n:
-	python scripts/compile_n8n_asset.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY) --asset $(ASSET)
+	$(PYTHON) scripts/compile_n8n_asset.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY) --asset $(ASSET)
 
 compile-codewords:
-	python scripts/compile_codewords_prompt.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY)
+	$(PYTHON) scripts/compile_codewords_prompt.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY)

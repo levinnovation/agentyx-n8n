@@ -1,0 +1,25 @@
+---
+description: Vertical-domain architecture — tenant, domain, capability, assets
+alwaysApply: true
+---
+
+# Architecture
+
+## Model
+
+**tenant → domain → capability → assets**
+
+- Customer implementation lives under `tenants/{tenant}/` (domains + assets).
+- LangGraph / n8n / channels are **asset types**, not repo roots.
+
+## Forbidden at repo root
+
+Do **not** add top-level `agents/`, `workflows/`, `apps/`, `bots/`, or similar runtime-centric trees.
+
+## Canonical docs
+
+Read `AGENTS.md`, `CONSTITUTION.md`, and `DOMAIN_MODEL.md` before structural changes.
+
+## Knowledge
+
+If you change architecture or governance, update `knowledge/` (ADR, prompt log, change record) per `knowledge/operations/`.

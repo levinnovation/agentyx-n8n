@@ -1,0 +1,25 @@
+---
+description: Knowledge law — durable docs under knowledge/
+alwaysApply: true
+---
+
+# Knowledge system
+
+## Law
+
+Meaningful **architectural** or **governance** changes must be recorded under `knowledge/`:
+
+- Decisions → `knowledge/decisions/` (ADRs)
+- AI sessions → `knowledge/prompts/<tool>/`
+- Implementation narrative → `knowledge/change-log/`
+- Reusable agent text → `knowledge/context-packs/`
+
+## After edits
+
+```bash
+make knowledge-index
+```
+
+## How-to
+
+See `knowledge/operations/how-to-record-a-decision.md` and related ops docs.

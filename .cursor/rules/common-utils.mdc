@@ -1,0 +1,18 @@
+---
+description: Shared platform utilities under common/utils
+alwaysApply: true
+---
+
+# Common utils
+
+## Purpose
+
+Shared operator tooling belongs in `common/utils/` when introduced.
+
+## Rules
+
+- Utilities are **shared**, not tenant-specific business logic.
+- Pass tenant/domain/capability context via **CLI args or config**, not hardcoded customer rules.
+- Document behavior; avoid hidden side effects.
+
+If `common/utils/` does not exist yet, do not invent tenant coupling in `scripts/`—prefer parameterized CLIs and follow ADR-0004 in `knowledge/decisions/`.

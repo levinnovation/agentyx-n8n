@@ -1,0 +1,16 @@
+---
+description: Python CLI and scripting standards for this repo
+globs: scripts/**/*.py
+alwaysApply: false
+---
+
+# Coding standards (Python)
+
+- **Python 3.11+**
+- **Typer** for CLIs
+- **pathlib** for paths
+- **rich** for console output
+- **httpx** for HTTP clients
+- **No secrets** in code or fixtures
+- **Honest stubs** — no fake success paths
+- Prefer small, testable functions; run `make test` when behavior changes

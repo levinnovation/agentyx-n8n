@@ -33,12 +33,26 @@ make compile-n8n TENANT=euromobilia DOMAIN=kitchen-commerce CAPABILITY=kitchen-q
 │   └── assets/                # Asset-type scaffolds (langgraph-agent, n8n-workflow, ...)
 ├── tenants/                   # Real tenant instances
 │   └── euromobilia/           # Canonical example: kitchen-commerce domain
+├── knowledge/                 # Durable architecture ledger (ADRs, prompts, context packs)
 ├── scripts/                   # Python CLI tools
 ├── .github/workflows/         # CI/CD
 ├── Makefile                   # Developer commands
 └── docs/
     └── history.md             # Why this repo exists
 ```
+
+## AI Agent Context
+
+For **AI coding agents** (Cursor, Claude Code, OpenCode, Open Codex, Copilot, etc.), this repo keeps **versioned, repo-native** instructions so sessions do not rely on chat memory alone:
+
+- **`AGENTS.md`** — universal entrypoint; read this before editing code.
+- **Cursor** — project rules in `.cursor/rules/` (`.mdc` files).
+- **Claude Code** — `.claude/CLAUDE.md`.
+- **OpenCode** — `.opencode/AGENTS.md` and `.opencode/context.md`.
+- **Open Codex** — `.open-codex/AGENTS.md` and `.open-codex/context.md`.
+- **GitHub Copilot** — `.github/copilot-instructions.md`.
+
+Durable narrative, ADRs, prompt logs, and reusable bootstrap text live under **`knowledge/`** (start at `knowledge/INDEX.md` after running `make knowledge-index`). These files reduce repeated prompting and help keep coding sessions aligned with the vertical-domain model.
 
 ## Canonical Example: Euromobilia
 
