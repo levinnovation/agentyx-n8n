@@ -2,42 +2,140 @@
   "name": "Kapso Inbound Quotation",
   "nodes": [
     {
-      "id": "webhook",
-      "type": "n8n-nodes-base.webhook",
-      "position": [250, 300],
       "parameters": {
         "httpMethod": "POST",
-        "path": "kapso-inbound"
-      }
+        "path": "kapso-inbound",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "kapso-webhook",
+      "name": "Kapso Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "kapso-inbound"
     },
     {
-      "id": "classify",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [450, 300],
       "parameters": {
-        "method": "POST",
-        "url": "https://your-runtime.com/api/classify"
-      }
+        "jsCode": "// Normalize Kapso payload to agent format\nconst body = $input.first().json.body;\nreturn [{\n  json: {\n    phone_number: body.phone_number || body.phone,\n    conversation_id: body.phone_number || body.phone,\n    message: body.text || body.caption || '',\n    contact_name: body.contact_name || '',\n    media_url: body.media_url || null,\n    message_id: body.message_id || ''\n  }\n}];"
+      },
+      "id": "normalize-payload",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
     },
     {
-      "id": "reply",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [650, 300],
       "parameters": {
         "method": "POST",
-        "url": "https://your-runtime.com/api/reply"
-      }
+        "url": "={{ $env.AGENT_BASE_URL }}/agent/invoke",
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "phone_number": "={{ $json.phone_number }}",
+          "conversation_id": "={{ $json.conversation_id }}",
+          "message": "={{ $json.message }}",
+          "contact_name": "={{ $json.contact_name }}"
+        },
+        "options": {}
+      },
+      "id": "call-agent",
+      "name": "Call Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "phone_number": "={{ $('Normalize Payload').item.json.phone_number }}",
+          "message_type": "text",
+          "text": "={{ $json.reply_text }}"
+        },
+        "options": {}
+      },
+      "id": "kapso-reply",
+      "name": "Kapso Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\", \"reply_sent\": true }",
+        "options": {}
+      },
+      "id": "respond-to-kapso",
+      "name": "Respond to Kapso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1040, 300]
     }
   ],
   "connections": {
-    "webhook": {
-      "main": [[{"node": "classify", "type": "main", "index": 0}]]
+    "Kapso Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "classify": {
-      "main": [[{"node": "reply", "type": "main", "index": 0}]]
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Call Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Agent": {
+      "main": [
+        [
+          {
+            "node": "Kapso Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kapso Reply": {
+      "main": [
+        [
+          {
+            "node": "Respond to Kapso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": ["euromobilia", "whatsapp", "kitchen-quotation"],
+  "staticData": null
 }

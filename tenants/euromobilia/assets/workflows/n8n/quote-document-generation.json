@@ -1,64 +1,118 @@
 {
-  "name": "quote-document-generation",
+  "name": "Quote Document Generation",
   "nodes": [
     {
-      "parameters": {},
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "quote-document-generation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
       "id": "trigger",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
-      "position": [250, 300],
+      "typeVersion": 2,
+      "position": [240, 300],
       "webhookId": "quote-document-generation"
     },
     {
       "parameters": {
-        "options": {},
-        "requestMethod": "POST",
+        "method": "POST",
         "url": "={{ $env.SUPABASE_URL }}/functions/v1/quote-pdf",
+        "sendBody": true,
+        "contentType": "json",
         "body": {
           "quote_json": "={{ $json.body.quote_json }}"
-        }
+        },
+        "options": {}
       },
       "id": "supabase-function",
       "name": "Supabase Function",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [450, 300]
+      "position": [440, 300]
     },
     {
       "parameters": {
-        "options": {},
-        "requestMethod": "POST",
+        "method": "POST",
         "url": "={{ $env.KAPSO_BASE_URL }}/messages",
-        "headers": {
-          "Authorization": "Bearer {{ $env.KAPSO_API_KEY }}"
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
+            }
+          ]
         },
+        "sendBody": true,
+        "contentType": "json",
         "body": {
-          "phone_number": "={{ $json.body.phone_number }}",
+          "phone_number": "={{ $('Webhook').item.json.body.phone_number }}",
           "message_type": "document",
-          "document_url": "={{ $json.body.pdf_url }}",
-          "caption": "Tu cotización está lista"
-        }
+          "document_url": "={{ $json.pdf_url }}",
+          "caption": "Tu cotizacion esta lista"
+        },
+        "options": {}
       },
       "id": "kapso-send",
       "name": "Kapso Send Document",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [650, 300]
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"sent\", \"pdf_url\": $json.pdf_url }",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [840, 300]
     }
   ],
   "connections": {
     "Webhook": {
-      "main": [[{"node": "Supabase Function", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Supabase Function",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Supabase Function": {
-      "main": [[{"node": "Kapso Send Document", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Kapso Send Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kapso Send Document": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "staticData": null,
-  "tags": [],
-  "pinData": {}
+  "tags": ["euromobilia", "pdf", "kitchen-quotation"],
+  "staticData": null
 }

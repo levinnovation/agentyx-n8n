@@ -2,46 +2,80 @@
   "name": "KB Ingest",
   "nodes": [
     {
-      "id": "schedule",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "position": [250, 300],
       "parameters": {
         "rule": {
-          "interval": [{
-            "field": "hours",
-            "hoursInterval": 24
-          }]
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
         }
-      }
+      },
+      "id": "schedule",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
     },
     {
-      "id": "fetch",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [450, 300],
-      "parameters": {
-        "method": "GET",
-        "url": "https://your-catalog-api.com/products"
-      }
-    },
-    {
-      "id": "embed",
-      "type": "n8n-nodes-base.httpRequest",
-      "position": [650, 300],
       "parameters": {
         "method": "POST",
-        "url": "https://your-embedding-api.com/embed"
-      }
+        "url": "={{ $env.AGENT_BASE_URL }}/agent/invoke",
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "phone_number": "__system__",
+          "conversation_id": "__kb_sync__",
+          "message": "__sync_kb__"
+        },
+        "options": {}
+      },
+      "id": "trigger-sync",
+      "name": "Trigger KB Sync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json;\nreturn [{\n  json: {\n    status: resp.reply_text ? 'success' : 'failed',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "log-result",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
     }
   ],
   "connections": {
-    "schedule": {
-      "main": [[{"node": "fetch", "type": "main", "index": 0}]]
+    "Daily Schedule": {
+      "main": [
+        [
+          {
+            "node": "Trigger KB Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "fetch": {
-      "main": [[{"node": "embed", "type": "main", "index": 0}]]
+    "Trigger KB Sync": {
+      "main": [
+        [
+          {
+            "node": "Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
-  }
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": ["euromobilia", "kb-sync", "kitchen-quotation"],
+  "staticData": null
 }

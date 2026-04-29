@@ -15,36 +15,38 @@ Deployment asset (Compose, `.env.example`, runbook): `tenants/euromobilia/assets
 - Workflow JSON in **this directory** is authoritative.
 - n8n CE does **not** replace Git for workflow history (no built-in Git source control in CE). Import changes back into the repo via PR.
 
-## Import order
+## Active Workflows
 
-1. `kapso-inbound-quotation.json` — Main inbound webhook flow
-2. `kb-ingest.json` — Knowledge base sync trigger
-3. `human-handoff.json` — Human escalation flow
-4. `quote-document-generation.json` — PDF generation and delivery
+| Workflow | Status | Webhook URL | Description |
+|----------|--------|-------------|-------------|
+| `kapso-inbound-quotation` | **Active** | `POST http://187.127.252.161/webhook/kapso-inbound` | Receives Kapso WhatsApp messages, normalizes payload, calls agent, sends reply |
+| `quote-document-generation` | **Active** | `POST http://187.127.252.161/webhook/quote-document-generation` | Receives quote JSON, generates PDF via Supabase function, sends via Kapso |
+| `kb-ingest` | **Active** | (schedule trigger) | Daily sync of knowledge base via agent invoke |
+| `human-handoff` | **Inactive** | `POST http://187.127.252.161/webhook/euromobilia-handoff` | Receives handoff trigger, notifies Slack. **Activate manually in n8n UI after setting SLACK_WEBHOOK_URL.** |
 
-After editing in n8n, export JSON and update the matching file here, then open a PR.
+## Environment Variables
 
-## Webhook base URL
+Set these in `/opt/n8n/.env` and restart n8n:
 
-With IP bootstrap, webhooks are under:
+```bash
+KAPSO_API_KEY=...
+KAPSO_BASE_URL=https://api.kapso.io
+SUPABASE_URL=https://ujqogkcllqcwtefqimba.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+AGENT_BASE_URL=http://localhost:8000   # UPDATE when agent is deployed
+```
 
-`http://187.127.252.161/` + n8n webhook path (see each workflow’s Webhook node).
+## Kapso Webhook Configuration
 
-When you move to HTTPS + domain, update **both** the VPS `.env` (`WEBHOOK_URL`, `N8N_EDITOR_BASE_URL`, `N8N_PROTOCOL`, `N8N_SECURE_COOKIE`) and any external systems (e.g. Kapso) that call n8n.
+In Kapso dashboard, set the inbound webhook URL to:
 
-## Credential setup
-
-All workflows reference environment variables only. Set these **in the n8n instance** (UI or n8n env), not in Git:
-
-- `KAPSO_API_KEY`
-- `KAPSO_BASE_URL`
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `AGENT_BASE_URL` (for `/agent/invoke`)
-- `SLACK_WEBHOOK_URL`
+```
+http://187.127.252.161/webhook/kapso-inbound
+```
 
 ## Notes
 
 - Do not commit credentials to Git.
-- These are starter scaffolds; customize nodes as needed.
-- Replace placeholder URLs inside JSON scaffolds (e.g. `https://your-runtime.com/...`) with `AGENT_BASE_URL` or your real agent endpoint as you wire nodes.
+- `AGENT_BASE_URL` must be updated when the quotation-assistant is deployed to Render or another host.
+- The human-handoff workflow requires `SLACK_WEBHOOK_URL` to be set before activation.
