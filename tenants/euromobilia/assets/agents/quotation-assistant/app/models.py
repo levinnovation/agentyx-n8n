@@ -33,14 +33,21 @@ class KapsoInboundPayload(BaseModel):
     context_message_id: str | None = None
 
 
+class KapsoRawPayload(BaseModel):
+    """Raw Kapso webhook payload (nested format)."""
+    message: dict | None = None
+    conversation: dict | None = None
+
+
 class AgentInvokeRequest(BaseModel):
     phone_number: str
     conversation_id: str
     message: str
     contact_name: str = ""
     media_url: str | None = None
+    message_id: str = ""
     intent_hint: Intent | None = None
-    intake_data: dict | None = None
+    intake_data: dict | str | None = None
     template_slug: str | None = None
 
 

@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Normalize Kapso payload to agent format\nconst body = $input.first().json.body;\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\n// Extract message text based on type\nlet messageText = '';\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Image received]';\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Document received]';\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Voice message received]';\n}\n\nreturn [{\n  json: {\n    phone_number: '+' + conv.phone_number || msg.from || '',\n    conversation_id: conv.id || msg.from || '',\n    message: messageText,\n    contact_name: conv.contact_name || '',\n    media_url: null,\n    message_id: msg.id || ''\n  }\n}];"
+        "jsCode": "// Normalize Kapso payload to agent format\nconst body = $input.first().json.body;\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\n// Extract message text and media URL based on type\nlet messageText = '';\nlet mediaUrl = null;\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Image received]';\n  mediaUrl = msg.image.link || null;\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Document received]';\n  mediaUrl = msg.document.link || null;\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Voice message received]';\n  mediaUrl = msg.voice.link || null;\n}\n\nconst phoneNumber = conv.phone_number ? '+' + conv.phone_number : (msg.from ? '+' + msg.from : '');\n\nreturn [{\n  json: {\n    phone_number: phoneNumber,\n    conversation_id: conv.id || msg.from || '',\n    message: messageText,\n    contact_name: conv.contact_name || '',\n    media_url: mediaUrl,\n    message_id: msg.id || ''\n  }\n}];"
       },
       "id": "normalize-payload",
       "name": "Normalize Payload",
@@ -49,6 +49,14 @@
             {
               "name": "contact_name",
               "value": "={{ $json.contact_name }}"
+            },
+            {
+              "name": "media_url",
+              "value": "={{ $json.media_url }}"
+            },
+            {
+              "name": "message_id",
+              "value": "={{ $json.message_id }}"
             }
           ]
         },

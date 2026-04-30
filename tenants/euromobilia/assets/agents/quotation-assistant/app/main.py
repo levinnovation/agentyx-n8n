@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from pathlib import Path
 
@@ -42,6 +43,7 @@ from .tools.web_search import web_search_product
 from .tools.image_gen import generate_quotation_image, describe_reference_image
 from .tools.product_image import search_product_image
 from .tools.quote_pdf import generate_quotation_pdf
+from .tools.composio import composio_mcp_execute, composio_mcp_list_actions
 
 app = FastAPI(title="Euromobilia Quotation Assistant")
 
@@ -75,6 +77,8 @@ _tools = [
     describe_reference_image,
     search_product_image,
     generate_quotation_pdf,
+    composio_mcp_execute,
+    composio_mcp_list_actions,
 ]
 
 
@@ -88,11 +92,75 @@ def _load_prompt(name: str) -> str:
     return ""
 
 
+# ─── Kapso reply helper (text + images) ──────────────────────
+
+_IMAGE_MARKDOWN_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+
+
+def _send_reply(phone_number: str, reply_text: str) -> dict:
+    """Send reply via Kapso, extracting markdown images and sending them natively."""
+    image_urls = _IMAGE_MARKDOWN_RE.findall(reply_text)
+    if not image_urls:
+        return send_text(phone_number, reply_text[:1200])
+
+    # Strip markdown image syntax from text so WhatsApp doesn't show raw markdown
+    clean_text = _IMAGE_MARKDOWN_RE.sub("", reply_text).strip()
+
+    # Send each image (WhatsApp will show them in order)
+    for _alt, url in image_urls:
+        img_resp = send_image(phone_number, url)
+        if not img_resp.get("success"):
+            print(f"[kapso] send_image failed for {url}: {img_resp.get('error')}")
+
+    # Send remaining text if any
+    if clean_text:
+        return send_text(phone_number, clean_text[:1200])
+
+    return {"success": True}
+
+
 # ─── Endpoints ───────────────────────────────────────────────
 
 @app.post("/webhooks/kapso/inbound")
-async def kapso_inbound(payload: KapsoInboundPayload, x_kapso_signature: str | None = Header(None)):
-    """Receive inbound WhatsApp messages from Kapso."""
+async def kapso_inbound(request: Request, x_kapso_signature: str | None = Header(None)):
+    """Receive inbound WhatsApp messages from Kapso (supports both flat and nested/raw formats)."""
+    raw_body = await request.json()
+
+    # Detect format: raw Kapso nested vs flat normalized
+    if isinstance(raw_body, dict) and "message" in raw_body and isinstance(raw_body["message"], dict):
+        # Raw Kapso format
+        msg = raw_body.get("message", {})
+        conv = raw_body.get("conversation", {})
+
+        message_text = ""
+        media_url = None
+        if msg.get("type") == "text" and msg.get("text"):
+            message_text = msg["text"].get("body", "")
+        elif msg.get("type") == "image" and msg.get("image"):
+            message_text = msg["image"].get("caption", "[Image received]")
+            media_url = msg["image"].get("link")
+        elif msg.get("type") == "document" and msg.get("document"):
+            message_text = msg["document"].get("caption", "[Document received]")
+            media_url = msg["document"].get("link")
+        elif msg.get("type") == "voice" and msg.get("voice"):
+            message_text = "[Voice message received]"
+            media_url = msg["voice"].get("link")
+
+        payload = KapsoInboundPayload(
+            message_id=msg.get("id", ""),
+            phone_number="+" + (conv.get("phone_number") or msg.get("from") or ""),
+            contact_name=conv.get("contact_name", ""),
+            timestamp=raw_body.get("timestamp", ""),
+            message_type=msg.get("type", "text"),
+            text=message_text,
+            media_url=media_url,
+            caption=message_text if media_url else None,
+            context_message_id=msg.get("context", {}).get("id") if isinstance(msg.get("context"), dict) else None,
+        )
+    else:
+        # Flat normalized format
+        payload = KapsoInboundPayload(**raw_body)
+
     if _is_duplicate(payload.message_id):
         return JSONResponse(status_code=204)
 
@@ -150,7 +218,7 @@ async def kapso_inbound(payload: KapsoInboundPayload, x_kapso_signature: str | N
     append_message(payload.phone_number, conversation_id, "assistant", reply_text)
 
     # Send reply via Kapso (fire-and-forget; failures logged)
-    kapso_resp = send_text(payload.phone_number, reply_text[:1200])
+    kapso_resp = _send_reply(payload.phone_number, reply_text)
     if not kapso_resp.get("success"):
         # Log but don't fail the webhook
         print(f"[kapso] outbound failed: {kapso_resp.get('error')}")
@@ -186,9 +254,19 @@ def _build_intake_context(intake_data: dict, template_slug: str, user_message: s
 async def agent_invoke(request: AgentInvokeRequest):
     """Invoke the agent directly (for n8n or testing)."""
     session = get_or_create_conversation(request.phone_number, request.conversation_id)
+
+    # Store user message so history stays complete across turns
+    append_message(
+        request.phone_number,
+        request.conversation_id,
+        "user",
+        request.message,
+        {"message_id": request.message_id, "media_url": request.media_url},
+    )
+
     raw_history = get_messages(request.phone_number, request.conversation_id, limit=20)
     history = []
-    for msg in raw_history:
+    for msg in raw_history[:-1]:  # exclude the one we just added
         if msg["role"] == "user":
             history.append(HumanMessage(content=msg["content"]))
         elif msg["role"] == "assistant":
@@ -201,9 +279,15 @@ async def agent_invoke(request: AgentInvokeRequest):
         context_parts.append(f"Cart: {session['cart']}")
 
     # Inject intake context if present (backward compatible)
-    if request.intake_data:
+    intake_data = request.intake_data
+    if isinstance(intake_data, str):
+        try:
+            intake_data = json.loads(intake_data) if intake_data != "null" else None
+        except Exception:
+            intake_data = None
+    if intake_data:
         intake_context = _build_intake_context(
-            request.intake_data,
+            intake_data,
             request.template_slug or "unknown",
             request.message,
         )
@@ -211,9 +295,13 @@ async def agent_invoke(request: AgentInvokeRequest):
 
     context = "\n".join(context_parts)
 
+    user_message = request.message
+    if request.media_url:
+        user_message += f"\n[Media: {request.media_url}]"
+
     try:
         result = invoke_agent(
-            user_message=request.message,
+            user_message=user_message,
             tools=_tools,
             history=history,
             context=context,
@@ -227,7 +315,7 @@ async def agent_invoke(request: AgentInvokeRequest):
     append_message(request.phone_number, request.conversation_id, "assistant", reply_text)
 
     # Send reply via Kapso WhatsApp
-    kapso_resp = send_text(request.phone_number, reply_text[:1200])
+    kapso_resp = _send_reply(request.phone_number, reply_text)
     if not kapso_resp.get("success"):
         print(f"[kapso] outbound failed: {kapso_resp.get('error')}")
 

@@ -1,0 +1,913 @@
+{
+  "name": "Kapso Intake Quotation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kapso-inbound",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Kapso Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "kapso-inbound"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nconst msg = body.message || body;\nconst conv = body.conversation || {};\n\nlet inputType = 'text';\nlet selectionId = '';\nlet selectionTitle = '';\nlet messageText = '';\n\nif (msg.type === 'interactive') {\n  const interactive = msg.interactive || {};\n  if (interactive.type === 'button_reply') {\n    inputType = 'button';\n    selectionId = interactive.button_reply.id;\n    selectionTitle = interactive.button_reply.title;\n  } else if (interactive.type === 'list_reply') {\n    inputType = 'list';\n    selectionId = interactive.list_reply.id;\n    selectionTitle = interactive.list_reply.title;\n  }\n} else if (msg.type === 'text') {\n  const txt = msg.text || {};\n  messageText = typeof txt === 'string' ? txt : (txt.body || '');\n}\n\nconst phone = '+' + (conv.phone_number || msg.from || body.phone_number || body.phone || '');\n\nreturn [{\n  json: {\n    phone_number: phone,\n    conversation_id: conv.id || msg.from || body.phone_number || body.phone || '',\n    contact_name: conv.contact_name || body.contact_name || '',\n    input_type: inputType,\n    selection_id: selectionId,\n    selection_title: selectionTitle,\n    message_text: messageText,\n    media_url: null,\n    message_id: null\n  }\n}];"
+      },
+      "id": "normalize",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/intake_sessions",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "=eq.{{ $json.phone_number }}"
+            },
+            {
+              "name": "status",
+              "value": "=eq.in_progress"
+            },
+            {
+              "name": "expires_at",
+              "value": "=gt.now()"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            },
+            {
+              "name": "order",
+              "value": "started_at.desc"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "find-session",
+      "name": "Find Active Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        640,
+        300
+      ],
+      "settings": {
+        "alwaysOutputData": true
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawInput = $input.first().json;\nconst sessions = Array.isArray(rawInput) ? rawInput : (rawInput.body || []);\nconst session = Array.isArray(sessions) && sessions.length > 0 ? sessions[0] : null;\nconst payload = $('Normalize Payload').item.json;\n\nlet route = 'forward_agent';\nlet sessionId = null;\nlet templateSlug = 'kitchen-quotation';\nlet currentStep = null;\nlet formData = {};\n\nif (session) {\n  sessionId = session.id;\n  templateSlug = session.template_slug;\n  currentStep = session.current_step;\n  formData = session.form_data || {};\n  if (payload.input_type === 'button' || payload.input_type === 'list') {\n    route = 'advance_step';\n  } else {\n    route = 'cancel_forward';\n  }\n} else {\n  if (payload.input_type === 'button' || payload.input_type === 'list') {\n    if (payload.selection_id === 'start_intake') {\n      route = 'start_intake';\n    } else if (payload.selection_id === 'human') {\n      route = 'handoff';\n    } else if (payload.selection_id === 'free_text') {\n      route = 'forward_agent';\n    } else {\n      route = 'welcome';\n    }\n  } else {\n    const text = (payload.message_text || '').toLowerCase();\n    if (text.includes('cotizar') || text.includes('menu') || text.includes('hola') || text.includes('inicio') || text.includes('/start')) {\n      route = 'welcome';\n    } else {\n      route = 'forward_agent';\n    }\n  }\n}\n\nreturn [{\n  json: {\n    route: route,\n    session_id: sessionId,\n    template_slug: templateSlug,\n    current_step: currentStep,\n    form_data: formData,\n    phone_number: payload.phone_number,\n    conversation_id: payload.conversation_id,\n    contact_name: payload.contact_name,\n    selection_id: payload.selection_id,\n    selection_title: payload.selection_title,\n    message_text: payload.message_text,\n    input_type: payload.input_type,\n    media_url: payload.media_url,\n    message_id: payload.message_id\n  }\n}];"
+      },
+      "id": "route",
+      "name": "Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "value": "welcome",
+              "output": 0
+            },
+            {
+              "value": "start_intake",
+              "output": 0
+            },
+            {
+              "value": "advance_step",
+              "output": 1
+            },
+            {
+              "value": "cancel_forward",
+              "output": 2
+            },
+            {
+              "value": "handoff",
+              "output": 2
+            },
+            {
+              "value": "forward_agent",
+              "output": 3
+            }
+          ]
+        },
+        "dataType": "string",
+        "value1": "={{ $json.route }}",
+        "fallbackOutput": 3
+      },
+      "id": "switch",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/intake_templates",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "slug",
+              "value": "=eq.{{ $json.template_slug }}"
+            },
+            {
+              "name": "is_active",
+              "value": "=eq.true"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "load-template",
+      "name": "Load Template",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawInput = $input.first().json;\nconst templates = Array.isArray(rawInput) ? rawInput : (rawInput.body || []);\nconst template = Array.isArray(templates) && templates.length > 0 ? templates[0] : null;\nconst routeData = $('Route').item.json;\n\nif (!template) {\n  throw new Error('Template not found: ' + routeData.template_slug);\n}\n\nconst def = template.definition || {};\nconst steps = def.steps || [];\nconst firstStepId = def.first_step || 'welcome';\n\nreturn [{\n  json: {\n    phone_number: routeData.phone_number,\n    conversation_id: routeData.conversation_id,\n    template_slug: routeData.template_slug,\n    current_step: firstStepId,\n    form_data: {},\n    step_def: steps.find(s => s.id === firstStepId),\n    all_steps: steps,\n    contact_name: routeData.contact_name\n  }\n}];"
+      },
+      "id": "start-intake",
+      "name": "Start Intake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/intake_sessions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        },
+        "jsonBody": "={{ JSON.stringify({ phone_number: $json.phone_number, conversation_id: $json.conversation_id, template_slug: $json.template_slug, current_step: $json.current_step, form_data: $json.form_data, status: 'in_progress' }) }}"
+      },
+      "id": "create-session",
+      "name": "Create Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1640,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawInput = $input.first().json;\nconst templates = Array.isArray(rawInput) ? rawInput : (rawInput.body || []);\nconst template = Array.isArray(templates) && templates.length > 0 ? templates[0] : null;\nconst routeData = $('Route').item.json;\n\nif (!template) {\n  throw new Error('Template not found: ' + routeData.template_slug);\n}\n\nconst def = template.definition || {};\nconst steps = def.steps || [];\nconst currentStepId = routeData.current_step;\nconst currentStep = steps.find(s => s.id === currentStepId);\n\nif (!currentStep) {\n  throw new Error('Step not found: ' + currentStepId);\n}\n\n// Validate selection against current step options\nlet isValid = false;\nlet selectedOption = null;\n\nif (currentStep.type === 'interactive_button' && currentStep.options) {\n  selectedOption = currentStep.options.find(o => o.id === routeData.selection_id);\n  isValid = !!selectedOption;\n} else if (currentStep.type === 'interactive_list' && currentStep.sections) {\n  for (const section of currentStep.sections) {\n    const row = section.rows.find(r => r.id === routeData.selection_id);\n    if (row) {\n      selectedOption = row;\n      isValid = true;\n      break;\n    }\n  }\n}\n\nif (!isValid) {\n  // Invalid selection - re-send current step\n  return [{\n    json: {\n      action: 'render',\n      phone_number: routeData.phone_number,\n      session_id: routeData.session_id,\n      current_step: currentStepId,\n      step_def: currentStep,\n      form_data: routeData.form_data,\n      contact_name: routeData.contact_name,\n      template_slug: routeData.template_slug,\n      error: 'Invalid selection: ' + routeData.selection_id\n    }\n  }];\n}\n\n// Update form data\nconst formData = { ...routeData.form_data };\nif (currentStep.field) {\n  if (currentStep.multi_repeat) {\n    if (!formData[currentStep.field]) formData[currentStep.field] = [];\n    formData[currentStep.field].push(routeData.selection_id);\n  } else {\n    formData[currentStep.field] = routeData.selection_id;\n  }\n}\n\n// Determine next step\nlet nextStepId = selectedOption.next || currentStep.next;\n\n// Handle special actions\nif (nextStepId === '_exit_to_agent' || nextStepId === '_handoff' || nextStepId === '_cancel' || nextStepId === 'complete') {\n  return [{\n    json: {\n      action: nextStepId,\n      phone_number: routeData.phone_number,\n      conversation_id: routeData.conversation_id,\n      session_id: routeData.session_id,\n      form_data: formData,\n      template_slug: routeData.template_slug,\n      contact_name: routeData.contact_name,\n      message_text: routeData.message_text\n    }\n  }];\n}\n\n// Find next step definition\nconst nextStep = steps.find(s => s.id === nextStepId);\nif (!nextStep) {\n  throw new Error('Next step not found: ' + nextStepId);\n}\n\nreturn [{\n  json: {\n    action: 'render',\n    phone_number: routeData.phone_number,\n    session_id: routeData.session_id,\n    current_step: nextStepId,\n    step_def: nextStep,\n    form_data: formData,\n    template_slug: routeData.template_slug,\n    contact_name: routeData.contact_name\n  }\n}];"
+      },
+      "id": "advance-step",
+      "name": "Advance Step",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "value": "render",
+              "output": 0
+            },
+            {
+              "value": "complete",
+              "output": 1
+            },
+            {
+              "value": "_cancel",
+              "output": 2
+            },
+            {
+              "value": "_handoff",
+              "output": 2
+            },
+            {
+              "value": "_exit_to_agent",
+              "output": 2
+            }
+          ]
+        },
+        "dataType": "string",
+        "value1": "={{ $json.action }}",
+        "fallbackOutput": 2
+      },
+      "id": "action-switch",
+      "name": "Action Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/intake_sessions",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.session_id }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        },
+        "jsonBody": "={{ JSON.stringify({ current_step: $json.current_step, form_data: $json.form_data, updated_at: new Date().toISOString() }) }}"
+      },
+      "id": "update-session",
+      "name": "Update Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1640,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawInput = $input.first().json;\nconst input = Array.isArray(rawInput) ? rawInput : (rawInput.body || rawInput);\nconst stepDef = input.step_def;\nconst formData = input.form_data || {};\nconst contactName = input.contact_name || '';\n\nif (!stepDef) {\n  throw new Error('No step definition');\n}\n\n// Build prompt with substitutions\nlet prompt = stepDef.prompt || 'Selecciona una opcion:';\nprompt = prompt.replace(/\\{\\{contact_name\\}\\}/g, contactName);\nfor (const [key, value] of Object.entries(formData)) {\n  let display = value;\n  if (Array.isArray(value)) display = value.join(', ');\n  prompt = prompt.replace(new RegExp('\\\\{\\\\{' + key + '\\\\}\\\\}', 'g'), display);\n}\n\nconst phone = input.phone_number;\nlet payload = {};\n\nif (stepDef.type === 'interactive_button') {\n  const buttons = (stepDef.options || []).map(o => ({\n    type: 'reply',\n    reply: { id: o.id, title: o.title }\n  }));\n  payload = {\n    messaging_product: 'whatsapp',\n    recipient_type: 'individual',\n    to: phone,\n    type: 'interactive',\n    interactive: {\n      type: 'button',\n      body: { text: prompt },\n      action: { buttons: buttons.slice(0, 3) }\n    }\n  };\n} else if (stepDef.type === 'interactive_list') {\n  const sections = (stepDef.sections || []).map(sec => ({\n    title: sec.title,\n    rows: (sec.rows || []).map(r => ({\n      id: r.id,\n      title: r.title,\n      description: r.description || ''\n    }))\n  }));\n  payload = {\n    messaging_product: 'whatsapp',\n    recipient_type: 'individual',\n    to: phone,\n    type: 'interactive',\n    interactive: {\n      type: 'list',\n      body: { text: prompt },\n      action: {\n        button: 'Ver opciones',\n        sections: sections\n      }\n    }\n  };\n} else if (stepDef.type === '_complete') {\n  payload = {\n    messaging_product: 'whatsapp',\n    recipient_type: 'individual',\n    to: phone,\n    type: 'text',\n    text: { body: prompt }\n  };\n}\n\nreturn [{\n  json: {\n    kapso_payload: payload,\n    phone_number: phone\n  }\n}];"
+      },
+      "id": "render-step",
+      "name": "Render Step",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.KAPSO_BASE_URL }}/{{ $env.KAPSO_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.KAPSO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "options": {},
+        "jsonBody": "={{ JSON.stringify($json.kapso_payload) }}"
+      },
+      "id": "send-kapso",
+      "name": "Send Kapso Interactive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        2040,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/intake_sessions",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.session_id }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        },
+        "jsonBody": "={{ JSON.stringify({ status: 'completed', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() }) }}"
+      },
+      "id": "complete-session",
+      "name": "Complete Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1640,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.KAPSO_BASE_URL }}/{{ $env.KAPSO_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.KAPSO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "options": {},
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: $env.ADMIN_PHONE_NUMBER, type: 'text', text: { body: 'Intake completado - Tel: ' + ($json.body?.phone_number || $json.phone_number) + ' - Template: ' + ($json.body?.template_slug || $json.template_slug) + ' - Datos: ' + JSON.stringify($json.body?.form_data || $json.form_data).slice(0,500) } }) }}"
+      },
+      "id": "admin-notify",
+      "name": "Admin Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1840,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AGENT_BASE_URL }}/agent/invoke",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "options": {},
+        "jsonBody": "={{ JSON.stringify({ phone_number: $json.body?.phone_number || $json.phone_number, conversation_id: $json.body?.conversation_id || $json.conversation_id || $json.phone_number, message: $json.body?.message_text || $json.message_text || 'Hola', contact_name: $json.body?.contact_name || $json.contact_name || '', intake_data: $json.body?.form_data || $json.form_data, template_slug: $json.body?.template_slug || $json.template_slug }) }}"
+      },
+      "id": "forward-agent",
+      "name": "Forward to Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1440,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/intake_sessions",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.session_id }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        },
+        "jsonBody": "={{ JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() }) }}"
+      },
+      "id": "cancel-session",
+      "name": "Cancel Session",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1040,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\" }",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to Kapso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/intake_templates",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "slug",
+              "value": "=eq.{{ $json.template_slug }}"
+            },
+            {
+              "name": "is_active",
+              "value": "=eq.true"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "load-template-advance",
+      "name": "Load Template Advance",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1260,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Kapso Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Find Active Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Active Session": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Load Template",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load Template Advance",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancel Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward to Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Template": {
+      "main": [
+        [
+          {
+            "node": "Start Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start Intake": {
+      "main": [
+        [
+          {
+            "node": "Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Session": {
+      "main": [
+        [
+          {
+            "node": "Render Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Advance Step": {
+      "main": [
+        [
+          {
+            "node": "Action Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Action Switch": {
+      "main": [
+        [
+          {
+            "node": "Update Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Complete Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward to Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Session": {
+      "main": [
+        [
+          {
+            "node": "Render Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Step": {
+      "main": [
+        [
+          {
+            "node": "Send Kapso Interactive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Kapso Interactive": {
+      "main": [
+        [
+          {
+            "node": "Respond to Kapso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Complete Session": {
+      "main": [
+        [
+          {
+            "node": "Admin Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Notify": {
+      "main": [
+        [
+          {
+            "node": "Forward to Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel Session": {
+      "main": [
+        [
+          {
+            "node": "Forward to Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Kapso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Template Advance": {
+      "main": [
+        [
+          {
+            "node": "Advance Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [
+    "euromobilia",
+    "whatsapp",
+    "intake",
+    "kitchen-quotation"
+  ],
+  "staticData": null
+}

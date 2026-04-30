@@ -1,0 +1,42 @@
+name: Reusable — Import n8n Workflow
+
+on:
+  workflow_call:
+    inputs:
+      n8n_url:
+        required: true
+        type: string
+      workflow_json_path:
+        required: true
+        type: string
+      python_version:
+        required: false
+        type: string
+        default: "3.11"
+    secrets:
+      N8N_API_KEY:
+        required: true
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Install deps
+        run: pip install httpx
+
+      - name: Import workflow
+        env:
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+          N8N_URL: ${{ inputs.n8n_url }}
+          JSON_PATH: ${{ inputs.workflow_json_path }}
+        run: |
+          python scripts/import_n8n_workflow.py \
+            --json-path "$JSON_PATH" \
+            --n8n-url "$N8N_URL" \
+            --api-key "$N8N_API_KEY"

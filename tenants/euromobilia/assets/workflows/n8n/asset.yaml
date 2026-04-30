@@ -5,11 +5,13 @@ tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
 status: validated
-version: "1.1.0"
+version: "1.2.0"
 description: |
   Versioned n8n workflow JSON for kitchen-quotation. Runtime: self-hosted
-  n8n CE on Hostinger VPS. Workflow activation status and webhook paths are
-  documented in README.md in this directory (do not append Markdown to this file).
+  n8n CE on Hostinger VPS. Includes intake form router (kapso-intake-quotation)
+  with WhatsApp interactive buttons/lists and legacy passthrough.
+  Workflow activation status and webhook paths are documented in README.md
+  in this directory (do not append Markdown to this file).
 owner: "ai-team@euromobilia.com"
 observability:
   traces: none

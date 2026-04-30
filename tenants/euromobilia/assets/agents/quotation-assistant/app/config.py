@@ -127,3 +127,6 @@ SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
 # ─── Composio ────────────────────────────────────────────────
 
 COMPOSIO_API_KEY = os.environ.get("COMPOSIO_API_KEY", "")
+COMPOSIO_MCP_URL = os.environ.get(
+    "COMPOSIO_MCP_URL", "https://mcp.composio.dev/api/sse"
+)

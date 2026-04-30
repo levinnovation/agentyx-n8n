@@ -1,0 +1,41 @@
+name: Reusable — SSH Deploy
+
+on:
+  workflow_call:
+    inputs:
+      host:
+        required: true
+        type: string
+      user:
+        required: true
+        type: string
+      deploy_script:
+        required: true
+        type: string
+      ssh_key_secret_name:
+        required: false
+        type: string
+        default: HOSTINGER_SSH_PRIVATE_KEY
+    secrets:
+      SSH_PRIVATE_KEY:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ inputs.host }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Run deploy script
+        run: |
+          ssh ${{ inputs.user }}@${{ inputs.host }} << 'REMOTE_EOF'
+          set -euo pipefail
+          ${{ inputs.deploy_script }}
+          REMOTE_EOF

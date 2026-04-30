@@ -3,14 +3,20 @@
 # IP: 187.127.252.161
 #
 # Routes:
-#   /agent/*  -> quotation-assistant (euromobilia-agent-agent-1:8000)
-#   /         -> n8n (n8n:5678)
+#   /agent/*                -> quotation-assistant (euromobilia-agent-agent-1:8000)
+#   /webhook/kapso-inbound  -> quotation-assistant (bypass n8n until intake WF is fixed)
+#   /                       -> n8n (n8n:5678)
 #
 # The agent container must be connected to the n8n_default network
 # so Caddy can resolve it by container name.
 
 :80 {
 	handle_path /agent/* {
+		reverse_proxy euromobilia-agent-agent-1:8000
+	}
+
+	handle /webhook/kapso-inbound {
+		rewrite * /webhooks/kapso/inbound
 		reverse_proxy euromobilia-agent-agent-1:8000
 	}
 

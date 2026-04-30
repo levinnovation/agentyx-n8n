@@ -2,6 +2,30 @@ name: Deploy Prod
 
 on:
   workflow_dispatch:
+    inputs:
+      tenant:
+        description: 'Tenant slug'
+        required: true
+        default: 'euromobilia'
+      asset_type:
+        description: 'Asset type (agents, workflows, infra, etc.)'
+        required: true
+        default: 'agents'
+      asset_name:
+        description: 'Asset name'
+        required: true
+        default: 'quotation-assistant'
+      target:
+        description: 'Deploy target'
+        required: true
+        default: 'hostinger'
+        type: choice
+        options:
+          - hostinger
+          - cloud-run
+          - fly
+          - railway
+          - render
 
 jobs:
   deploy:
@@ -9,4 +33,11 @@ jobs:
     environment: prod
     steps:
       - uses: actions/checkout@v4
-      - run: echo "TODO deploy to prod"
+      - run: |
+          echo "Manual prod deploy requested."
+          echo "Tenant: ${{ inputs.tenant }}"
+          echo "Asset: ${{ inputs.asset_type }}/${{ inputs.asset_name }}"
+          echo "Target: ${{ inputs.target }}"
+          echo ""
+          echo "For automatic deploys, use the tenant-specific caller workflow:"
+          echo "  .github/workflows/deploy-${{ inputs.tenant }}-${{ inputs.asset_type }}-${{ inputs.target }}.yml"

@@ -148,3 +148,35 @@ tools:
       properties:
         pdf_url:
           type: string
+  - id: composio_mcp_execute
+    name: Composio MCP Execute
+    description: "Execute an action via Composio MCP (Bitrix24, Slack, etc.)."
+    input_schema:
+      type: object
+      properties:
+        toolkit:
+          type: string
+        action:
+          type: string
+        params:
+          type: string
+      required: [toolkit, action]
+    output_schema:
+      type: object
+      properties:
+        result:
+          type: string
+  - id: composio_mcp_list_actions
+    name: Composio MCP List Actions
+    description: "List available actions for a given Composio toolkit."
+    input_schema:
+      type: object
+      properties:
+        toolkit:
+          type: string
+      required: [toolkit]
+    output_schema:
+      type: object
+      properties:
+        actions:
+          type: string

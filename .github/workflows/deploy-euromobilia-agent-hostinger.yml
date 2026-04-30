@@ -1,0 +1,41 @@
+name: Deploy Euromobilia Agent — Hostinger
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tenants/euromobilia/assets/agents/quotation-assistant/**'
+      - 'tenants/euromobilia/assets/prompts/**'
+      - 'tenants/euromobilia/assets/deploy/agent-hostinger/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/_reusable/build-agent-image.yml
+    with:
+      tenant: euromobilia
+      asset_name: quotation-assistant
+      dockerfile_path: tenants/euromobilia/assets/deploy/agent-hostinger/Dockerfile
+      build_context: tenants/euromobilia/assets/agents/quotation-assistant
+      ghcr_image: ghcr.io/${{ github.repository_owner }}/euromobilia-agent-quotation-assistant
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+  deploy:
+    needs: build
+    uses: ./.github/workflows/_reusable/ssh-deploy.yml
+    with:
+      host: ${{ secrets.HOSTINGER_HOST }}
+      user: ${{ secrets.HOSTINGER_USER }}
+      deploy_script: |
+        cd /opt/euromobilia-agent
+        export AGENT_IMAGE=ghcr.io/${{ github.repository_owner }}/euromobilia-agent-quotation-assistant:${{ github.sha }}
+        echo "Deploying image: $AGENT_IMAGE"
+        docker compose pull
+        docker compose up -d
+        echo "Waiting for healthcheck..."
+        sleep 5
+        curl -sf http://localhost:8000/health || { echo "Health check failed"; exit 1; }
+        echo "Deploy OK"
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}

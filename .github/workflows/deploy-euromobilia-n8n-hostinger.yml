@@ -1,0 +1,46 @@
+name: Deploy Euromobilia n8n Workflows — Hostinger
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tenants/euromobilia/assets/workflows/n8n/*.json'
+  workflow_dispatch:
+
+jobs:
+  import-workflows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install httpx
+
+      - name: Import all n8n workflows
+        env:
+          N8N_API_KEY: ${{ secrets.N8N_API_KEY }}
+          N8N_URL: http://${{ secrets.HOSTINGER_HOST }}
+        run: |
+          for wf in tenants/euromobilia/assets/workflows/n8n/*.json; do
+            echo "Importing $wf"
+            python scripts/import_n8n_workflow.py \
+              --json-path "$wf" \
+              --n8n-url "$N8N_URL" \
+              --api-key "$N8N_API_KEY"
+          done
+
+      - name: Restart n8n
+        uses: ./.github/workflows/_reusable/ssh-deploy.yml
+        with:
+          host: ${{ secrets.HOSTINGER_HOST }}
+          user: ${{ secrets.HOSTINGER_USER }}
+          deploy_script: |
+            cd /opt/n8n
+            docker compose up -d --force-recreate n8n
+            echo "n8n restarted"
+        secrets:
+          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}

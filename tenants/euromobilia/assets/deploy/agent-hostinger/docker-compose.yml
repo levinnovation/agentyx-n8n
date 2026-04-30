@@ -1,15 +1,20 @@
 # Euromobilia Quotation Assistant — Hostinger VPS
-# Deploy: cd /opt/euromobilia-agent && docker compose up -d --build
+# Deploy: cd /opt/euromobilia-agent && docker compose pull && docker compose up -d
 #
 # This container must be connected to the n8n_default network so that
 # the Caddy reverse proxy (in the n8n-hostinger deploy) can route /agent/*
 # to this service by container name.
+#
+# CI builds the image and pushes to GHCR. The VPS pulls the pre-built image.
+# For local development: docker compose up -d --build (uses build context)
 
 services:
   agent:
+    image: ${AGENT_IMAGE:-euromobilia-agent:local-build}
     build:
       context: .
       dockerfile: Dockerfile
+    pull_policy: ${AGENT_PULL_POLICY:-build}
     restart: unless-stopped
     expose:
       - "8000"

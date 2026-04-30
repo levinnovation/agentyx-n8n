@@ -43,6 +43,15 @@ Customer-specific implementation belongs under:
 - Relevant `knowledge/decisions/` ADRs
 - Relevant tenant pack: `knowledge/tenants/{tenant}/`
 
+## CI/CD
+
+- GitHub Actions is the default CI/CD (see ADR-0008).
+- Reusable workflows: `.github/workflows/_reusable/`
+- Tenant caller workflows: `.github/workflows/deploy-{tenant}-{asset}-{target}.yml`
+- Docker images pushed to GHCR; VPS hosts pull them.
+- n8n workflows auto-imported via REST API when JSON changes.
+- Manual gates: `workflow_dispatch` with GitHub Environments (`dev`, `prod`).
+
 ## Validation
 
 - `make validate` — tenant specs and YAML/JSON parse checks

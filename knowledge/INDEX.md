@@ -34,6 +34,9 @@
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
 - [change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md](change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md)
 - [change-log/2026/04/2026-04-29-multi-interface-channels-adr.md](change-log/2026/04/2026-04-29-multi-interface-channels-adr.md)
+- [change-log/2026/04/2026-04-30-bypass-n8n-route-kapso-to-agent.md](change-log/2026/04/2026-04-30-bypass-n8n-route-kapso-to-agent.md)
+- [change-log/2026/04/2026-04-30-whatsapp-images-and-history-fix.md](change-log/2026/04/2026-04-30-whatsapp-images-and-history-fix.md)
+- [change-log/2026/04/2026-04-30-whatsapp-interactive-intake-forms.md](change-log/2026/04/2026-04-30-whatsapp-interactive-intake-forms.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -59,8 +62,10 @@
 - [decisions/0005-knowledge-system-as-evolutionary-architecture-ledger.md](decisions/0005-knowledge-system-as-evolutionary-architecture-ledger.md)
 - [decisions/0006-agent-context-files-as-repo-operating-memory.md](decisions/0006-agent-context-files-as-repo-operating-memory.md)
 - [decisions/0007-multi-interface-deployment-for-tenant-assets.md](decisions/0007-multi-interface-deployment-for-tenant-assets.md)
+- [decisions/0008-github-actions-as-default-cicd-for-tenant-assets.md](decisions/0008-github-actions-as-default-cicd-for-tenant-assets.md)
 - [decisions/0008-migrate-aurea-to-euromobilia-kitchen-commerce.md](decisions/0008-migrate-aurea-to-euromobilia-kitchen-commerce.md)
 - [decisions/0009-self-hosted-n8n-ce-on-hostinger-vps.md](decisions/0009-self-hosted-n8n-ce-on-hostinger-vps.md)
+- [decisions/0010-whatsapp-interactive-intake-forms.md](decisions/0010-whatsapp-interactive-intake-forms.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -99,6 +104,7 @@
 - [prompts/cursor/0004-add-agent-context-files.md](prompts/cursor/0004-add-agent-context-files.md)
 - [prompts/cursor/0005-hostinger-n8n-self-host.md](prompts/cursor/0005-hostinger-n8n-self-host.md)
 - [prompts/cursor/0005-migrate-aurea-to-euromobilia.md](prompts/cursor/0005-migrate-aurea-to-euromobilia.md)
+- [prompts/cursor/0006-whatsapp-interactive-intake-forms.md](prompts/cursor/0006-whatsapp-interactive-intake-forms.md)
 - [prompts/cursor/README.md](prompts/cursor/README.md)
 - [prompts/open-codex/README.md](prompts/open-codex/README.md)
 - [prompts/opencode/README.md](prompts/opencode/README.md)
