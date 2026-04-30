@@ -50,34 +50,27 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "x-api-key",
-              "value": "={{ $env.COMPOSIO_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
+              "name": "Authorization",
+              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
         "contentType": "json",
         "body": {
-          "toolkit": "slack",
-          "action": "slack_send_message",
-          "params": {
-            "channel": "#ops-alerts",
-            "message": "KB sync status: {{ $json.status }} at {{ $json.timestamp }}"
-          }
+          "phone_number": "={{ $env.ADMIN_PHONE_NUMBER }}",
+          "message_type": "text",
+          "text": "=KB Sync: {{ $json.status }} at {{ $json.timestamp }}"
         },
         "options": {}
       },
-      "id": "composio-slack",
-      "name": "Composio Slack",
+      "id": "kapso-notify",
+      "name": "Kapso WhatsApp Notify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [840, 300]
@@ -110,7 +103,7 @@
       "main": [
         [
           {
-            "node": "Composio Slack",
+            "node": "Kapso WhatsApp Notify",
             "type": "main",
             "index": 0
           }

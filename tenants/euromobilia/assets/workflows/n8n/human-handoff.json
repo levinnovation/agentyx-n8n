@@ -25,34 +25,27 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "x-api-key",
-              "value": "={{ $env.COMPOSIO_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
+              "name": "Authorization",
+              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
         "contentType": "json",
         "body": {
-          "toolkit": "slack",
-          "action": "slack_send_message",
-          "params": {
-            "channel": "#sales-alerts",
-            "message": "=:rotating_light: HUMAN HANDOFF\n*Phone:* {{ $json.body.phone_number }}\n*Reason:* {{ $json.body.reason || 'Customer requested human agent' }}\n*Timestamp:* {{ new Date().toISOString() }}"
-          }
+          "phone_number": "={{ $env.ADMIN_PHONE_NUMBER }}",
+          "message_type": "text",
+          "text": "=ALERTA: Escalamiento humano\nTelefono: {{ $json.body.phone_number }}\nMotivo: {{ $json.body.reason || 'Cliente solicito agente humano' }}\nHora: {{ new Date().toISOString() }}"
         },
         "options": {}
       },
-      "id": "composio-slack",
-      "name": "Composio Slack",
+      "id": "kapso-notify",
+      "name": "Kapso WhatsApp Notify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [440, 300]
@@ -100,7 +93,7 @@
       "main": [
         [
           {
-            "node": "Composio Slack",
+            "node": "Kapso WhatsApp Notify",
             "type": "main",
             "index": 0
           }

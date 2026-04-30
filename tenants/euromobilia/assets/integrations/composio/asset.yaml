@@ -7,7 +7,8 @@ capability: kitchen-quotation
 status: active
 description: |
   Tool orchestration via Composio MCP for external tool discovery, auth,
-  and execution across Slack, Bitrix24, and future toolkits.
+  and execution across Bitrix24 and future toolkits.
+  WhatsApp notifications are handled directly via Kapso API.
 owner: "ai-team@euromobilia.com"
 observability:
   traces: none
@@ -56,11 +57,8 @@ documentation: |
 
   | Workflow | Toolkit | Action | Purpose |
   |----------|---------|--------|---------|
-  | `kapso-inbound-quotation` | slack | `slack_send_message` | Notify #sales-alerts of new WhatsApp inquiry |
-  | `human-handoff` | slack | `slack_send_message` | Alert #sales-alerts of human handoff |
   | `human-handoff` | bitrix24 | `bitrix24_create_lead` | Create CRM lead from handoff |
   | `quote-document-generation` | bitrix24 | `bitrix24_create_deal` | Log generated quote as CRM deal |
-  | `kb-ingest` | slack | `slack_send_message` | Notify #ops-alerts of daily KB sync status |
 
   ## Required Env
 

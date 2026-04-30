@@ -48,34 +48,27 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "x-api-key",
-              "value": "={{ $env.COMPOSIO_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
+              "name": "Authorization",
+              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
         "contentType": "json",
         "body": {
-          "toolkit": "slack",
-          "action": "slack_send_message",
-          "params": {
-            "channel": "#sales-alerts",
-            "message": "New WhatsApp inquiry from {{ $json.phone_number }}: {{ $json.message }}"
-          }
+          "phone_number": "={{ $env.ADMIN_PHONE_NUMBER }}",
+          "message_type": "text",
+          "text": "=Nueva consulta de WhatsApp\nTelefono: {{ $json.phone_number }}\nMensaje: {{ $json.message }}"
         },
         "options": {}
       },
-      "id": "composio-notify",
-      "name": "Composio Notify",
+      "id": "kapso-notify",
+      "name": "Kapso WhatsApp Notify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [640, 500]
@@ -142,7 +135,7 @@
             "index": 0
           },
           {
-            "node": "Composio Notify",
+            "node": "Kapso WhatsApp Notify",
             "type": "main",
             "index": 0
           }
