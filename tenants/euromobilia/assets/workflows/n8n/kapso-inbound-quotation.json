@@ -48,6 +48,41 @@
     {
       "parameters": {
         "method": "POST",
+        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.COMPOSIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "toolkit": "slack",
+          "action": "slack_send_message",
+          "params": {
+            "channel": "#sales-alerts",
+            "message": "New WhatsApp inquiry from {{ $json.phone_number }}: {{ $json.message }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "composio-notify",
+      "name": "Composio Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [640, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
         "url": "={{ $env.KAPSO_BASE_URL }}/messages",
         "sendHeaders": true,
         "headerParameters": {
@@ -105,6 +140,11 @@
             "node": "Call Agent",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Composio Notify",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -136,6 +176,6 @@
     "executionOrder": "v1",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "tags": ["euromobilia", "whatsapp", "kitchen-quotation"],
+  "tags": ["euromobilia", "whatsapp", "kitchen-quotation", "mcp"],
   "staticData": null
 }

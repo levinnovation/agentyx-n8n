@@ -63,6 +63,43 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.COMPOSIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "toolkit": "bitrix24",
+          "action": "bitrix24_create_deal",
+          "params": {
+            "title": "Cotizacion {{ $('Webhook').item.json.body.phone_number }}",
+            "contact_phone": "{{ $('Webhook').item.json.body.phone_number }}",
+            "source": "whatsapp",
+            "comments": "PDF generado: {{ $json.pdf_url }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "composio-bitrix24",
+      "name": "Composio Bitrix24",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [840, 300]
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"status\": \"sent\", \"pdf_url\": $json.pdf_url }",
         "options": {}
@@ -71,7 +108,7 @@
       "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [840, 300]
+      "position": [1040, 300]
     }
   ],
   "connections": {
@@ -101,6 +138,17 @@
       "main": [
         [
           {
+            "node": "Composio Bitrix24",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Composio Bitrix24": {
+      "main": [
+        [
+          {
             "node": "Respond",
             "type": "main",
             "index": 0
@@ -113,6 +161,6 @@
     "executionOrder": "v1",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "tags": ["euromobilia", "pdf", "kitchen-quotation"],
+  "tags": ["euromobilia", "pdf", "kitchen-quotation", "mcp"],
   "staticData": null
 }

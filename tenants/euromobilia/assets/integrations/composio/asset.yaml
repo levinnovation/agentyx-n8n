@@ -4,9 +4,10 @@ type: integration
 tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
-status: scaffolded
+status: active
 description: |
-  Tool orchestration via Composio for external tool discovery and auth.
+  Tool orchestration via Composio MCP for external tool discovery, auth,
+  and execution across Slack, Bitrix24, and future toolkits.
 owner: "ai-team@euromobilia.com"
 observability:
   traces: none
@@ -15,19 +16,64 @@ observability:
 documentation: |
   # Composio Integration
 
+  ## Architecture
+
+  Composio is integrated via **Model Context Protocol (MCP)** over HTTP.
+  Each n8n workflow that needs external tool execution includes an
+  `n8n-nodes-base.httpRequest` node pointing to the Composio MCP endpoint.
+
   ## Configuration
 
-  - API key: `COMPOSIO_API_KEY`
+  - **MCP URL**: `COMPOSIO_MCP_URL` (e.g. `https://mcp.composio.dev/api/sse`)
+  - **API key**: `COMPOSIO_API_KEY`
 
-  ## Usage
+  ## Node Pattern
 
-  Reserved for future external tool integrations (calendar booking,
-  email send, etc.). Not actively used in the quotation flow today.
+  All Composio nodes follow this structure:
+
+  ```json
+  {
+    "method": "POST",
+    "url": "={{ $env.COMPOSIO_MCP_URL }}",
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        { "name": "x-api-key", "value": "={{ $env.COMPOSIO_API_KEY }}" },
+        { "name": "Content-Type", "value": "application/json" }
+      ]
+    },
+    "sendBody": true,
+    "contentType": "json",
+    "body": {
+      "toolkit": "<toolkit_name>",
+      "action": "<action_name>",
+      "params": { ... }
+    }
+  }
+  ```
+
+  ## Active Workflows Using Composio
+
+  | Workflow | Toolkit | Action | Purpose |
+  |----------|---------|--------|---------|
+  | `kapso-inbound-quotation` | slack | `slack_send_message` | Notify #sales-alerts of new WhatsApp inquiry |
+  | `human-handoff` | slack | `slack_send_message` | Alert #sales-alerts of human handoff |
+  | `human-handoff` | bitrix24 | `bitrix24_create_lead` | Create CRM lead from handoff |
+  | `quote-document-generation` | bitrix24 | `bitrix24_create_deal` | Log generated quote as CRM deal |
+  | `kb-ingest` | slack | `slack_send_message` | Notify #ops-alerts of daily KB sync status |
 
   ## Required Env
 
+  - `COMPOSIO_MCP_URL`
   - `COMPOSIO_API_KEY`
 
   ## Failure Behavior
 
-  - Non-blocking; log warning if unavailable
+  - Composio nodes are **non-blocking** where possible (parallel branches).
+  - In sequential flows, failure will halt the branch; monitor n8n execution logs.
+  - If Composio is unavailable, n8n will retry per its HTTP node defaults.
+
+  ## Security
+
+  - API key is injected via env var; never hardcoded in workflow JSON.
+  - MCP URL uses HTTPS in production.

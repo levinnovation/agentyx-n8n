@@ -46,6 +46,41 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.COMPOSIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "toolkit": "slack",
+          "action": "slack_send_message",
+          "params": {
+            "channel": "#ops-alerts",
+            "message": "KB sync status: {{ $json.status }} at {{ $json.timestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "composio-slack",
+      "name": "Composio Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [840, 300]
     }
   ],
   "connections": {
@@ -70,12 +105,23 @@
           }
         ]
       ]
+    },
+    "Log Result": {
+      "main": [
+        [
+          {
+            "node": "Composio Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "tags": ["euromobilia", "kb-sync", "kitchen-quotation"],
+  "tags": ["euromobilia", "kb-sync", "kitchen-quotation", "mcp"],
   "staticData": null
 }

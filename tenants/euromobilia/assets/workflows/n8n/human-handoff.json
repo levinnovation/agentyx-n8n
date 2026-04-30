@@ -25,19 +25,74 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.COMPOSIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "body": {
-          "text": "=:warning: Human handoff requested\n*Phone:* {{ $json.body.phone_number }}\n*Reason:* {{ $json.body.reason || 'Customer requested human agent' }}"
+          "toolkit": "slack",
+          "action": "slack_send_message",
+          "params": {
+            "channel": "#sales-alerts",
+            "message": "=:rotating_light: HUMAN HANDOFF\n*Phone:* {{ $json.body.phone_number }}\n*Reason:* {{ $json.body.reason || 'Customer requested human agent' }}\n*Timestamp:* {{ new Date().toISOString() }}"
+          }
         },
         "options": {}
       },
-      "id": "slack-notify",
-      "name": "Slack Notify",
+      "id": "composio-slack",
+      "name": "Composio Slack",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
       "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.COMPOSIO_MCP_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.COMPOSIO_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "toolkit": "bitrix24",
+          "action": "bitrix24_create_lead",
+          "params": {
+            "title": "Handoff: {{ $json.body.phone_number }}",
+            "phone": "{{ $json.body.phone_number }}",
+            "source": "whatsapp",
+            "comments": "{{ $json.body.reason || 'Customer requested human agent' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "composio-bitrix24",
+      "name": "Composio Bitrix24",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [640, 300]
     }
   ],
   "connections": {
@@ -45,7 +100,18 @@
       "main": [
         [
           {
-            "node": "Slack Notify",
+            "node": "Composio Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Composio Slack": {
+      "main": [
+        [
+          {
+            "node": "Composio Bitrix24",
             "type": "main",
             "index": 0
           }
@@ -57,6 +123,6 @@
     "executionOrder": "v1",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "tags": ["euromobilia", "handoff", "kitchen-quotation"],
+  "tags": ["euromobilia", "handoff", "kitchen-quotation", "mcp"],
   "staticData": null
 }
