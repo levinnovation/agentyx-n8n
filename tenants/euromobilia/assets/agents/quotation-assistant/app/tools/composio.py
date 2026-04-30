@@ -1,9 +1,8 @@
 """
-Composio MCP tool executor.
+Composio REST API tool executor.
 
-Wraps the Composio Model Context Protocol (MCP) endpoint so the agent
-can discover and invoke external actions (Bitrix24, Slack, etc.)
-directly without leaving the LangGraph runtime.
+Wraps the Composio backend API so the agent can discover and invoke
+external actions (Bitrix24, Slack, Google Sheets, etc.).
 """
 
 from __future__ import annotations
@@ -13,67 +12,55 @@ import json
 import httpx
 from langchain_core.tools import tool
 
-from ..config import COMPOSIO_API_KEY, COMPOSIO_MCP_URL
+from ..config import COMPOSIO_API_KEY, COMPOSIO_BASE_URL
 
 
-def _composio_request(body: dict) -> dict:
-    """Make a POST request to the Composio MCP endpoint."""
-    if not COMPOSIO_API_KEY:
-        return {"error": "COMPOSIO_API_KEY is not configured."}
-
-    headers = {
+def _api_headers() -> dict:
+    return {
         "x-api-key": COMPOSIO_API_KEY,
         "Content-Type": "application/json",
     }
 
+
+def _fetch_all_actions() -> list[dict]:
+    """Fetch all available actions from Composio (cached per process)."""
+    if not COMPOSIO_API_KEY:
+        return []
+    url = f"{COMPOSIO_BASE_URL}/actions"
     try:
-        response = httpx.post(
-            COMPOSIO_MCP_URL,
-            headers=headers,
-            json=body,
-            timeout=60.0,
+        response = httpx.get(
+            url,
+            headers=_api_headers(),
+            timeout=30.0,
+            follow_redirects=True,
         )
         response.raise_for_status()
-        return response.json()
-    except httpx.HTTPStatusError as e:
-        return {
-            "error": f"HTTP {e.response.status_code} from Composio",
-            "detail": e.response.text[:500],
-        }
-    except Exception as e:
-        return {"error": f"Composio request failed: {e}"}
+        data = response.json()
+        return data.get("items", [])
+    except Exception:
+        return []
 
 
-@tool
-def composio_mcp_execute(toolkit: str, action: str, params: str = "{}") -> str:
-    """Execute an action via the Composio MCP endpoint.
+# Simple in-memory cache for actions list
+_CACHED_ACTIONS: list[dict] | None = None
 
-    Use this tool to invoke external integrations (e.g. Bitrix24, Slack,
-    Google Sheets, etc.) that are connected through Composio.
 
-    Args:
-        toolkit: Composio toolkit name (e.g. "bitrix24", "slack", "googlesheets").
-        action: Action identifier (e.g. "bitrix24_create_lead").
-        params: JSON string with action-specific parameters.
-    """
-    try:
-        parsed_params = json.loads(params) if isinstance(params, str) else params
-    except json.JSONDecodeError:
-        return "Error: params must be a valid JSON string."
+def _get_actions() -> list[dict]:
+    global _CACHED_ACTIONS
+    if _CACHED_ACTIONS is None:
+        _CACHED_ACTIONS = _fetch_all_actions()
+    return _CACHED_ACTIONS
 
-    body = {
-        "toolkit": toolkit,
-        "action": action,
-        "params": parsed_params,
-    }
 
-    result = _composio_request(body)
-
-    if "error" in result:
-        return f"Composio error: {result['error']}"
-
-    # Try to return a compact, readable representation
-    return json.dumps(result, ensure_ascii=False, indent=2)
+def _get_toolkit_names() -> list[str]:
+    """Return sorted list of unique toolkit/app names available."""
+    actions = _get_actions()
+    names = set()
+    for a in actions:
+        name = a.get("appName") or a.get("appKey")
+        if name:
+            names.add(name)
+    return sorted(names)
 
 
 @tool
@@ -84,25 +71,70 @@ def composio_mcp_list_actions(toolkit: str) -> str:
     calling composio_mcp_execute.
 
     Args:
-        toolkit: Composio toolkit name (e.g. "bitrix24", "slack").
+        toolkit: Composio toolkit/app name (e.g. "bitrix24", "slack",
+                 "googlesheets").
     """
-    body = {
-        "toolkit": toolkit,
-        "action": "list_actions",
-        "params": {},
-    }
+    actions = _get_actions()
+    if not actions:
+        return "Error: COMPOSIO_API_KEY is not configured or the API is unreachable."
 
-    result = _composio_request(body)
+    toolkit_lower = toolkit.lower()
+    filtered = [
+        a for a in actions
+        if toolkit_lower in (a.get("appName") or "").lower()
+        or toolkit_lower in (a.get("appKey") or "").lower()
+    ]
 
-    if "error" in result:
-        # Fallback: try a generic toolkit_info call
-        body["action"] = "toolkit_info"
-        result = _composio_request(body)
-
-    if "error" in result:
+    if not filtered:
+        available = _get_toolkit_names()
+        available_str = ", ".join(available[:30]) + ("..." if len(available) > 30 else "")
         return (
-            f"Could not list actions for toolkit '{toolkit}'. "
-            f"Composio error: {result['error']}"
+            f"No actions found for toolkit '{toolkit}'.\n"
+            f"Available toolkits in your Composio account: {available_str}\n"
+            f"(Total: {len(available)} toolkits)"
         )
 
-    return json.dumps(result, ensure_ascii=False, indent=2)
+    summary = [f"Actions for '{toolkit}':"]
+    for a in filtered:
+        display = a.get("displayName") or a.get("display_name") or a.get("description", "No description")
+        summary.append(f"- {a.get('name', 'unknown')}: {display}")
+
+    return "\n".join(summary[:50])  # cap output length
+
+
+@tool
+def composio_mcp_execute(toolkit: str, action: str, params: str = "{}") -> str:
+    """Execute an action via the Composio API.
+
+    Use this tool to invoke external integrations (e.g. Bitrix24, Slack,
+    Google Sheets, etc.) that are connected through Composio.
+
+    Args:
+        toolkit: Composio toolkit/app name (e.g. "bitrix24", "slack").
+        action: Action identifier (e.g. "bitrix24_create_lead").
+        params: JSON string with action-specific parameters.
+    """
+    if not COMPOSIO_API_KEY:
+        return "Error: COMPOSIO_API_KEY is not configured."
+
+    try:
+        parsed_params = json.loads(params) if isinstance(params, str) else params
+    except json.JSONDecodeError:
+        return "Error: params must be a valid JSON string."
+
+    url = f"{COMPOSIO_BASE_URL}/actions/{action}/execute"
+    try:
+        response = httpx.post(
+            url,
+            headers=_api_headers(),
+            json={"input": parsed_params},
+            timeout=60.0,
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        result = response.json()
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except httpx.HTTPStatusError as e:
+        return f"HTTP {e.response.status_code} from Composio: {e.response.text[:500]}"
+    except Exception as e:
+        return f"Composio request failed: {e}"

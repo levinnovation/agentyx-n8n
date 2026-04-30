@@ -162,7 +162,7 @@ async def kapso_inbound(request: Request, x_kapso_signature: str | None = Header
         payload = KapsoInboundPayload(**raw_body)
 
     if _is_duplicate(payload.message_id):
-        return JSONResponse(status_code=204)
+        return JSONResponse(status_code=204, content={})
 
     # Optional: validate HMAC signature here using KAPSO_WEBHOOK_SECRET
 
