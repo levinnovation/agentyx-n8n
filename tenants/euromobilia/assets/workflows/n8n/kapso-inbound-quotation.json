@@ -31,11 +31,26 @@
         "url": "={{ $env.AGENT_BASE_URL }}/agent/invoke",
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "phone_number": "={{ $json.phone_number }}",
-          "conversation_id": "={{ $json.conversation_id }}",
-          "message": "={{ $json.message }}",
-          "contact_name": "={{ $json.contact_name }}"
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone_number",
+              "value": "={{ $json.phone_number }}"
+            },
+            {
+              "name": "conversation_id",
+              "value": "={{ $json.conversation_id }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "contact_name",
+              "value": "={{ $json.contact_name }}"
+            }
+          ]
         },
         "options": {}
       },
@@ -47,62 +62,6 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "phone_number": "={{ $env.ADMIN_PHONE_NUMBER }}",
-          "message_type": "text",
-          "text": "=Nueva consulta de WhatsApp\nTelefono: {{ $json.phone_number }}\nMensaje: {{ $json.message }}"
-        },
-        "options": {}
-      },
-      "id": "kapso-notify",
-      "name": "Kapso WhatsApp Notify",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [640, 500]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "json",
-        "body": {
-          "phone_number": "={{ $('Normalize Payload').item.json.phone_number }}",
-          "message_type": "text",
-          "text": "={{ $json.reply_text }}"
-        },
-        "options": {}
-      },
-      "id": "kapso-reply",
-      "name": "Kapso Reply",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.1,
-      "position": [840, 300]
-    },
-    {
-      "parameters": {
         "respondWith": "json",
         "responseBody": "={ \"status\": \"ok\", \"reply_sent\": true }",
         "options": {}
@@ -111,7 +70,7 @@
       "name": "Respond to Kapso",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1040, 300]
+      "position": [840, 300]
     }
   ],
   "connections": {
@@ -133,27 +92,11 @@
             "node": "Call Agent",
             "type": "main",
             "index": 0
-          },
-          {
-            "node": "Kapso WhatsApp Notify",
-            "type": "main",
-            "index": 0
           }
         ]
       ]
     },
     "Call Agent": {
-      "main": [
-        [
-          {
-            "node": "Kapso Reply",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Kapso Reply": {
       "main": [
         [
           {

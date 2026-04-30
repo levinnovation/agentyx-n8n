@@ -111,8 +111,10 @@ FAISS_INDEX_DIR = os.environ.get("FAISS_INDEX_DIR", _LOCAL_DATA)
 # ─── Kapso ───────────────────────────────────────────────────
 
 KAPSO_API_KEY = os.environ.get("KAPSO_API_KEY", "")
-KAPSO_BASE_URL = os.environ.get("KAPSO_BASE_URL", "https://api.kapso.io")
+KAPSO_BASE_URL = os.environ.get("KAPSO_BASE_URL", "https://api.kapso.ai/meta/whatsapp/v24.0")
+KAPSO_PHONE_NUMBER_ID = os.environ.get("KAPSO_PHONE_NUMBER_ID", "")
 KAPSO_WEBHOOK_SECRET = os.environ.get("KAPSO_WEBHOOK_SECRET", "")
+ADMIN_PHONE_NUMBER = os.environ.get("ADMIN_PHONE_NUMBER", "")
 
 # ─── Bitrix24 ────────────────────────────────────────────────
 

@@ -27,6 +27,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
       N8N_HOST: ${N8N_HOST}
       N8N_PORT: "5678"

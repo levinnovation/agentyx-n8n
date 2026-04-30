@@ -32,6 +32,7 @@ from .memory import (
     get_or_create_conversation,
     update_session_state,
 )
+from .config import ADMIN_PHONE_NUMBER
 from .kapso import send_text, send_document, send_image
 from .tools.catalog_search import query_product_catalog, list_price_lists
 from .tools.document_search import search_documents, read_document_content
@@ -189,6 +190,19 @@ async def agent_invoke(request: AgentInvokeRequest):
     reply_text = getattr(last_msg, "content", str(last_msg))
 
     append_message(request.phone_number, request.conversation_id, "assistant", reply_text)
+
+    # Send reply via Kapso WhatsApp
+    kapso_resp = send_text(request.phone_number, reply_text[:1200])
+    if not kapso_resp.get("success"):
+        print(f"[kapso] outbound failed: {kapso_resp.get('error')}")
+
+    # Notify admin of new inquiry
+    admin_notify = send_text(
+        ADMIN_PHONE_NUMBER,
+        f"Nueva consulta - Tel: {request.phone_number} - Msg: {request.message[:200]}"
+    )
+    if not admin_notify.get("success"):
+        print(f"[kapso] admin notify failed: {admin_notify.get('error')}")
 
     return AgentInvokeResponse(
         reply_text=reply_text,

@@ -35,23 +35,42 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
+        "url": "={{ $env.KAPSO_BASE_URL }}/{{ $env.KAPSO_PHONE_NUMBER_ID }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
+              "name": "x-api-key",
+              "value": "={{ $env.KAPSO_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "phone_number": "={{ $('Webhook').item.json.body.phone_number }}",
-          "message_type": "document",
-          "document_url": "={{ $json.pdf_url }}",
-          "caption": "Tu cotizacion esta lista"
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "recipient_type",
+              "value": "individual"
+            },
+            {
+              "name": "to",
+              "value": "={{ $('Webhook').item.json.body.phone_number }}"
+            },
+            {
+              "name": "type",
+              "value": "document"
+            },
+            {
+              "name": "document",
+              "value": "={\"link\":\"{{ $json.pdf_url }}\",\"caption\":\"Tu cotizacion esta lista\"}"
+            }
+          ]
         },
         "options": {}
       },

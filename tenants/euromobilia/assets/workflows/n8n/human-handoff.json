@@ -25,22 +25,42 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.KAPSO_BASE_URL }}/messages",
+        "url": "={{ $env.KAPSO_BASE_URL }}/{{ $env.KAPSO_PHONE_NUMBER_ID }}/messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "Bearer {{ $env.KAPSO_API_KEY }}"
+              "name": "x-api-key",
+              "value": "={{ $env.KAPSO_API_KEY }}"
             }
           ]
         },
         "sendBody": true,
         "contentType": "json",
-        "body": {
-          "phone_number": "={{ $env.ADMIN_PHONE_NUMBER }}",
-          "message_type": "text",
-          "text": "=ALERTA: Escalamiento humano\nTelefono: {{ $json.body.phone_number }}\nMotivo: {{ $json.body.reason || 'Cliente solicito agente humano' }}\nHora: {{ new Date().toISOString() }}"
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "recipient_type",
+              "value": "individual"
+            },
+            {
+              "name": "to",
+              "value": "={{ $env.ADMIN_PHONE_NUMBER }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "={\"body\":\"ALERTA: Escalamiento humano\\nTelefono: {{ $json.body.phone_number }}\\nMotivo: {{ $json.body.reason || 'Cliente solicito agente humano' }}\\nHora: {{ new Date().toISOString() }}\"}"
+            }
+          ]
         },
         "options": {}
       },
@@ -100,7 +120,7 @@
         ]
       ]
     },
-    "Composio Slack": {
+    "Kapso WhatsApp Notify": {
       "main": [
         [
           {
