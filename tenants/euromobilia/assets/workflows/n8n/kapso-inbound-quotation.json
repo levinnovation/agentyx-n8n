@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Normalize Kapso payload to agent format\nconst body = $input.first().json.body;\nreturn [{\n  json: {\n    phone_number: body.phone_number || body.phone,\n    conversation_id: body.phone_number || body.phone,\n    message: body.text || body.caption || '',\n    contact_name: body.contact_name || '',\n    media_url: body.media_url || null,\n    message_id: body.message_id || ''\n  }\n}];"
+        "jsCode": "// Normalize Kapso payload to agent format\nconst body = $input.first().json.body;\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\n// Extract message text based on type\nlet messageText = '';\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Image received]';\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Document received]';\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Voice message received]';\n}\n\nreturn [{\n  json: {\n    phone_number: '+' + conv.phone_number || msg.from || '',\n    conversation_id: conv.id || msg.from || '',\n    message: messageText,\n    contact_name: conv.contact_name || '',\n    media_url: null,\n    message_id: msg.id || ''\n  }\n}];"
       },
       "id": "normalize-payload",
       "name": "Normalize Payload",

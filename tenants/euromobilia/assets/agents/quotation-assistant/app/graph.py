@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 # ─── Load system prompt from versioned .md file ──────────────
 
-_PROMPT_PATH = Path(__file__).parent.parent / ".." / ".." / "prompts" / "quotation-assistant.system.md"
+_PROMPT_PATH = Path(__file__).parent.parent / "system-prompt.md"
 
 
 def _load_system_prompt() -> str:

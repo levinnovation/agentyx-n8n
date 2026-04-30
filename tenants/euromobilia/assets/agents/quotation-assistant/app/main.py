@@ -11,6 +11,7 @@ Endpoints:
 from __future__ import annotations
 
 import hashlib
+import json
 import time
 from pathlib import Path
 
@@ -80,7 +81,7 @@ _tools = [
 # ─── Prompt loaders ──────────────────────────────────────────
 
 def _load_prompt(name: str) -> str:
-    base = Path(__file__).parent.parent / ".." / ".." / "prompts"
+    base = Path(__file__).parent / "prompts"
     path = (base / name).resolve()
     if path.exists():
         return path.read_text(encoding="utf-8")
@@ -157,6 +158,30 @@ async def kapso_inbound(payload: KapsoInboundPayload, x_kapso_signature: str | N
     return {"status": "ok", "reply_sent": kapso_resp.get("success", False)}
 
 
+def _build_intake_context(intake_data: dict, template_slug: str, user_message: str) -> str:
+    """Build enriched context block from intake form data."""
+    template = _load_prompt("intake_context.md")
+    if not template:
+        # Fallback if prompt file missing
+        lines = ["[INTAKE DATA COMPLETADO]"]
+        for k, v in intake_data.items():
+            lines.append(f"- {k}: {v}")
+        lines.append(f"- template: {template_slug}")
+        return "\n".join(lines)
+
+    # Simple substitution
+    result = template
+    result = result.replace("{{template_slug}}", template_slug)
+    result = result.replace("{{user_message}}", user_message)
+    for key, value in intake_data.items():
+        placeholder = f"{{{{{key}}}}}"
+        display = value
+        if isinstance(value, list):
+            display = ", ".join(str(v) for v in value)
+        result = result.replace(placeholder, str(display))
+    return result
+
+
 @app.post("/agent/invoke")
 async def agent_invoke(request: AgentInvokeRequest):
     """Invoke the agent directly (for n8n or testing)."""
@@ -174,6 +199,16 @@ async def agent_invoke(request: AgentInvokeRequest):
         context_parts.append(f"Intake progress: {session['intake_progress']}")
     if session.get("cart"):
         context_parts.append(f"Cart: {session['cart']}")
+
+    # Inject intake context if present (backward compatible)
+    if request.intake_data:
+        intake_context = _build_intake_context(
+            request.intake_data,
+            request.template_slug or "unknown",
+            request.message,
+        )
+        context_parts.append(intake_context)
+
     context = "\n".join(context_parts)
 
     try:
@@ -196,11 +231,14 @@ async def agent_invoke(request: AgentInvokeRequest):
     if not kapso_resp.get("success"):
         print(f"[kapso] outbound failed: {kapso_resp.get('error')}")
 
-    # Notify admin of new inquiry
-    admin_notify = send_text(
-        ADMIN_PHONE_NUMBER,
-        f"Nueva consulta - Tel: {request.phone_number} - Msg: {request.message[:200]}"
-    )
+    # Notify admin of new inquiry (enriched if intake present)
+    admin_msg = f"Nueva consulta - Tel: {request.phone_number}"
+    if request.intake_data and request.template_slug:
+        admin_msg += f" - Intake: {request.template_slug} - Datos: {json.dumps(request.intake_data, ensure_ascii=False)[:200]}"
+    else:
+        admin_msg += f" - Msg: {request.message[:200]}"
+
+    admin_notify = send_text(ADMIN_PHONE_NUMBER, admin_msg)
     if not admin_notify.get("success"):
         print(f"[kapso] admin notify failed: {admin_notify.get('error')}")
 

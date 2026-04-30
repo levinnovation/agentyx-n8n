@@ -40,6 +40,8 @@ class AgentInvokeRequest(BaseModel):
     contact_name: str = ""
     media_url: str | None = None
     intent_hint: Intent | None = None
+    intake_data: dict | None = None
+    template_slug: str | None = None
 
 
 class AgentInvokeResponse(BaseModel):
