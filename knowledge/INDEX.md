@@ -105,6 +105,7 @@
 - [operations/how-to-connect-google-workspace-scim.md](operations/how-to-connect-google-workspace-scim.md)
 - [operations/how-to-log-a-prompt-run.md](operations/how-to-log-a-prompt-run.md)
 - [operations/how-to-record-a-decision.md](operations/how-to-record-a-decision.md)
+- [operations/how-to-replicate-reference-to-scratch.md](operations/how-to-replicate-reference-to-scratch.md)
 - [operations/how-to-rotate-railway-token.md](operations/how-to-rotate-railway-token.md)
 - [operations/how-to-update-agent-context-files.md](operations/how-to-update-agent-context-files.md)
 - [operations/how-to-update-context-packs.md](operations/how-to-update-context-packs.md)
