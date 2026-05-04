@@ -1,0 +1,57 @@
+forks:
+  - name: agentyx-auth-service
+    repo: https://github.com/levinnovation/agentyx-auth-service
+    upstream: ""
+    pinned_upstream_tag: ""
+    branch: agentyx/main
+    deploy_mode: repo
+    image: ghcr.io/levinnovation/agentyx-auth-service:latest
+
+  - name: agentyx-client-portal
+    repo: https://github.com/levinnovation/agentyx-client-portal
+    upstream: ""
+    pinned_upstream_tag: ""
+    branch: agentyx/main
+    deploy_mode: repo
+    image: ghcr.io/levinnovation/agentyx-client-portal:latest
+
+  - name: agentyx-librechat
+    repo: https://github.com/levinnovation/agentyx-librechat
+    upstream: https://github.com/danny-avila/LibreChat
+    pinned_upstream_tag: v0.7.7
+    branch: agentyx/main
+    deploy_mode: repo
+    image: ghcr.io/levinnovation/agentyx-librechat:latest
+
+  - name: agentyx-flowise
+    repo: https://github.com/levinnovation/agentyx-flowise
+    upstream: https://github.com/FlowiseAI/Flowise
+    pinned_upstream_tag: ""
+    branch: agentyx/main
+    deploy_mode: repo
+    image: ghcr.io/levinnovation/agentyx-flowise:latest
+
+  - name: agentyx-paperclip
+    repo: https://github.com/levinnovation/agentyx-paperclip
+    upstream: https://github.com/paperclipai/paperclip
+    pinned_upstream_tag: ""
+    branch: agentyx/main
+    deploy_mode: repo
+    image: ghcr.io/levinnovation/agentyx-paperclip:latest
+
+  - name: agentyx-n8n
+    repo: https://github.com/levinnovation/agentyx-n8n
+    upstream: https://github.com/n8n-io/n8n
+    pinned_upstream_tag: "1.84.0"
+    branch: agentyx/main
+    deploy_mode: image
+    image: n8nio/n8n:1.84.0
+
+  - name: open-webui
+    repo: https://github.com/levinnovation/open-webui
+    upstream: https://github.com/open-webui/open-webui
+    pinned_upstream_tag: ""
+    branch: ""
+    deploy_mode: ""
+    image: ""
+    status: archived

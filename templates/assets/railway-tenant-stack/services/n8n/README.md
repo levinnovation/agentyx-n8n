@@ -6,6 +6,10 @@ n8n Community Edition workflow automation engine.
 
 `n8nio/n8n:latest` (pin to a specific version in production)
 
+## Fork
+
+Config notes live in [`levinnovation/agentyx-n8n`](https://github.com/levinnovation/agentyx-n8n). Runtime uses upstream image directly; no code patches.
+
 ## Ports
 
 - `5678` — Web UI and webhooks

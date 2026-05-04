@@ -2,6 +2,12 @@
 
 Optional low-code agent builder.
 
+## Fork
+
+[`levinnovation/agentyx-flowise`](https://github.com/levinnovation/agentyx-flowise) — fork of `FlowiseAI/Flowise` with Better Auth user-store integration.
+
+**License warning:** Flowise is NOASSERTION. Verify redistribution terms before publishing GHCR image.
+
 ## Status
 
 Off by default. Enable by setting `FLOWISE_ENABLED=true` in project variables before running bootstrap.

@@ -1,0 +1,18 @@
+name: Build Client Portal Image
+
+on:
+  push:
+    branches: [agentyx/main]
+    paths:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/_reusable/build-fork-image.yml
+    with:
+      repo: levinnovation/agentyx-client-portal
+      ref: agentyx/main
+      image_name: agentyx-client-portal
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
