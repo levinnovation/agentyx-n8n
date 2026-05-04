@@ -17,3 +17,7 @@ Set `PORTAL_IMAGE` variable when ready.
 ## Ports
 
 - `8080` — Static SPA server
+
+## Better Auth integration
+
+When the SPA is built, it will use the Better Auth client SDK (`@better-auth/client`) and point at `BETTER_AUTH_URL` for session management.

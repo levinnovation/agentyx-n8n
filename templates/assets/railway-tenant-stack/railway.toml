@@ -4,8 +4,31 @@ builder = "DOCKERFILE"
 # ─── Postgres ────────────────────────────────────────────────
 # Railway Postgres plugin; no build needed.
 # Services reference it via ${{Postgres.DATABASE_URL}}
+# Logical DBs: n8n, langfuse, librechat, paperclip, better_auth
+
+# ─── better-auth ─────────────────────────────────────────────
+[better-auth]
+root = "services/better-auth"
+startCommand = ""
+
+[better-auth.variables]
+PORT = "3000"
+BETTER_AUTH_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
+BETTER_AUTH_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=better_auth"
+
+# ─── auth-proxy ──────────────────────────────────────────────
+[auth-proxy]
+root = "services/auth-proxy"
+startCommand = ""
+
+[auth-proxy.variables]
+BETTER_AUTH_INTERNAL_URL = "http://better-auth.railway.internal:3000"
+N8N_INTERNAL_URL = "http://n8n.railway.internal:5678"
+FLOWISE_INTERNAL_URL = "http://flowise.railway.internal:3000"
+PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
 
 # ─── n8n ─────────────────────────────────────────────────────
+# Public ingress is via auth-proxy; no public domain on this service.
 [n8n]
 image = "n8nio/n8n:latest"
 startCommand = "n8n start"
@@ -33,9 +56,14 @@ ENDPOINTS = "custom"
 CUSTOM_NAME = "Agentyx Agent"
 CUSTOM_BASE_URL = "http://agent.railway.internal:8000"
 CUSTOM_API_KEY = "${{CUSTOM_API_KEY}}"
+OPENID_CLIENT_ID = "${{OPENID_CLIENT_ID}}"
+OPENID_CLIENT_SECRET = "${{OPENID_CLIENT_SECRET}}"
+OPENID_ISSUER = "${{OPENID_ISSUER}}"
+OPENID_SCOPE = "openid email profile"
+OPENID_BUTTON_LABEL = "Sign in with Agentyx"
 
 # ─── Paperclip ───────────────────────────────────────────────
-# Built from source; Dockerfile lives in services/paperclip/
+# Public ingress is via auth-proxy; no public domain on this service.
 [paperclip]
 root = "services/paperclip"
 startCommand = ""
@@ -53,27 +81,36 @@ startCommand = ""
 DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=langfuse"
 NEXTAUTH_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
 PORT = "3000"
+AUTH_CUSTOM_NAME = "Agentyx"
+AUTH_CUSTOM_CLIENT_ID = "${{AUTH_CUSTOM_CLIENT_ID}}"
+AUTH_CUSTOM_CLIENT_SECRET = "${{AUTH_CUSTOM_CLIENT_SECRET}}"
+AUTH_CUSTOM_ISSUER = "${{AUTH_CUSTOM_ISSUER}}"
+AUTH_CUSTOM_SCOPE = "openid email profile"
 
 # ─── Agent ───────────────────────────────────────────────────
-# Image is set per-tenant via AGENT_IMAGE variable.
 [agent]
 image = "${{AGENT_IMAGE}}"
 startCommand = ""
 
 [agent.variables]
 PORT = "8000"
+BETTER_AUTH_JWKS_URL = "${{BETTER_AUTH_JWKS_URL}}"
+BETTER_AUTH_ISSUER = "${{BETTER_AUTH_ISSUER}}"
+BETTER_AUTH_AUDIENCE = "${{BETTER_AUTH_AUDIENCE}}"
+AUTH_REQUIRED = "false"
 
 # ─── Agentyx Portal ──────────────────────────────────────────
-# Placeholder until the SPA image is built.
 [agentyx-portal]
 image = "${{PORTAL_IMAGE}}"
 startCommand = ""
 
 [agentyx-portal.variables]
 PORT = "8080"
+BETTER_AUTH_URL = "http://better-auth.railway.internal:3000"
 
 # ─── Flowise (optional) ──────────────────────────────────────
 # Enable by setting FLOWISE_ENABLED=true in project variables.
+# Public ingress is via auth-proxy; no public domain on this service.
 [flowise]
 image = "flowiseai/flowise:latest"
 startCommand = "flowise start"

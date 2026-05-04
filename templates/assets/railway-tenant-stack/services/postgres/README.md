@@ -8,6 +8,7 @@ Railway Postgres plugin. Provides a single Postgres instance shared across multi
 - `langfuse` — Langfuse trace events
 - `librechat` — LibreChat conversation storage
 - `paperclip` — Paperclip orchestration state
+- `better_auth` — Better Auth user sessions and OIDC data
 
 ## Connection
 

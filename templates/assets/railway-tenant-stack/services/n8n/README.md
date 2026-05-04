@@ -10,9 +10,12 @@ n8n Community Edition workflow automation engine.
 
 - `5678` — Web UI and webhooks
 
-## Environment
+## Public access via auth-proxy
 
-See `.env.example` for required variables.
+Human-facing access to n8n is gated by the `auth-proxy` service (Caddy `forward_auth`).
+Unauthenticated requests are redirected to Better Auth.
+
+Basic auth env vars (`N8N_BASIC_AUTH_*`) remain as defense-in-depth.
 
 ## Webhook URL
 

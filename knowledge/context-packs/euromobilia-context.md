@@ -16,6 +16,7 @@
 - Domain: `tenants/euromobilia/domains/kitchen-commerce/`
 - Assets: `tenants/euromobilia/assets/` (typed folders: `agents/`, `workflows/`, etc.)
 - **Deployment (canonical):** `tenants/euromobilia/assets/deploy/railway/` — Railway per-tenant stack (ADR-0010)
+- **Auth:** `tenants/euromobilia/assets/deploy/railway/services/better-auth/` and `auth-proxy/` — Better Auth federation (ADR-0012)
 - **Deployment (legacy):** `tenants/euromobilia/assets/deploy/n8n-hostinger/` and `agent-hostinger/` — deprecated, retained for rollback reference
 - **Deployment template:** `templates/assets/railway-tenant-stack/` — reusable Railway stack for new tenants
 
@@ -38,3 +39,4 @@ See **ADR-0007** (`knowledge/decisions/0007-multi-interface-deployment-for-tenan
 - n8n workflow JSON files: `kapso-inbound-quotation`, `human-handoff`, etc.
 - Self-hosted n8n **runtime** (Docker on Hostinger): deployment asset `n8n-hostinger` under `tenants/euromobilia/assets/deploy/n8n-hostinger/` (deprecated)
 - Railway tenant stack: `euromobilia-railway-stack` under `tenants/euromobilia/assets/deploy/railway/`
+- Better Auth federation: `euromobilia-better-auth` and `euromobilia-auth-proxy`

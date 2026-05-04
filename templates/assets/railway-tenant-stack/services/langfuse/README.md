@@ -10,9 +10,17 @@ LLM observability and tracing platform.
 
 - `3000` — Web UI and API
 
-## Environment
+## OIDC sign-in
 
-See `.env.example` for required variables.
+Langfuse is configured as an OIDC RP against the tenant's `better-auth` service.
+
+```
+AUTH_CUSTOM_NAME=Agentyx
+AUTH_CUSTOM_ISSUER=<better-auth-url>
+AUTH_CUSTOM_CLIENT_ID=<client-id>
+AUTH_CUSTOM_CLIENT_SECRET=<client-secret>
+AUTH_CUSTOM_SCOPE=openid email profile
+```
 
 ## First-run init
 

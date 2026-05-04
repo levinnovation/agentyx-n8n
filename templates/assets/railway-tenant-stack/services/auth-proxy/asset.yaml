@@ -1,0 +1,15 @@
+id: auth-proxy
+name: Auth Proxy
+type: auth
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: |
+  Caddy 2 reverse proxy with forward_auth gating for n8n, Flowise, and Paperclip.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

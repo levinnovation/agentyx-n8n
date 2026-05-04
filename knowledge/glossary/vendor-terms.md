@@ -12,5 +12,6 @@
 | Langfuse | LLM observability / tracing; deployed as a Railway service per tenant stack |
 | Flowise | Optional low-code agent builder; gated by `FLOWISE_ENABLED` in Railway stack |
 | Agentyx Portal | Tenant-facing portal SPA; placeholder image until built |
+| Better Auth | Per-tenant auth federation IDP; deployed as a Railway service per ADR-0012 |
 
 **Rule:** Vendor dashboards are not source of truth—Git files are.

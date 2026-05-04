@@ -7,3 +7,4 @@ Logical databases:
 - `langfuse`
 - `librechat`
 - `paperclip`
+- `better_auth`

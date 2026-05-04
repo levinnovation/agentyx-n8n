@@ -18,13 +18,39 @@ Postgres is a Railway plugin; credentials are auto-generated. Per-service databa
 
 Services receive `*_DATABASE_URL` pointing at their logical DB.
 
+## better-auth
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `BETTER_AUTH_SECRET` | Yes | `openssl rand -hex 32` |
+| `BETTER_AUTH_URL` | Yes | Public URL of better-auth service |
+| `BETTER_AUTH_DATABASE_URL` | Yes | Postgres connection string (`?schema=better_auth`) |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Yes | Comma-separated allowed origins |
+| `GOOGLE_OAUTH_CLIENT_ID` | Yes | Google Workspace OAuth client ID |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | Yes | Google Workspace OAuth client secret |
+| `GOOGLE_HD` | No | Restrict Google login to hosted domain |
+| `OIDC_ISSUER` | No | Defaults to `BETTER_AUTH_URL` |
+| `OIDC_JWKS_PRIVATE_KEY` | No | Private key for OIDC JWKS (auto-generated if empty) |
+
+## auth-proxy
+
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `N8N_PUBLIC_HOST` | Yes | Public hostname for n8n (e.g. `n8n.<tenant>.com`) |
+| `FLOWISE_PUBLIC_HOST` | Yes | Public hostname for Flowise |
+| `PAPERCLIP_PUBLIC_HOST` | Yes | Public hostname for Paperclip |
+| `BETTER_AUTH_INTERNAL_URL` | No | Defaults to `http://better-auth.railway.internal:3000` |
+| `N8N_INTERNAL_URL` | No | Defaults to `http://n8n.railway.internal:5678` |
+| `FLOWISE_INTERNAL_URL` | No | Defaults to `http://flowise.railway.internal:3000` |
+| `PAPERCLIP_INTERNAL_URL` | No | Defaults to `http://paperclip.railway.internal:3000` |
+
 ## n8n
 
 | Variable | Required | Notes |
 |----------|----------|-------|
 | `N8N_ENCRYPTION_KEY` | Yes | `openssl rand -hex 32` |
-| `N8N_BASIC_AUTH_USER` | Yes | Admin username |
-| `N8N_BASIC_AUTH_PASSWORD` | Yes | Admin password |
+| `N8N_BASIC_AUTH_USER` | Yes | Admin username (defense-in-depth) |
+| `N8N_BASIC_AUTH_PASSWORD` | Yes | Admin password (defense-in-depth) |
 | `WEBHOOK_URL` | Yes | Public URL of n8n service (auto-set by Railway domain) |
 
 ## LibreChat
@@ -41,6 +67,11 @@ Services receive `*_DATABASE_URL` pointing at their logical DB.
 | `ENDPOINTS` | Yes | `custom` to point at agent service |
 | `CUSTOM_API_KEY` | Yes | Dummy or real key for agent endpoint |
 | `CUSTOM_BASE_URL` | Yes | Internal Railway URL of `agent` service |
+| `OPENID_CLIENT_ID` | Yes | OIDC client ID (from Better Auth) |
+| `OPENID_CLIENT_SECRET` | Yes | OIDC client secret (from Better Auth) |
+| `OPENID_ISSUER` | Yes | Better Auth URL |
+| `OPENID_SCOPE` | No | Defaults to `openid email profile` |
+| `OPENID_BUTTON_LABEL` | No | Defaults to `Sign in with Agentyx` |
 
 ## Paperclip
 
@@ -65,6 +96,11 @@ Services receive `*_DATABASE_URL` pointing at their logical DB.
 | `LANGFUSE_INIT_USER_EMAIL` | Yes | First admin email |
 | `LANGFUSE_INIT_USER_NAME` | Yes | First admin name |
 | `LANGFUSE_INIT_USER_PASSWORD` | Yes | First admin password |
+| `AUTH_CUSTOM_NAME` | No | Defaults to `Agentyx` |
+| `AUTH_CUSTOM_CLIENT_ID` | Yes | OIDC client ID (from Better Auth) |
+| `AUTH_CUSTOM_CLIENT_SECRET` | Yes | OIDC client secret (from Better Auth) |
+| `AUTH_CUSTOM_ISSUER` | Yes | Better Auth URL |
+| `AUTH_CUSTOM_SCOPE` | No | Defaults to `openid email profile` |
 
 ## Agent
 
@@ -89,20 +125,25 @@ Services receive `*_DATABASE_URL` pointing at their logical DB.
 | `LANGCHAIN_ENDPOINT` | No | Defaults to LangSmith cloud |
 | `LANGSMITH_ENABLED` | No | Defaults to `true` |
 | `FAISS_INDEX_DIR` | No | Defaults to local `.data/faiss_index` |
+| `BETTER_AUTH_JWKS_URL` | Yes | JWKS endpoint for JWT verification |
+| `BETTER_AUTH_ISSUER` | Yes | JWT issuer |
+| `BETTER_AUTH_AUDIENCE` | No | Defaults to `agent` |
+| `AUTH_REQUIRED` | No | Defaults to `false` |
 
 ## Agentyx Portal
 
 | Variable | Required | Notes |
 |----------|----------|-------|
 | `PORTAL_IMAGE` | Yes | GHCR image ref (set when SPA is ready) |
+| `BETTER_AUTH_URL` | No | Internal Better Auth URL for SDK |
 
 ## Flowise (optional)
 
 | Variable | Required | Notes |
 |----------|----------|-------|
 | `FLOWISE_ENABLED` | No | Set `true` to create service |
-| `FLOWISE_USERNAME` | Yes | If enabled |
-| `FLOWISE_PASSWORD` | Yes | If enabled |
+| `FLOWISE_USERNAME` | Yes | If enabled (defense-in-depth) |
+| `FLOWISE_PASSWORD` | Yes | If enabled (defense-in-depth) |
 | `DATABASE_PATH` | No | Defaults to local SQLite inside container |
 
 ## CI/CD secrets (GitHub Actions)
