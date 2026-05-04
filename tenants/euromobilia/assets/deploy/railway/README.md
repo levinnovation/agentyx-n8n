@@ -15,11 +15,17 @@ Per-tenant Railway project for Euromobilia. Hosts postgres, n8n, librechat, pape
 - `EUROMOBILIA_RAILWAY_PROJECT_SCRATCH_ID = 2321232d-b384-45b3-8f0c-e608ddb688d1`
 - `EUROMOBILIA_RAILWAY_PROJECT_ID = 2321232d-b384-45b3-8f0c-e608ddb688d1` (alias, points at scratch during dev)
 
-## Bootstrap
+## Replicate reference to scratch
 
 ```bash
-export RAILWAY_TOKEN=<token>
+# Option A: automated (requires Railway CLI login)
+bash scripts/railway/replicate-reference-to-scratch.sh
+
+# Option B: from repo canonical definition
 bash scripts/railway/bootstrap-tenant.sh --tenant euromobilia
+
+# Option C: manual
+# See knowledge/operations/how-to-replicate-reference-to-scratch.md
 ```
 
 ## Deploy
