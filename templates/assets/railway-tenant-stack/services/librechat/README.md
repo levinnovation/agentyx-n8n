@@ -2,6 +2,10 @@
 
 Open-source chat UI with custom endpoint support.
 
+## Fork
+
+[`levinnovation/agentyx-librechat`](https://github.com/levinnovation/agentyx-librechat) — fork of `danny-avila/LibreChat` with Better Auth user-store integration.
+
 ## Custom endpoint
 
 LibreChat is configured to point its "Custom Endpoint" at the internal `agent` service URL:

@@ -26,6 +26,30 @@ bash scripts/railway/rollback.sh --tenant euromobilia --service agent
 
 This picks the previous successful deployment and redeploys it.
 
+### Flip AUTH_REQUIRED
+
+To enforce Better Auth JWT on Agent endpoints:
+
+1. Set `AUTH_REQUIRED=true` in the agent service variables:
+   ```bash
+   railway variables --service agent --set AUTH_REQUIRED=true
+   ```
+2. Redeploy:
+   ```bash
+   bash scripts/railway/redeploy.sh --tenant euromobilia --service agent
+   ```
+3. Verify:
+   - `GET /health` → 200 (public)
+   - `GET /api/v1/anything` without JWT → 401
+   - `GET /api/v1/anything` with valid JWT → 200
+   - `POST /webhooks/kapso/inbound` with valid HMAC → 200 (unchanged)
+
+To revert:
+```bash
+railway variables --service agent --set AUTH_REQUIRED=false
+bash scripts/railway/redeploy.sh --tenant euromobilia --service agent
+```
+
 ### Sync knowledge base
 
 Trigger a full sync by calling:

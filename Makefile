@@ -10,10 +10,10 @@ TARGET    ?= langgraph
 ENV       ?= dev
 ASSET     ?= quotation-assistant
 
-.PHONY: help validate validate-specs validate-agent-context knowledge-index test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords
+.PHONY: help validate validate-specs validate-agent-context knowledge-index test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords scaffold-fork sync-fork rebase-agentyx build-forks connect-railway-scratch
 
 help:
-	@echo "Targets: validate, validate-specs, validate-agent-context, knowledge-index, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords"
+	@echo "Targets: validate, validate-specs, validate-agent-context, knowledge-index, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords, scaffold-fork, sync-fork, rebase-agentyx, build-forks, connect-railway-scratch"
 
 validate: validate-specs validate-agent-context
 
@@ -49,3 +49,18 @@ compile-n8n:
 
 compile-codewords:
 	$(PYTHON) scripts/compile_codewords_prompt.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY)
+
+scaffold-fork:
+	bash scripts/forks/bootstrap-fork.sh --upstream $(UPSTREAM) --name $(APP)
+
+sync-fork:
+	bash scripts/forks/sync-upstream.sh --name $(APP)
+
+rebase-agentyx:
+	bash scripts/forks/rebase-agentyx.sh --name $(APP)
+
+build-forks:
+	@echo "Building all fork images (Phase 2). Run per-fork workflows in .github/workflows/"
+
+connect-railway-scratch:
+	bash scripts/railway/link-scratch.sh

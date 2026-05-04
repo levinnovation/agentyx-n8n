@@ -97,6 +97,14 @@ LANGCHAIN_API_KEY = os.environ.get("LANGCHAIN_API_KEY", "")
 LANGCHAIN_PROJECT = os.environ.get("LANGCHAIN_PROJECT", "euromobilia-quotation")
 LANGCHAIN_ENDPOINT = os.environ.get("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
 
+# ─── Better Auth JWT verification ────────────────────────────
+
+BETTER_AUTH_JWKS_URL = os.environ.get("BETTER_AUTH_JWKS_URL", "")
+BETTER_AUTH_ISSUER = os.environ.get("BETTER_AUTH_ISSUER", "")
+BETTER_AUTH_AUDIENCE = os.environ.get("BETTER_AUTH_AUDIENCE", "agent")
+AUTH_REQUIRED = os.environ.get("AUTH_REQUIRED", "false").lower() in ("1", "true", "yes")
+INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "")
+
 # ─── Tavily (web search) ─────────────────────────────────────
 
 TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")

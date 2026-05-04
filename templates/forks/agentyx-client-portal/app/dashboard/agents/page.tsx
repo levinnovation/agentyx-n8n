@@ -1,0 +1,8 @@
+export default function AgentsPage() {
+  return (
+    <div className="p-8">
+      <h1 className="text-2xl font-bold">Agents</h1>
+      <p className="mt-2 text-muted-foreground">Manage your agent deployments.</p>
+    </div>
+  );
+}

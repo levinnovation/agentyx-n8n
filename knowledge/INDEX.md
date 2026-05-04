@@ -39,7 +39,11 @@
 - [change-log/2026/04/2026-04-30-whatsapp-images-and-history-fix.md](change-log/2026/04/2026-04-30-whatsapp-images-and-history-fix.md)
 - [change-log/2026/04/2026-04-30-whatsapp-interactive-intake-forms.md](change-log/2026/04/2026-04-30-whatsapp-interactive-intake-forms.md)
 - [change-log/2026/05/2026-05-04-better-auth-tenant-federation.md](change-log/2026/05/2026-05-04-better-auth-tenant-federation.md)
+- [change-log/2026/05/2026-05-04-enforce-better-auth-on-agent-fastapi.md](change-log/2026/05/2026-05-04-enforce-better-auth-on-agent-fastapi.md)
+- [change-log/2026/05/2026-05-04-migrate-user-stores-to-better-auth.md](change-log/2026/05/2026-05-04-migrate-user-stores-to-better-auth.md)
+- [change-log/2026/05/2026-05-04-oss-forks-under-levinnovation.md](change-log/2026/05/2026-05-04-oss-forks-under-levinnovation.md)
 - [change-log/2026/05/2026-05-04-railway-tenant-projects.md](change-log/2026/05/2026-05-04-railway-tenant-projects.md)
+- [change-log/2026/05/2026-05-04-scim-and-org-provisioning.md](change-log/2026/05/2026-05-04-scim-and-org-provisioning.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -72,6 +76,10 @@
 - [decisions/0010-whatsapp-interactive-intake-forms.md](decisions/0010-whatsapp-interactive-intake-forms.md)
 - [decisions/0011-langsmith-observability-for-all-agents.md](decisions/0011-langsmith-observability-for-all-agents.md)
 - [decisions/0012-better-auth-as-tenant-auth-federation.md](decisions/0012-better-auth-as-tenant-auth-federation.md)
+- [decisions/0013-oss-forks-under-levinnovation-org.md](decisions/0013-oss-forks-under-levinnovation-org.md)
+- [decisions/0014-migrate-app-user-stores-to-better-auth.md](decisions/0014-migrate-app-user-stores-to-better-auth.md)
+- [decisions/0015-enforce-better-auth-on-agent-fastapi.md](decisions/0015-enforce-better-auth-on-agent-fastapi.md)
+- [decisions/0016-scim-and-org-provisioning.md](decisions/0016-scim-and-org-provisioning.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -94,10 +102,13 @@
 ### `operations/`
 
 - [operations/how-to-close-an-architecture-change.md](operations/how-to-close-an-architecture-change.md)
+- [operations/how-to-connect-google-workspace-scim.md](operations/how-to-connect-google-workspace-scim.md)
 - [operations/how-to-log-a-prompt-run.md](operations/how-to-log-a-prompt-run.md)
 - [operations/how-to-record-a-decision.md](operations/how-to-record-a-decision.md)
+- [operations/how-to-rotate-railway-token.md](operations/how-to-rotate-railway-token.md)
 - [operations/how-to-update-agent-context-files.md](operations/how-to-update-agent-context-files.md)
 - [operations/how-to-update-context-packs.md](operations/how-to-update-context-packs.md)
+- [operations/railway-template-sources.md](operations/railway-template-sources.md)
 - [operations/README.md](operations/README.md)
 
 ### `prompts/`

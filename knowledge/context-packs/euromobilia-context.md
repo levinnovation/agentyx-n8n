@@ -17,8 +17,16 @@
 - Assets: `tenants/euromobilia/assets/` (typed folders: `agents/`, `workflows/`, etc.)
 - **Deployment (canonical):** `tenants/euromobilia/assets/deploy/railway/` — Railway per-tenant stack (ADR-0010)
 - **Auth:** `tenants/euromobilia/assets/deploy/railway/services/better-auth/` and `auth-proxy/` — Better Auth federation (ADR-0012)
+- **Forks:** `templates/forks/` — scaffold content for `levinnovation/agentyx-*` repos (ADR-0013)
 - **Deployment (legacy):** `tenants/euromobilia/assets/deploy/n8n-hostinger/` and `agent-hostinger/` — deprecated, retained for rollback reference
 - **Deployment template:** `templates/assets/railway-tenant-stack/` — reusable Railway stack for new tenants
+
+## Railway Projects
+
+| Role | Project ID | URL |
+|---|---|---|
+| REFERENCE | `7d70063b-f1b4-415f-b57a-627d24ba0225` | [railway.com/project/7d70063b-f1b4-415f-b57a-627d24ba0225](https://railway.com/project/7d70063b-f1b4-415f-b57a-627d24ba0225) |
+| SCRATCH | `2321232d-b384-45b3-8f0c-e608ddb688d1` | [railway.com/project/2321232d-b384-45b3-8f0c-e608ddb688d1](https://railway.com/project/2321232d-b384-45b3-8f0c-e608ddb688d1) |
 
 ## Interfaces (channels) vs core assets
 
