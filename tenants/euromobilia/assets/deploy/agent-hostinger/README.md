@@ -1,3 +1,5 @@
+> **DEPRECATED** — This Hostinger deploy is superseded by the Railway tenant stack (`euromobilia-railway-stack`). See ADR-0010: `knowledge/decisions/0010-per-tenant-railway-project-as-canonical-runtime.md`. Retained for emergency rollback only.
+
 # Euromobilia Quotation Assistant — Hostinger Deploy
 
 This directory contains the **deployment artifacts** for running the

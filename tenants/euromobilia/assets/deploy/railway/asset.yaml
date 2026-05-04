@@ -1,0 +1,19 @@
+id: euromobilia-railway-stack
+name: Euromobilia Railway Stack
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: active
+version: "1.0.0"
+description: |
+  Per-tenant Railway project for Euromobilia. Hosts postgres, n8n,
+  librechat, paperclip, langfuse, agent, and agentyx-portal.
+  Flowise is optional and commented out by default.
+owner: "ai-team@euromobilia.com"
+observability:
+  traces: langsmith
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

@@ -1,0 +1,14 @@
+id: euromobilia-paperclip
+name: Paperclip
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: active
+description: AI-team orchestrator built from paperclipai/paperclip upstream.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

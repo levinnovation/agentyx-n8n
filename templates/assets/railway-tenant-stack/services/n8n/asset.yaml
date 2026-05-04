@@ -1,0 +1,14 @@
+id: n8n
+name: n8n CE
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: n8n Community Edition workflow engine.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

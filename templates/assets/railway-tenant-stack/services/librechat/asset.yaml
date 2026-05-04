@@ -1,0 +1,14 @@
+id: librechat
+name: LibreChat
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: Open-source chat UI wired to the agent custom endpoint.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

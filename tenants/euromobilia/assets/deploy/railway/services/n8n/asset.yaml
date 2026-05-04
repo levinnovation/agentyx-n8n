@@ -1,0 +1,14 @@
+id: euromobilia-n8n
+name: n8n CE
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: active
+description: n8n Community Edition workflow engine for Euromobilia.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

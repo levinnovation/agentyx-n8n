@@ -1,0 +1,14 @@
+id: agent
+name: Agent Runtime
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: FastAPI / LangGraph agent runtime. Image is per-tenant/per-capability.
+observability:
+  traces: langsmith
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

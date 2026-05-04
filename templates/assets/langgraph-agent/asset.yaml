@@ -8,7 +8,7 @@ status: scaffolded
 description: "Replace with agent description."
 owner: "replace@example.com"
 observability:
-  traces: langfuse
+  traces: langsmith
   metrics: none
 deployment:
   platform: modal

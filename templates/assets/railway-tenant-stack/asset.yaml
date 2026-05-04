@@ -1,0 +1,16 @@
+id: railway-tenant-stack
+name: Railway Tenant Stack
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: scaffolded
+description: |
+  Per-tenant Railway project template hosting postgres, n8n, librechat,
+  paperclip, langfuse, agent, agentyx-portal, and optional flowise.
+observability:
+  traces: langsmith
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

@@ -1,14 +1,11 @@
 name: Deploy Euromobilia n8n Workflows — Hostinger
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'tenants/euromobilia/assets/workflows/n8n/*.json'
   workflow_dispatch:
 
 jobs:
   import-workflows:
+    if: vars.HOSTINGER_DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

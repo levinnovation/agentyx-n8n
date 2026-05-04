@@ -1,0 +1,14 @@
+id: flowise
+name: Flowise
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: scaffolded
+description: Optional low-code agent builder. Gated by FLOWISE_ENABLED.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

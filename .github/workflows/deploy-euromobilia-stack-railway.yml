@@ -1,0 +1,53 @@
+name: Deploy Euromobilia Stack — Railway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tenants/euromobilia/assets/deploy/railway/**'
+  workflow_dispatch:
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            n8n: tenants/euromobilia/assets/deploy/railway/services/n8n/**
+            librechat: tenants/euromobilia/assets/deploy/railway/services/librechat/**
+            paperclip: tenants/euromobilia/assets/deploy/railway/services/paperclip/**
+            langfuse: tenants/euromobilia/assets/deploy/railway/services/langfuse/**
+            agentyx-portal: tenants/euromobilia/assets/deploy/railway/services/agentyx-portal/**
+            postgres: tenants/euromobilia/assets/deploy/railway/services/postgres/**
+
+  deploy-services:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.services != '[]' }}
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    with:
+      tenant: euromobilia
+      service: ${{ matrix.service }}
+    secrets:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  update-postgres-vars:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.postgres == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.app/install.sh | sh
+      - name: Sync Postgres variables only
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/sync-vars.sh --tenant euromobilia --service postgres

@@ -15,6 +15,9 @@
 - Tenant overview: `tenants/euromobilia/README.md`
 - Domain: `tenants/euromobilia/domains/kitchen-commerce/`
 - Assets: `tenants/euromobilia/assets/` (typed folders: `agents/`, `workflows/`, etc.)
+- **Deployment (canonical):** `tenants/euromobilia/assets/deploy/railway/` — Railway per-tenant stack (ADR-0010)
+- **Deployment (legacy):** `tenants/euromobilia/assets/deploy/n8n-hostinger/` and `agent-hostinger/` — deprecated, retained for rollback reference
+- **Deployment template:** `templates/assets/railway-tenant-stack/` — reusable Railway stack for new tenants
 
 ## Interfaces (channels) vs core assets
 
@@ -33,4 +36,5 @@ See **ADR-0007** (`knowledge/decisions/0007-multi-interface-deployment-for-tenan
 - LangGraph agent asset: `quotation-assistant`
 - n8n workflow export bundle (directory `assets/workflows/n8n/`): `n8n`
 - n8n workflow JSON files: `kapso-inbound-quotation`, `human-handoff`, etc.
-- Self-hosted n8n **runtime** (Docker on Hostinger): deployment asset `n8n-hostinger` under `tenants/euromobilia/assets/deploy/n8n-hostinger/`
+- Self-hosted n8n **runtime** (Docker on Hostinger): deployment asset `n8n-hostinger` under `tenants/euromobilia/assets/deploy/n8n-hostinger/` (deprecated)
+- Railway tenant stack: `euromobilia-railway-stack` under `tenants/euromobilia/assets/deploy/railway/`

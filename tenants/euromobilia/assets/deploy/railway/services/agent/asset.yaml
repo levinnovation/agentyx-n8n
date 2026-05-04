@@ -1,0 +1,14 @@
+id: euromobilia-agent
+name: Agent Runtime
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: active
+description: FastAPI / LangGraph quotation-assistant runtime.
+observability:
+  traces: langsmith
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

@@ -35,8 +35,10 @@
 - [change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md](change-log/2026/04/2026-04-29-knowledge-system-and-agent-context.md)
 - [change-log/2026/04/2026-04-29-multi-interface-channels-adr.md](change-log/2026/04/2026-04-29-multi-interface-channels-adr.md)
 - [change-log/2026/04/2026-04-30-bypass-n8n-route-kapso-to-agent.md](change-log/2026/04/2026-04-30-bypass-n8n-route-kapso-to-agent.md)
+- [change-log/2026/04/2026-04-30-langsmith-agent-observability.md](change-log/2026/04/2026-04-30-langsmith-agent-observability.md)
 - [change-log/2026/04/2026-04-30-whatsapp-images-and-history-fix.md](change-log/2026/04/2026-04-30-whatsapp-images-and-history-fix.md)
 - [change-log/2026/04/2026-04-30-whatsapp-interactive-intake-forms.md](change-log/2026/04/2026-04-30-whatsapp-interactive-intake-forms.md)
+- [change-log/2026/05/2026-05-04-railway-tenant-projects.md](change-log/2026/05/2026-05-04-railway-tenant-projects.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -65,7 +67,9 @@
 - [decisions/0008-github-actions-as-default-cicd-for-tenant-assets.md](decisions/0008-github-actions-as-default-cicd-for-tenant-assets.md)
 - [decisions/0008-migrate-aurea-to-euromobilia-kitchen-commerce.md](decisions/0008-migrate-aurea-to-euromobilia-kitchen-commerce.md)
 - [decisions/0009-self-hosted-n8n-ce-on-hostinger-vps.md](decisions/0009-self-hosted-n8n-ce-on-hostinger-vps.md)
+- [decisions/0010-per-tenant-railway-project-as-canonical-runtime.md](decisions/0010-per-tenant-railway-project-as-canonical-runtime.md)
 - [decisions/0010-whatsapp-interactive-intake-forms.md](decisions/0010-whatsapp-interactive-intake-forms.md)
+- [decisions/0011-langsmith-observability-for-all-agents.md](decisions/0011-langsmith-observability-for-all-agents.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 

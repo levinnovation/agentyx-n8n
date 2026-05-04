@@ -4,14 +4,33 @@
 
 ### Restart the agent
 
-1. Render dashboard → Services → quotation-assistant → Manual Deploy
-2. Verify health: `GET /health`
+**Via Railway CLI:**
+```bash
+export RAILWAY_TOKEN=<token>
+bash scripts/railway/redeploy.sh --tenant euromobilia --service agent
+```
+
+**Via Railway dashboard:**
+Services → agent → Restart
+
+**Verify health:**
+```bash
+bash scripts/railway/smoke-test.sh --tenant euromobilia --service agent
+```
+
+### Rollback the agent
+
+```bash
+bash scripts/railway/rollback.sh --tenant euromobilia --service agent
+```
+
+This picks the previous successful deployment and redeploys it.
 
 ### Sync knowledge base
 
 Trigger a full sync by calling:
 ```bash
-curl -X POST https://<agent-host>/agent/invoke \
+curl -X POST https://<agent-domain>/agent/invoke \
   -H "Content-Type: application/json" \
   -d '{"messages":[{"role":"user","content":"__sync_kb__"}]}'
 ```
@@ -56,6 +75,36 @@ If quote PDF fails:
 2. Verify `artifacts` bucket exists and has public access.
 3. Re-run the `quote-pdf` edge function manually with test payload.
 
+### Secret rotation
+
+1. Update the secret in GitHub Actions (Settings → Secrets and variables).
+2. Re-run the stack deploy workflow, or manually:
+   ```bash
+   bash scripts/railway/sync-vars.sh --tenant euromobilia --service <svc>
+   ```
+3. Redeploy the affected service:
+   ```bash
+   bash scripts/railway/redeploy.sh --tenant euromobilia --service <svc>
+   ```
+
+### n8n workflow re-import
+
+After editing workflow JSON in the repo:
+1. Push to `main`.
+2. The Hostinger workflow (deprecated) is gated; use the n8n REST API or UI import for Railway n8n.
+
+## Log inspection
+
+**Per-service logs:**
+```bash
+railway logs --service <svc>
+```
+
+**Agent logs (recent):**
+```bash
+railway logs --service agent --lines 200
+```
+
 ## Alerts
 
 - Response time > 5s → Check LLM provider latency (OpenRouter status page)
@@ -67,3 +116,7 @@ If quote PDF fails:
 - L1: AI Team (`ai-team@euromobilia.com`)
 - L2: Operations (`operations@euromobilia.com`)
 - L3: ARA Group IT (`it@aragroupcr.com`)
+
+## Legacy runbook (Hostinger — deprecated)
+
+See `tenants/euromobilia/assets/deploy/n8n-hostinger/README.md` and `agent-hostinger/README.md` for the old SSH-based procedures. Use only for emergency rollback.

@@ -1,0 +1,78 @@
+name: Reusable — Railway Deploy
+
+on:
+  workflow_call:
+    inputs:
+      tenant:
+        required: true
+        type: string
+      service:
+        required: true
+        type: string
+      image_ref:
+        required: false
+        type: string
+        default: ""
+      environment:
+        required: false
+        type: string
+        default: "production"
+    secrets:
+      RAILWAY_TOKEN:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Verify Railway CLI
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway whoami
+
+      - name: Link project
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          PROJECT_VAR="${{ inputs.tenant }}_RAILWAY_PROJECT_ID"
+          PROJECT_ID="${!PROJECT_VAR}"
+          if [[ -z "$PROJECT_ID" ]]; then
+            echo "ERROR: Project ID variable ${PROJECT_VAR} is not set."
+            exit 1
+          fi
+          railway link --project "$PROJECT_ID" --environment ${{ inputs.environment }}
+
+      - name: Sync variables
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/sync-vars.sh --tenant ${{ inputs.tenant }} --service ${{ inputs.service }}
+
+      - name: Deploy service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          IMAGE_ARG=""
+          if [[ -n "${{ inputs.image_ref }}" ]]; then
+            IMAGE_ARG="--image ${{ inputs.image_ref }}"
+          fi
+          bash scripts/railway/deploy-service.sh \
+            --tenant ${{ inputs.tenant }} \
+            --service ${{ inputs.service }} \
+            --env ${{ inputs.environment }} \
+            $IMAGE_ARG
+
+      - name: Smoke test
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/smoke-test.sh \
+            --tenant ${{ inputs.tenant }} \
+            --service ${{ inputs.service }} \
+            --env ${{ inputs.environment }}

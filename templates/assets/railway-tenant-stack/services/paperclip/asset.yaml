@@ -1,0 +1,14 @@
+id: paperclip
+name: Paperclip
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: AI-team orchestrator built from paperclipai/paperclip upstream.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

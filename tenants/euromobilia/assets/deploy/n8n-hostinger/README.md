@@ -1,3 +1,5 @@
+> **DEPRECATED** — This Hostinger deploy is superseded by the Railway tenant stack (`euromobilia-railway-stack`). See ADR-0010: `knowledge/decisions/0010-per-tenant-railway-project-as-canonical-runtime.md`. Retained for emergency rollback only.
+
 # n8n Community Edition — Hostinger VPS
 
 Self-hosted **n8n CE** for Euromobilia `kitchen-quotation` workflows. **Git remains the source of truth** for workflow JSON; this stack is the runtime.

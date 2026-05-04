@@ -1,0 +1,14 @@
+id: agentyx-portal
+name: Agentyx Portal
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: tbd
+description: Tenant-facing portal SPA. Placeholder until image is built.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

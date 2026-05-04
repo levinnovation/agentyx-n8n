@@ -1,8 +1,11 @@
-id: deployment-render-railway-fly-cloudrun
+id: deployment-euromobilia
 name: Deployment Configs
 type: deployment
 tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
-description: Multi-target deployment manifests for Render, Railway, Fly.io, and Cloud Run.
-status: scaffolded
+description: |
+  Railway is the canonical deployment platform (ADR-0010).
+  Hostinger assets are deprecated and retained for rollback reference.
+  Render, Fly.io, and Cloud Run remain as alternative scaffolds.
+status: active

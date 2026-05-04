@@ -4,13 +4,17 @@ type: deployment
 tenant: euromobilia
 domain: kitchen-commerce
 capability: kitchen-quotation
-status: active
+status: deprecated
 version: "1.1.0"
 description: |
   FastAPI + LangGraph quotation-assistant deployed via Docker Compose on
   the Hostinger VPS. Exposes port 8000 internally; public access is via
   the Caddy reverse proxy in the n8n-hostinger deploy at /agent/*.
+  DEPRECATED: superseded by euromobilia-railway-stack (ADR-0010).
+  Retained for emergency rollback reference only.
 owner: "ai-team@euromobilia.com"
+superseded_by: euromobilia-railway-stack
+deprecation_date: "2026-05-04"
 observability:
   traces: langsmith
   metrics: none

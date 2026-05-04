@@ -1,0 +1,32 @@
+name: Deploy Euromobilia Agent — Railway
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tenants/euromobilia/assets/agents/quotation-assistant/**'
+      - 'tenants/euromobilia/assets/prompts/**'
+      - 'tenants/euromobilia/assets/deploy/railway/services/agent/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/_reusable/build-agent-image.yml
+    with:
+      tenant: euromobilia
+      asset_name: quotation-assistant
+      dockerfile_path: tenants/euromobilia/assets/agents/quotation-assistant/Dockerfile
+      build_context: tenants/euromobilia/assets/agents/quotation-assistant
+      ghcr_image: ghcr.io/${{ github.repository_owner }}/euromobilia-agent-quotation-assistant
+    secrets:
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
+  deploy:
+    needs: build
+    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    with:
+      tenant: euromobilia
+      service: agent
+      image_ref: ghcr.io/${{ github.repository_owner }}/euromobilia-agent-quotation-assistant:${{ github.sha }}
+    secrets:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

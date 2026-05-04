@@ -1,0 +1,14 @@
+id: euromobilia-flowise
+name: Flowise
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: scaffolded
+description: Optional low-code agent builder. Gated by FLOWISE_ENABLED.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

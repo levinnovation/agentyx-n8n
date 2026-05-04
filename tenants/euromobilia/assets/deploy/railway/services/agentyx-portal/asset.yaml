@@ -1,0 +1,14 @@
+id: euromobilia-agentyx-portal
+name: Agentyx Portal
+type: deployment
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: tbd
+description: Tenant-facing portal SPA. Placeholder until image is built.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

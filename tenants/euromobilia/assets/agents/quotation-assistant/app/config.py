@@ -92,8 +92,10 @@ def get_fallback_models(primary_model: str) -> list[str]:
 
 # ─── LangSmith tracing ───────────────────────────────────────
 
+LANGSMITH_ENABLED = os.environ.get("LANGSMITH_ENABLED", "true").lower() in ("1", "true", "yes")
 LANGCHAIN_API_KEY = os.environ.get("LANGCHAIN_API_KEY", "")
 LANGCHAIN_PROJECT = os.environ.get("LANGCHAIN_PROJECT", "euromobilia-quotation")
+LANGCHAIN_ENDPOINT = os.environ.get("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
 
 # ─── Tavily (web search) ─────────────────────────────────────
 

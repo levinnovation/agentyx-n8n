@@ -1,0 +1,11 @@
+id: postgres
+name: Postgres
+type: infra
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: Railway Postgres plugin backing n8n, langfuse, librechat, and paperclip.
+deployment:
+  platform: railway
+  region: us-east-1

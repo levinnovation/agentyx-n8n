@@ -30,3 +30,19 @@ Use this file when moving assets between capabilities, renaming slugs, or absorb
   - Set up Slack webhook URL.
   - Deploy Supabase edge functions (`quote-pdf`, `bitrix24-bridge`).
   - Review image generation pipeline at runtime.
+
+## 2026-05-04 — Railway tenant stack (ADR-0010)
+
+- **Date:** 2026-05-04
+- **From:** Hostinger VPS (`n8n-hostinger`, `agent-hostinger`)
+- **To:** Railway per-tenant project (`euromobilia-railway-stack`)
+- **Reason:** Consolidate n8n, agent, LibreChat, Paperclip, Langfuse, and portal into a single Railway project with CLI-driven CI/CD. Deprecate manual SSH-based Hostinger deploys.
+- **ADR:** `knowledge/decisions/0010-per-tenant-railway-project-as-canonical-runtime.md`
+- **Validation:** `make validate` and `make knowledge-index` after migration.
+- **Manual steps required:**
+  - Run `bootstrap-tenant-railway.yml` (workflow_dispatch) to create the Railway project.
+  - Save the returned `EUROMOBILIA_RAILWAY_PROJECT_ID` as a GitHub variable.
+  - Populate all secrets in GitHub Actions (union of `services/<svc>/.env.example` keys).
+  - Point Kapso webhook URLs at the Railway `n8n` public domain.
+  - Migrate n8n workflows and credentials from Hostinger instance (or re-import from repo JSON).
+  - Verify Langfuse traces flow correctly from the `agent` service.

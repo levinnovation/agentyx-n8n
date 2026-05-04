@@ -1,0 +1,49 @@
+name: Bootstrap Tenant — Railway
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant:
+        description: "Tenant ID to bootstrap"
+        required: true
+        default: "euromobilia"
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Verify Railway CLI
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway whoami
+
+      - name: Bootstrap tenant
+        id: bootstrap
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/bootstrap-tenant.sh --tenant ${{ inputs.tenant }}
+
+      - name: Capture project info
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd "tenants/${{ inputs.tenant }}/assets/deploy/railway"
+          PROJECT_ID=$(railway status --json 2>/dev/null | jq -r '.id // empty')
+          echo "PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+          echo "Public URLs:"
+          for svc in n8n librechat paperclip langfuse agentyx-portal; do
+            URL=$(railway domain --service "$svc" 2>/dev/null || echo "N/A")
+            echo "  $svc: $URL"
+          done
+
+      - name: Job summary
+        run: |
+          echo "## Bootstrap complete for tenant: ${{ inputs.tenant }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Project ID: \`${PROJECT_ID}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Save this as a GitHub variable: \`${{ inputs.tenant | upper }}_RAILWAY_PROJECT_ID\`" >> "$GITHUB_STEP_SUMMARY"

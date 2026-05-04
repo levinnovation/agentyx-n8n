@@ -1,16 +1,11 @@
 name: Deploy Euromobilia Agent — Hostinger
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'tenants/euromobilia/assets/agents/quotation-assistant/**'
-      - 'tenants/euromobilia/assets/prompts/**'
-      - 'tenants/euromobilia/assets/deploy/agent-hostinger/**'
   workflow_dispatch:
 
 jobs:
   build:
+    if: vars.HOSTINGER_DEPLOY_ENABLED == 'true'
     uses: ./.github/workflows/_reusable/build-agent-image.yml
     with:
       tenant: euromobilia
@@ -23,6 +18,7 @@ jobs:
 
   deploy:
     needs: build
+    if: vars.HOSTINGER_DEPLOY_ENABLED == 'true'
     uses: ./.github/workflows/_reusable/ssh-deploy.yml
     with:
       host: ${{ secrets.HOSTINGER_HOST }}

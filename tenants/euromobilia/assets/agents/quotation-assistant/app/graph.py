@@ -32,8 +32,10 @@ from .config import (
     LLM_BASE_URL,
     LLM_MODEL,
     OPENROUTER_BASE_URL,
+    LANGSMITH_ENABLED,
     LANGCHAIN_API_KEY,
     LANGCHAIN_PROJECT,
+    LANGCHAIN_ENDPOINT,
     get_fallback_models,
 )
 
@@ -59,11 +61,11 @@ SYSTEM_PROMPT = _load_system_prompt()
 
 def setup_langsmith():
     """Configure LangSmith environment variables for tracing."""
-    if LANGCHAIN_API_KEY:
+    if LANGSMITH_ENABLED and LANGCHAIN_API_KEY:
         os.environ["LANGCHAIN_TRACING_V2"] = "true"
         os.environ["LANGCHAIN_API_KEY"] = LANGCHAIN_API_KEY
         os.environ["LANGCHAIN_PROJECT"] = LANGCHAIN_PROJECT
-        os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+        os.environ["LANGCHAIN_ENDPOINT"] = LANGCHAIN_ENDPOINT
 
 
 # ─── Parallel Tool Executor ─────────────────────────────────
@@ -244,6 +246,14 @@ def invoke_agent(
     messages.append(HumanMessage(content=user_message))
     result = agent.invoke(
         {"messages": messages},
-        config={"run_name": "Euromobilia Quotation"},
+        config={
+            "run_name": "Euromobilia Quotation",
+            "metadata": {
+                "tenant": "euromobilia",
+                "domain": "kitchen-commerce",
+                "capability": "kitchen-quotation",
+                "asset": "quotation-assistant",
+            },
+        },
     )
     return result
