@@ -32,14 +32,12 @@ FLOWISE_INTERNAL_URL = "http://flowise.railway.internal:3000"
 PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
 
 # ─── n8n ─────────────────────────────────────────────────────
-# NOTE: Built from levinnovation/agentyx-n8n fork via Railway GitHub App.
-# Root Dockerfile compiles from source with Railway-optimized settings.
+# NOTE: Image built from levinnovation/agentyx-n8n fork via GitHub Actions
+# and pushed to GHCR. Railway pulls the pre-built image.
+# See .github/workflows/build-image.yml in the fork repo.
 [n8n]
-root = "."
+image = "ghcr.io/levinnovation/agentyx-n8n:latest"
 startCommand = "n8n start"
-
-[n8n.build]
-builder = "DOCKERFILE"
 
 [n8n.variables]
 N8N_PORT = "5678"
