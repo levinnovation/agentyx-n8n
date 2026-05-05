@@ -116,6 +116,7 @@
 - [operations/how-to-update-agent-context-files.md](operations/how-to-update-agent-context-files.md)
 - [operations/how-to-update-context-packs.md](operations/how-to-update-context-packs.md)
 - [operations/n8n-mcp-setup.md](operations/n8n-mcp-setup.md)
+- [operations/railway-dashboard-setup-guide.md](operations/railway-dashboard-setup-guide.md)
 - [operations/railway-template-sources.md](operations/railway-template-sources.md)
 - [operations/README.md](operations/README.md)
 
