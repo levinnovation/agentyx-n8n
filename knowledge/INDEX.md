@@ -83,6 +83,7 @@
 - [decisions/0015-enforce-better-auth-on-agent-fastapi.md](decisions/0015-enforce-better-auth-on-agent-fastapi.md)
 - [decisions/0016-scim-and-org-provisioning.md](decisions/0016-scim-and-org-provisioning.md)
 - [decisions/0017-sso-gateway-custom-domains-multi-client.md](decisions/0017-sso-gateway-custom-domains-multi-client.md)
+- [decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md](decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -113,6 +114,7 @@
 - [operations/how-to-rotate-railway-token.md](operations/how-to-rotate-railway-token.md)
 - [operations/how-to-update-agent-context-files.md](operations/how-to-update-agent-context-files.md)
 - [operations/how-to-update-context-packs.md](operations/how-to-update-context-packs.md)
+- [operations/n8n-mcp-setup.md](operations/n8n-mcp-setup.md)
 - [operations/railway-template-sources.md](operations/railway-template-sources.md)
 - [operations/README.md](operations/README.md)
 
