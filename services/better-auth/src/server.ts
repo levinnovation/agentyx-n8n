@@ -12,6 +12,9 @@ const auth = betterAuth({
   secret: config.betterAuthSecret,
   baseURL: config.betterAuthUrl,
   trustedOrigins: config.trustedOrigins,
+  emailAndPassword: {
+    enabled: true,
+  },
   socialProviders: {
     google: {
       clientId: config.googleClientId,
@@ -41,7 +44,6 @@ function toWebRequest(req: http.IncomingMessage): Request {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", config.betterAuthUrl);
-  console.log(`[request] ${req.method} ${url.pathname}`);
 
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -79,9 +81,7 @@ const server = http.createServer(async (req, res) => {
 
   // Pass everything else to Better Auth
   const request = toWebRequest(req);
-  console.log(`[better-auth] handling ${request.url}`);
   const response = await auth.handler(request);
-  console.log(`[better-auth] response status: ${response.status}`);
   res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   const body = await response.text();
   res.end(body);
