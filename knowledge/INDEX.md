@@ -45,6 +45,7 @@
 - [change-log/2026/05/2026-05-04-railway-tenant-projects.md](change-log/2026/05/2026-05-04-railway-tenant-projects.md)
 - [change-log/2026/05/2026-05-04-scim-and-org-provisioning.md](change-log/2026/05/2026-05-04-scim-and-org-provisioning.md)
 - [change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md](change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md)
+- [change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md](change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 

@@ -33,7 +33,8 @@ PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
 
 # ─── n8n ─────────────────────────────────────────────────────
 # Public ingress is via auth-proxy; no public domain on this service.
-# NOTE: Deployed from levinnovation/agentyx-n8n fork via Railway GitHub App.
+# NOTE: Built from levinnovation/agentyx-n8n fork via Railway GitHub App.
+# Root Dockerfile compiles from source with Railway-optimized settings.
 [n8n]
 root = "."
 startCommand = "n8n start"

@@ -32,8 +32,8 @@ FLOWISE_INTERNAL_URL = "http://flowise.railway.internal:3000"
 PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
 
 # ─── n8n ─────────────────────────────────────────────────────
-# NOTE: Deployed from levinnovation/agentyx-n8n fork via Railway GitHub App.
-# Ensure the fork has a root Dockerfile.
+# NOTE: Built from levinnovation/agentyx-n8n fork via Railway GitHub App.
+# Root Dockerfile compiles from source with Railway-optimized settings.
 [n8n]
 root = "."
 startCommand = "n8n start"
