@@ -1,12 +1,17 @@
 import { betterAuth } from "better-auth";
 import { organization } from "better-auth/plugins";
 import Fastify from "fastify";
+import { Pool } from "pg";
 import { config } from "./config";
+
+const pool = new Pool({
+  connectionString: config.databaseUrl,
+});
 
 const auth = betterAuth({
   baseURL: config.betterAuthUrl,
   secret: config.betterAuthSecret,
-  database: config.databaseUrl,
+  database: pool,
   trustedOrigins: config.trustedOrigins,
   emailAndPassword: {
     enabled: true,
