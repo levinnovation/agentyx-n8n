@@ -26,6 +26,15 @@ After structural changes:
 make validate
 ```
 
+## n8n MCP (vibe coding workflows)
+
+When working with n8n workflows via MCP:
+
+1. **Git-first**: AI generates JSON → saves to `tenants/{tenant}/assets/workflows/n8n/` → validate → CI deploys
+2. **Never** let AI deploy directly to prod n8n without repo commit
+3. **Validation**: Run `make validate` after JSON changes
+4. **Safety**: Always make a copy before AI-editing production workflows
+
 ## Legacy migrations
 
 If migrating legacy code, write a **legacy inventory** first (e.g. `knowledge/change-log/` entry) before bulk moves.

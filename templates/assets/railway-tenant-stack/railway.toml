@@ -161,3 +161,17 @@ PGVECTOR_CREATE_EXTENSION = "False"
 EMBEDDINGS_PROVIDER = "openai"
 EMBEDDINGS_MODEL = "text-embedding-3-small"
 RAG_OPENAI_API_KEY = "${{OPENAI_API_KEY}}"
+
+# ─── n8n MCP (optional) ──────────────────────────────────────
+# MCP server for AI-assisted n8n workflow authoring.
+# Enable by setting N8N_MCP_ENABLED=true in project variables.
+[n8n-mcp]
+image = "ghcr.io/czlonkowski/n8n-mcp:latest"
+startCommand = "node dist/mcp/index.js --http"
+
+[n8n-mcp.variables]
+PORT = "3000"
+N8N_API_URL = "http://n8n.railway.internal:5678/api/v1"
+N8N_API_KEY = "${{N8N_API_KEY}}"
+MCP_MODE = "http"
+AUTH_TOKEN = "${{N8N_MCP_AUTH_TOKEN}}"
