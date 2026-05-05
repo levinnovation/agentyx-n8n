@@ -1,0 +1,15 @@
+id: euromobilia-auth-proxy
+name: Auth Proxy
+type: auth
+tenant: euromobilia
+domain: kitchen-commerce
+capability: kitchen-quotation
+status: active
+description: |
+  Caddy 2 reverse proxy with forward_auth gating for n8n, Flowise, and Paperclip.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

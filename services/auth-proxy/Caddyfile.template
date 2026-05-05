@@ -1,0 +1,23 @@
+{$N8N_PUBLIC_HOST} {
+  forward_auth {$BETTER_AUTH_INTERNAL_URL} {
+    uri /api/auth/forward-auth
+    copy_headers X-Auth-User X-Auth-Email
+  }
+  reverse_proxy {$N8N_INTERNAL_URL}
+}
+
+{$FLOWISE_PUBLIC_HOST} {
+  forward_auth {$BETTER_AUTH_INTERNAL_URL} {
+    uri /api/auth/forward-auth
+    copy_headers X-Auth-User X-Auth-Email
+  }
+  reverse_proxy {$FLOWISE_INTERNAL_URL}
+}
+
+{$PAPERCLIP_PUBLIC_HOST} {
+  forward_auth {$BETTER_AUTH_INTERNAL_URL} {
+    uri /api/auth/forward-auth
+    copy_headers X-Auth-User X-Auth-Email
+  }
+  reverse_proxy {$PAPERCLIP_INTERNAL_URL}
+}
