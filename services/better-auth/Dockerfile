@@ -1,9 +1,11 @@
 # syntax=docker/dockerfile:1
+# Build context is the repo root, so paths are relative to root.
+
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package.json tsconfig.json ./
+COPY services/better-auth/package.json services/better-auth/tsconfig.json ./
 RUN npm ci
-COPY src ./src
+COPY services/better-auth/src ./src
 RUN npm run build
 
 FROM node:20-alpine
