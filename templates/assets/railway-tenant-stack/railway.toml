@@ -1,15 +1,15 @@
-[build]
-builder = "DOCKERFILE"
-
 # ─── Postgres ────────────────────────────────────────────────
 # Railway Postgres plugin; no build needed.
 # Logical DBs: n8n, langfuse, librechat, paperclip, better_auth, librechat_rag
 
 # ─── better-auth ─────────────────────────────────────────────
-# Deployed from levinnovation/agentyx-auth-service fork via Railway GitHub App.
+# NOTE: Built from this repo. Source lives in services/better-auth/.
 [better-auth]
 root = "services/better-auth"
 startCommand = ""
+
+[better-auth.build]
+builder = "DOCKERFILE"
 
 [better-auth.variables]
 PORT = "3000"
@@ -17,9 +17,13 @@ BETTER_AUTH_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
 BETTER_AUTH_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=better_auth"
 
 # ─── auth-proxy ──────────────────────────────────────────────
+# NOTE: Built from this repo. Source lives in services/auth-proxy/.
 [auth-proxy]
 root = "services/auth-proxy"
 startCommand = ""
+
+[auth-proxy.build]
+builder = "DOCKERFILE"
 
 [auth-proxy.variables]
 BETTER_AUTH_INTERNAL_URL = "http://better-auth.railway.internal:3000"
@@ -28,10 +32,14 @@ FLOWISE_INTERNAL_URL = "http://flowise.railway.internal:3000"
 PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
 
 # ─── n8n ─────────────────────────────────────────────────────
-# Deployed from levinnovation/agentyx-n8n fork via Railway GitHub App.
+# NOTE: Deployed from levinnovation/agentyx-n8n fork via Railway GitHub App.
+# Ensure the fork has a root Dockerfile.
 [n8n]
-root = "services/n8n"
+root = "."
 startCommand = "n8n start"
+
+[n8n.build]
+builder = "DOCKERFILE"
 
 [n8n.variables]
 N8N_PORT = "5678"
@@ -44,10 +52,13 @@ DB_POSTGRESDB_PASSWORD = "${{Postgres.PGPASSWORD}}"
 WEBHOOK_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
 
 # ─── LibreChat ───────────────────────────────────────────────
-# Deployed from levinnovation/agentyx-librechat fork via Railway GitHub App.
+# NOTE: Deployed from levinnovation/agentyx-librechat fork via Railway GitHub App.
 [librechat]
-root = "services/librechat"
+root = "."
 startCommand = "node api/server/index.js"
+
+[librechat.build]
+builder = "DOCKERFILE"
 
 [librechat.variables]
 HOST = "0.0.0.0"
@@ -65,10 +76,13 @@ OPENID_BUTTON_LABEL = "Sign in with Agentyx"
 RAG_API_URL = "http://rag-api.railway.internal:8000"
 
 # ─── Paperclip ───────────────────────────────────────────────
-# Deployed from levinnovation/agentyx-paperclip fork via Railway GitHub App.
+# NOTE: Deployed from levinnovation/agentyx-paperclip fork via Railway GitHub App.
 [paperclip]
-root = "services/paperclip"
+root = "."
 startCommand = ""
+
+[paperclip.build]
+builder = "DOCKERFILE"
 
 [paperclip.variables]
 PAPERCLIP_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=paperclip"
@@ -78,6 +92,7 @@ PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET = "${{PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET}}"
 BETTER_AUTH_TRUSTED_ORIGINS = "${{BETTER_AUTH_TRUSTED_ORIGINS}}"
 
 # ─── Langfuse ────────────────────────────────────────────────
+# Upstream image — no Agentyx fork.
 [langfuse]
 image = "ghcr.io/langfuse/langfuse:latest"
 startCommand = ""
@@ -93,6 +108,7 @@ AUTH_CUSTOM_ISSUER = "${{AUTH_CUSTOM_ISSUER}}"
 AUTH_CUSTOM_SCOPE = "openid email profile"
 
 # ─── Agent ───────────────────────────────────────────────────
+# Built from per-tenant GHCR image.
 [agent]
 image = "${{AGENT_IMAGE}}"
 startCommand = ""
@@ -105,26 +121,33 @@ BETTER_AUTH_AUDIENCE = "${{BETTER_AUTH_AUDIENCE}}"
 AUTH_REQUIRED = "false"
 
 # ─── Agentyx Portal ──────────────────────────────────────────
-# Deployed from levinnovation/agentyx-client-portal fork via Railway GitHub App.
+# NOTE: Deployed from levinnovation/agentyx-client-portal fork via Railway GitHub App.
 [agentyx-portal]
-root = "services/agentyx-portal"
+root = "."
 startCommand = ""
+
+[agentyx-portal.build]
+builder = "DOCKERFILE"
 
 [agentyx-portal.variables]
 PORT = "8080"
 BETTER_AUTH_URL = "http://better-auth.railway.internal:3000"
 
 # ─── Flowise ─────────────────────────────────────────────────
-# Deployed from levinnovation/agentyx-flowise fork via Railway GitHub App.
+# NOTE: Deployed from levinnovation/agentyx-flowise fork via Railway GitHub App.
 [flowise]
-root = "services/flowise"
+root = "."
 startCommand = "flowise start"
+
+[flowise.build]
+builder = "DOCKERFILE"
 
 [flowise.variables]
 PORT = "3000"
 DATABASE_PATH = "/root/.flowise"
 
 # ─── RAG API (LibreChat vector embeddings) ───────────────────
+# Upstream image — no Agentyx fork.
 [rag-api]
 image = "registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest"
 startCommand = ""
