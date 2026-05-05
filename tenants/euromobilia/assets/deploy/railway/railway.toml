@@ -62,10 +62,12 @@ builder = "DOCKERFILE"
 HOST = "0.0.0.0"
 PORT = "3080"
 MONGO_URI = ""
+# Only custom endpoints (defined in librechat.yaml) are enabled.
 ENDPOINTS = "custom"
-CUSTOM_NAME = "Agentyx Agent"
-CUSTOM_BASE_URL = "http://agent.railway.internal:8000"
-CUSTOM_API_KEY = "${{CUSTOM_API_KEY}}"
+# Explicitly point to the committed librechat.yaml config.
+CONFIG_PATH = "librechat.yaml"
+# Preset OpenRouter key — resolved server-side, never sent to frontend.
+OPENROUTER_API_KEY = "${{OPENROUTER_API_KEY}}"
 OPENID_CLIENT_ID = "${{OPENID_CLIENT_ID}}"
 OPENID_CLIENT_SECRET = "${{OPENID_CLIENT_SECRET}}"
 OPENID_ISSUER = "${{OPENID_ISSUER}}"
