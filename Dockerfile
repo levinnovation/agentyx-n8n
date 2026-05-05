@@ -1,70 +1,43 @@
-# syntax=docker/dockerfile:1.7
-# Railway-optimized Dockerfile for levinnovation/agentyx-n8n.
+# syntax=docker/dockerfile:1
+# Railway-compatible Dockerfile for levinnovation/agentyx-n8n.
 #
-# Builds n8n from source with aggressive caching and memory-safe settings
-# for Railway's shared builders (4 vCPU / 8 GB RAM / 60 min timeout).
+# Builds n8n from source. Optimized for Railway shared builders.
+# Avoids BuildKit cache mounts (not always supported on Railway builders).
 #
 # Source: levinnovation/agentyx-n8n
 # Baseline: n8n-io/n8n tag 1.84.0
 
 ARG NODE_VERSION=24.14.1
 
-# ─── Stage 1: Dependencies ────────────────────────────────────
-# Fetch and cache pnpm packages separately from source code for
-# optimal layer caching on rebuilds.
-FROM node:${NODE_VERSION}-slim AS deps
+# ─── Stage 1: Builder ─────────────────────────────────────────
+FROM node:${NODE_VERSION}-slim AS builder
 WORKDIR /src
 
-ENV PNPM_HOME=/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
-
-# Install build toolchain
+# Install build toolchain and pnpm
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 make g++ git curl ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 # Skip git hooks (lefthook) during pnpm install
 ENV CI=true
 
-# Copy only lockfile + workspace definition first — this layer is cached
-# unless pnpm-lock.yaml changes.
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches/ patches/
-COPY scripts/prepare.mjs scripts/
-COPY scripts/block-npm-install.js scripts/
-
-# Fetch all packages into the pnpm store (cached via BuildKit mount)
-RUN --mount=type=cache,target=/pnpm/store,id=n8n-pnpm \
-    pnpm fetch
-
-# ─── Stage 2: Builder ─────────────────────────────────────────
-# Copy source and build with constrained concurrency to avoid OOM
-# on shared builders.
-FROM deps AS builder
-WORKDIR /src
-
-# Copy full source
+# Copy full source (layer caching is limited due to monorepo size)
 COPY . .
 
-# Install from the previously fetched store (offline, fast)
-RUN --mount=type=cache,target=/pnpm/store,id=n8n-pnpm \
-    pnpm install --offline --frozen-lockfile
-
-# Build with limited concurrency to stay within Railway memory limits.
+# Install dependencies and build
+# Limit concurrency to avoid OOM on shared builders
 ENV NODE_OPTIONS="--max-old-space-size=6144"
-RUN pnpm build --summarize --concurrency=2
+RUN pnpm install --frozen-lockfile \
+    && pnpm build --summarize --concurrency=2
 
-# Prune to production-only deployment (creates ./compiled)
+# Prune to production-only deployment
 RUN NODE_ENV=production DOCKER_BUILD=true \
-    pnpm --filter=n8n --prod --legacy deploy --no-optional ./compiled
-
-# Prune task runner
-RUN NODE_ENV=production DOCKER_BUILD=true \
+    pnpm --filter=n8n --prod --legacy deploy --no-optional ./compiled \
+    && NODE_ENV=production DOCKER_BUILD=true \
     pnpm --filter=@n8n/task-runner --prod --legacy deploy --no-optional ./dist/task-runner-javascript
 
-# ─── Stage 3: Native modules ──────────────────────────────────
-# Rebuild sqlite3 and isolated-vm for the target glibc platform.
+# ─── Stage 2: Native modules ──────────────────────────────────
 FROM node:${NODE_VERSION}-slim AS native-builder
 COPY --from=builder /src/compiled /usr/local/lib/node_modules/n8n
 RUN apt-get update \
@@ -73,8 +46,7 @@ RUN apt-get update \
     && cd /usr/local/lib/node_modules/n8n \
     && npm rebuild sqlite3 isolated-vm
 
-# ─── Stage 4: Runtime ─────────────────────────────────────────
-# Use n8n's official base image (has tini, fonts, graphicsmagick, etc.)
+# ─── Stage 3: Runtime ─────────────────────────────────────────
 FROM n8nio/base:${NODE_VERSION}
 
 ARG N8N_VERSION=1.84.0
