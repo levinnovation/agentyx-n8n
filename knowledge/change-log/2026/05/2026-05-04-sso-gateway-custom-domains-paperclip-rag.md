@@ -85,5 +85,7 @@ Consolidate the demo stack under a single SSO gateway with custom per-backend do
 - [ ] Login on portal creates cookie valid on all `*.agentyx.one` subdomains.
 - [x] Each custom domain resolves and serves its backend.
 - [ ] Direct `*.up.railway.app` URLs for backends return 403 or timeout after Public Networking is disabled.
+- [x] Paperclip `PAPERCLIP_ALLOWED_HOSTNAMES` set to accept internal + custom domain.
 - [ ] Paperclip creates shadow user on first gateway-proxied request.
 - [ ] LibreChat RAG endpoint responds to health check.
+- [ ] Fix direct domain 502s on n8n, Paperclip, and LibreChat.

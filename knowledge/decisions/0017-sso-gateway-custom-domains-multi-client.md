@@ -105,7 +105,9 @@ We need a unified SSO architecture where a single login on `<slug>.portal.agenty
 ## Follow-up
 
 - Verify all custom domains resolve and serve traffic before disabling Public Networking.
+- **Known issue:** `demo.n8n.agentyx.one`, `demo.paperclip.agentyx.one`, and `demo.chat.agentyx.one` return 502 from Railway edge despite successful custom domain creation. Path-based proxy (`/proxy/n8n/`, etc.) works as fallback. Needs Railway edge routing investigation.
 - Add health-check smoke tests after each phase.
 - Document the per-client bootstrap script in `knowledge/operations/`.
 - ADR-0018 will cover Paperclip trusted proxy implementation details.
 - ADR-0019 will cover the RAG API integration.
+- Set `OPENAI_API_KEY` for RAG API embeddings.

@@ -193,6 +193,7 @@ upsert_var "$AUTH_SVC" "BACKEND_FLOWISE" "http://agx-${CLIENT_SLUG}-flowise.rail
 upsert_var "$AUTH_SVC" "BACKEND_N8N" "http://agx-${CLIENT_SLUG}-n8n.railway.internal:5678"
 upsert_var "$AUTH_SVC" "BACKEND_PAPERCLIP" "http://agx-${CLIENT_SLUG}-paperclip.railway.internal:3100"
 upsert_var "$AUTH_SVC" "BACKEND_LIBRECHAT" "http://agx-${CLIENT_SLUG}-librechat.railway.internal:3080"
+upsert_var "$AUTH_SVC" "PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET" "$PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET"
 
 # Portal
 upsert_var "$PORTAL_SVC" "PORT" "8080"
@@ -210,9 +211,10 @@ upsert_var "$FLOWISE_SVC" "PORT" "3000"
 upsert_var "$FLOWISE_SVC" "DATABASE_PATH" "/root/.flowise"
 
 # Paperclip
-upsert_var "$PAPERCLIP_SVC" "PAPERCLIP_DATABASE_URL" "${Postgres.DATABASE_URL}?schema=paperclip"
 upsert_var "$PAPERCLIP_SVC" "PAPERCLIP_PORT" "3100"
 upsert_var "$PAPERCLIP_SVC" "PAPERCLIP_AUTH_TRUSTED_PROXY" "true"
+upsert_var "$PAPERCLIP_SVC" "PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET" "$PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET"
+upsert_var "$PAPERCLIP_SVC" "PAPERCLIP_ALLOWED_HOSTNAMES" "agx-${CLIENT_SLUG}-paperclip.railway.internal,${CLIENT_SLUG}.paperclip.${DOMAIN_ROOT}"
 upsert_var "$PAPERCLIP_SVC" "BETTER_AUTH_TRUSTED_ORIGINS" "https://${CLIENT_SLUG}.paperclip.${DOMAIN_ROOT},https://${CLIENT_SLUG}.auth.${DOMAIN_ROOT}"
 
 # LibreChat
@@ -229,12 +231,23 @@ upsert_var "$RAG_SVC" "POSTGRES_DB" "librechat_rag"
 upsert_var "$RAG_SVC" "PGVECTOR_CREATE_EXTENSION" "False"
 upsert_var "$RAG_SVC" "EMBEDDINGS_PROVIDER" "openai"
 upsert_var "$RAG_SVC" "EMBEDDINGS_MODEL" "text-embedding-3-small"
-upsert_var "$RAG_SVC" "RAG_OPENAI_API_KEY" '${OPENAI_API_KEY}'
+if [[ -n "$OPENAI_API_KEY" ]]; then
+    upsert_var "$RAG_SVC" "RAG_OPENAI_API_KEY" "$OPENAI_API_KEY"
+fi
 
 # Langfuse
 upsert_var "$LANGFUSE_SVC" "PORT" "3000"
-upsert_var "$LANGFUSE_SVC" "DATABASE_URL" "${Postgres.DATABASE_URL}?schema=langfuse"
-upsert_var "$LANGFUSE_SVC" "NEXTAUTH_URL" "${RAILWAY_PUBLIC_DOMAIN}"
+upsert_var "$LANGFUSE_SVC" "NEXTAUTH_URL" "https://${CLIENT_SLUG}.langfuse.${DOMAIN_ROOT}"
+
+# Database-dependent variables (only if DATABASE_URL is provided)
+if [[ -n "$DATABASE_URL" ]]; then
+    upsert_var "$PAPERCLIP_SVC" "PAPERCLIP_DATABASE_URL" "${DATABASE_URL}?schema=paperclip"
+    upsert_var "$LANGFUSE_SVC" "DATABASE_URL" "${DATABASE_URL}?schema=langfuse"
+    echo "  [OK] Database-dependent variables set"
+else
+    echo "  [WARN] DATABASE_URL not provided. Skipping PAPERCLIP_DATABASE_URL and LANGFUSE_DATABASE_URL."
+    echo "         Set them manually after adding the Postgres plugin."
+fi
 
 echo "  [OK] Variables set"
 
@@ -272,12 +285,20 @@ echo "  https://${CLIENT_SLUG}.paperclip.${DOMAIN_ROOT}"
 echo "  https://${CLIENT_SLUG}.chat.${DOMAIN_ROOT}"
 echo ""
 echo "Next steps:"
-echo "1. Add Postgres plugin via Railway dashboard or 'railway add'"
-echo "2. Add MongoDB plugin for LibreChat"
-echo "3. Run Postgres bootstrap migrations"
-echo "4. Set OPENAI_API_KEY at project level"
-echo "5. Set PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET at project level"
-echo "6. Verify custom domains in Railway dashboard"
-echo "7. Disable Public Networking on backend services"
+if [[ -z "$DATABASE_URL" ]]; then
+    echo "1. Add Postgres plugin via Railway dashboard or 'railway add'"
+    echo "2. Re-run this script with DATABASE_URL set to configure DB-dependent variables:"
+    echo "     DATABASE_URL=postgresql://... bash $0 $CLIENT_SLUG $ADMIN_EMAIL"
+    echo "   Or set PAPERCLIP_DATABASE_URL and LANGFUSE_DATABASE_URL manually."
+    echo "3. Add MongoDB plugin for LibreChat"
+else
+    echo "1. Add MongoDB plugin for LibreChat"
+fi
+echo "   - Run Postgres bootstrap migrations"
+if [[ -z "$OPENAI_API_KEY" ]]; then
+    echo "   - Set OPENAI_API_KEY for RAG API embeddings"
+fi
+echo "   - Verify custom domains in Railway dashboard"
+echo "   - Disable Public Networking on backend services (after domains verify)"
 echo ""
 echo "Dashboard: https://railway.com/project/$PROJECT_ID"

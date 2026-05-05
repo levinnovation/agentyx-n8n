@@ -16,6 +16,24 @@ const auth = betterAuth({
   },
 });
 
+function toWebRequest(req: http.IncomingMessage): Request {
+  const url = new URL(req.url || "/", config.betterAuthUrl);
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value !== undefined) {
+      if (Array.isArray(value)) {
+        value.forEach((v) => headers.append(key, v));
+      } else {
+        headers.set(key, value);
+      }
+    }
+  }
+  return new Request(url.toString(), {
+    method: req.method,
+    headers,
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", config.betterAuthUrl);
 
@@ -54,7 +72,8 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Pass everything else to Better Auth
-  const response = await auth.handler(req);
+  const request = toWebRequest(req);
+  const response = await auth.handler(request);
   res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   const body = await response.text();
   res.end(body);
