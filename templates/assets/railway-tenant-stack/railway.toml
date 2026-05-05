@@ -3,10 +3,10 @@ builder = "DOCKERFILE"
 
 # ─── Postgres ────────────────────────────────────────────────
 # Railway Postgres plugin; no build needed.
-# Services reference it via ${{Postgres.DATABASE_URL}}
-# Logical DBs: n8n, langfuse, librechat, paperclip, better_auth
+# Logical DBs: n8n, langfuse, librechat, paperclip, better_auth, librechat_rag
 
 # ─── better-auth ─────────────────────────────────────────────
+# Deployed from levinnovation/agentyx-auth-service fork via Railway GitHub App.
 [better-auth]
 root = "services/better-auth"
 startCommand = ""
@@ -28,9 +28,9 @@ FLOWISE_INTERNAL_URL = "http://flowise.railway.internal:3000"
 PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
 
 # ─── n8n ─────────────────────────────────────────────────────
-# Public ingress is via auth-proxy; no public domain on this service.
+# Deployed from levinnovation/agentyx-n8n fork via Railway GitHub App.
 [n8n]
-image = "n8nio/n8n:latest"
+root = "services/n8n"
 startCommand = "n8n start"
 
 [n8n.variables]
@@ -44,8 +44,9 @@ DB_POSTGRESDB_PASSWORD = "${{Postgres.PGPASSWORD}}"
 WEBHOOK_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
 
 # ─── LibreChat ───────────────────────────────────────────────
+# Deployed from levinnovation/agentyx-librechat fork via Railway GitHub App.
 [librechat]
-image = "ghcr.io/danny-avila/librechat:latest"
+root = "services/librechat"
 startCommand = "node api/server/index.js"
 
 [librechat.variables]
@@ -61,9 +62,10 @@ OPENID_CLIENT_SECRET = "${{OPENID_CLIENT_SECRET}}"
 OPENID_ISSUER = "${{OPENID_ISSUER}}"
 OPENID_SCOPE = "openid email profile"
 OPENID_BUTTON_LABEL = "Sign in with Agentyx"
+RAG_API_URL = "http://rag-api.railway.internal:8000"
 
 # ─── Paperclip ───────────────────────────────────────────────
-# Public ingress is via auth-proxy; no public domain on this service.
+# Deployed from levinnovation/agentyx-paperclip fork via Railway GitHub App.
 [paperclip]
 root = "services/paperclip"
 startCommand = ""
@@ -71,6 +73,9 @@ startCommand = ""
 [paperclip.variables]
 PAPERCLIP_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=paperclip"
 PAPERCLIP_PORT = "3000"
+PAPERCLIP_AUTH_TRUSTED_PROXY = "true"
+PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET = "${{PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET}}"
+BETTER_AUTH_TRUSTED_ORIGINS = "${{BETTER_AUTH_TRUSTED_ORIGINS}}"
 
 # ─── Langfuse ────────────────────────────────────────────────
 [langfuse]
@@ -100,21 +105,38 @@ BETTER_AUTH_AUDIENCE = "${{BETTER_AUTH_AUDIENCE}}"
 AUTH_REQUIRED = "false"
 
 # ─── Agentyx Portal ──────────────────────────────────────────
+# Deployed from levinnovation/agentyx-client-portal fork via Railway GitHub App.
 [agentyx-portal]
-image = "${{PORTAL_IMAGE}}"
+root = "services/agentyx-portal"
 startCommand = ""
 
 [agentyx-portal.variables]
 PORT = "8080"
 BETTER_AUTH_URL = "http://better-auth.railway.internal:3000"
 
-# ─── Flowise (optional) ──────────────────────────────────────
-# Enable by setting FLOWISE_ENABLED=true in project variables.
-# Public ingress is via auth-proxy; no public domain on this service.
+# ─── Flowise ─────────────────────────────────────────────────
+# Deployed from levinnovation/agentyx-flowise fork via Railway GitHub App.
 [flowise]
-image = "flowiseai/flowise:latest"
+root = "services/flowise"
 startCommand = "flowise start"
 
 [flowise.variables]
 PORT = "3000"
 DATABASE_PATH = "/root/.flowise"
+
+# ─── RAG API (LibreChat vector embeddings) ───────────────────
+[rag-api]
+image = "registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest"
+startCommand = ""
+
+[rag-api.variables]
+RAG_PORT = "8000"
+DB_HOST = "postgres.railway.internal"
+DB_PORT = "5432"
+POSTGRES_DB = "librechat_rag"
+POSTGRES_USER = "${{Postgres.PGUSER}}"
+POSTGRES_PASSWORD = "${{Postgres.PGPASSWORD}}"
+PGVECTOR_CREATE_EXTENSION = "False"
+EMBEDDINGS_PROVIDER = "openai"
+EMBEDDINGS_MODEL = "text-embedding-3-small"
+RAG_OPENAI_API_KEY = "${{OPENAI_API_KEY}}"

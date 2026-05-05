@@ -27,9 +27,9 @@ FLOWISE_INTERNAL_URL = "http://flowise.railway.internal:3000"
 PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
 
 # ─── n8n ─────────────────────────────────────────────────────
-# Public ingress is via auth-proxy; no public domain on this service.
+# Deployed from levinnovation/agentyx-n8n fork via Railway GitHub App.
 [n8n]
-image = "n8nio/n8n:1.84.0"
+root = "services/n8n"
 startCommand = "n8n start"
 
 [n8n.variables]
@@ -43,8 +43,9 @@ DB_POSTGRESDB_PASSWORD = "${{Postgres.PGPASSWORD}}"
 WEBHOOK_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
 
 # ─── LibreChat ───────────────────────────────────────────────
+# Deployed from levinnovation/agentyx-librechat fork via Railway GitHub App.
 [librechat]
-image = "ghcr.io/danny-avila/librechat:v0.7.7"
+root = "services/librechat"
 startCommand = "node api/server/index.js"
 
 [librechat.variables]
@@ -60,6 +61,7 @@ OPENID_CLIENT_SECRET = "${{OPENID_CLIENT_SECRET}}"
 OPENID_ISSUER = "${{OPENID_ISSUER}}"
 OPENID_SCOPE = "openid email profile"
 OPENID_BUTTON_LABEL = "Sign in with Agentyx"
+RAG_API_URL = "http://rag-api.railway.internal:8000"
 
 # ─── Paperclip ───────────────────────────────────────────────
 # Public ingress is via auth-proxy; no public domain on this service.
@@ -70,6 +72,9 @@ startCommand = ""
 [paperclip.variables]
 PAPERCLIP_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=paperclip"
 PAPERCLIP_PORT = "3000"
+PAPERCLIP_AUTH_TRUSTED_PROXY = "true"
+PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET = "${{PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET}}"
+BETTER_AUTH_TRUSTED_ORIGINS = "${{BETTER_AUTH_TRUSTED_ORIGINS}}"
 
 # ─── Langfuse ────────────────────────────────────────────────
 [langfuse]
@@ -107,12 +112,30 @@ startCommand = ""
 PORT = "8080"
 BETTER_AUTH_URL = "http://better-auth.railway.internal:3000"
 
-# ─── Flowise (optional — commented out by default) ───────────
-# Public ingress is via auth-proxy; no public domain on this service.
-# Uncomment the block below and set FLOWISE_ENABLED=true to enable.
-# [flowise]
-# image = "flowiseai/flowise:2.2.7"
-# startCommand = "flowise start"
-# [flowise.variables]
-# PORT = "3000"
-# DATABASE_PATH = "/root/.flowise"
+# ─── Flowise ─────────────────────────────────────────────────
+# Deployed from levinnovation/agentyx-flowise fork via Railway GitHub App.
+[flowise]
+root = "services/flowise"
+startCommand = "flowise start"
+
+[flowise.variables]
+PORT = "3000"
+DATABASE_PATH = "/root/.flowise"
+
+# ─── RAG API (LibreChat vector embeddings) ───────────────────
+# Deployed from official Lite RAG API image.
+[rag-api]
+image = "registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest"
+startCommand = ""
+
+[rag-api.variables]
+RAG_PORT = "8000"
+DB_HOST = "postgres.railway.internal"
+DB_PORT = "5432"
+POSTGRES_DB = "librechat_rag"
+POSTGRES_USER = "${{Postgres.PGUSER}}"
+POSTGRES_PASSWORD = "${{Postgres.PGPASSWORD}}"
+PGVECTOR_CREATE_EXTENSION = "False"
+EMBEDDINGS_PROVIDER = "openai"
+EMBEDDINGS_MODEL = "text-embedding-3-small"
+RAG_OPENAI_API_KEY = "${{OPENAI_API_KEY}}"

@@ -44,6 +44,7 @@
 - [change-log/2026/05/2026-05-04-oss-forks-under-levinnovation.md](change-log/2026/05/2026-05-04-oss-forks-under-levinnovation.md)
 - [change-log/2026/05/2026-05-04-railway-tenant-projects.md](change-log/2026/05/2026-05-04-railway-tenant-projects.md)
 - [change-log/2026/05/2026-05-04-scim-and-org-provisioning.md](change-log/2026/05/2026-05-04-scim-and-org-provisioning.md)
+- [change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md](change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -80,6 +81,7 @@
 - [decisions/0014-migrate-app-user-stores-to-better-auth.md](decisions/0014-migrate-app-user-stores-to-better-auth.md)
 - [decisions/0015-enforce-better-auth-on-agent-fastapi.md](decisions/0015-enforce-better-auth-on-agent-fastapi.md)
 - [decisions/0016-scim-and-org-provisioning.md](decisions/0016-scim-and-org-provisioning.md)
+- [decisions/0017-sso-gateway-custom-domains-multi-client.md](decisions/0017-sso-gateway-custom-domains-multi-client.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -103,6 +105,7 @@
 
 - [operations/how-to-close-an-architecture-change.md](operations/how-to-close-an-architecture-change.md)
 - [operations/how-to-connect-google-workspace-scim.md](operations/how-to-connect-google-workspace-scim.md)
+- [operations/how-to-deploy-without-railway-github-app.md](operations/how-to-deploy-without-railway-github-app.md)
 - [operations/how-to-log-a-prompt-run.md](operations/how-to-log-a-prompt-run.md)
 - [operations/how-to-record-a-decision.md](operations/how-to-record-a-decision.md)
 - [operations/how-to-replicate-reference-to-scratch.md](operations/how-to-replicate-reference-to-scratch.md)
