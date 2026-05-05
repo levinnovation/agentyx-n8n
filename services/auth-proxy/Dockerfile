@@ -1,14 +1,10 @@
 # syntax=docker/dockerfile:1
-# Build context is the repo root, so paths are relative to root.
+# Build context is the repo root, but Railway sets rootDirectory to services/auth-proxy.
+# All COPY paths are relative to services/auth-proxy/.
 
 FROM caddy:2-alpine
 
-# Install gettext for envsubst
-RUN apk add --no-cache gettext
+# Copy the Caddyfile template — Caddy substitutes {$VAR} syntax natively at runtime
+COPY Caddyfile.template /etc/caddy/Caddyfile
 
-COPY Caddyfile.template /etc/caddy/Caddyfile.template
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
 CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]
