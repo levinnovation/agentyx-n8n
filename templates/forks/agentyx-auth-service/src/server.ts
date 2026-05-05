@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import { betterAuth } from "better-auth";
 import { oAuthProvider } from "@better-auth/oauth-provider";
-import { organization } from "@better-auth/organization";
+import { organization } from "better-auth/plugins/organization";
 import { config } from "./config";
 
 const auth = betterAuth({

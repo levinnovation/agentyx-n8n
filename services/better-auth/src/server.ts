@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
-import { oAuthProvider } from "@better-auth/oauth-provider";
-import { organization } from "@better-auth/organization";
+import { oauthProvider } from "@better-auth/oauth-provider";
+import { organization } from "better-auth/plugins";
 import Fastify from "fastify";
 import { config } from "./config";
 
@@ -20,7 +20,7 @@ const auth = betterAuth({
     },
   },
   plugins: [
-    oAuthProvider(),
+    oauthProvider(),
     organization(),
   ],
 });
@@ -109,9 +109,15 @@ app.get("/api/auth/forward-auth", async (req, reply) => {
 });
 
 // Pass everything else to Better Auth handler
-// Using req.raw fixes the body-parsing bug (Fastify already parsed the body)
 app.all("/*", async (req, reply) => {
-  const response = await auth.handler(req.raw);
+  // Convert Fastify request to web Request for Better Auth handler
+  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  const request = new Request(url.toString(), {
+    method: req.method,
+    headers: new Headers(Object.entries(req.headers).map(([k, v]) => [k, String(v)])),
+    body: req.body ? JSON.stringify(req.body) : undefined,
+  });
+  const response = await auth.handler(request);
   reply.status(response.status);
   for (const [key, value] of response.headers.entries()) {
     reply.header(key, value);
