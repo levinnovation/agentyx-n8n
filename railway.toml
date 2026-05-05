@@ -1,12 +1,12 @@
-# Railway configuration for services deployed from this repo
+# Railway configuration for services deployed from this repo via `railway up`
 # Other services (n8n, flowise, librechat, paperclip, portal) are deployed from their own repos.
+
+[build]
+builder = "DOCKERFILE"
 
 [better-auth]
 root = "services/better-auth"
 startCommand = ""
-
-[better-auth.build]
-builder = "DOCKERFILE"
 
 [better-auth.variables]
 PORT = "3000"
@@ -16,9 +16,6 @@ BETTER_AUTH_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=better_auth"
 [auth-proxy]
 root = "services/auth-proxy"
 startCommand = ""
-
-[auth-proxy.build]
-builder = "DOCKERFILE"
 
 [auth-proxy.variables]
 BETTER_AUTH_INTERNAL_URL = "http://better-auth.railway.internal:3000"
