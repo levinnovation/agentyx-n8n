@@ -23,6 +23,12 @@ const auth = betterAuth({
   },
 });
 
+console.log("[debug] auth.api keys:", Object.keys(auth.api));
+console.log("[debug] has signInEmail:", "signInEmail" in auth.api);
+console.log("[debug] has signUpEmail:", "signUpEmail" in auth.api);
+console.log("[debug] has signOut:", "signOut" in auth.api);
+console.log("[debug] has getSession:", "getSession" in auth.api);
+
 function toWebRequest(req: http.IncomingMessage): Request {
   const url = new URL(req.url || "/", `http://${req.headers.host}`);
   const headers = new Headers();
@@ -80,7 +86,9 @@ const server = http.createServer(async (req, res) => {
 
   // Pass everything else to Better Auth
   const request = toWebRequest(req);
+  console.log(`[debug] handler: ${req.method} ${url.pathname}`);
   const response = await auth.handler(request);
+  console.log(`[debug] response: ${response.status}`);
   res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   const body = await response.text();
   res.end(body);
