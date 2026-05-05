@@ -119,6 +119,7 @@
 - [operations/railway-dashboard-setup-guide.md](operations/railway-dashboard-setup-guide.md)
 - [operations/railway-template-sources.md](operations/railway-template-sources.md)
 - [operations/README.md](operations/README.md)
+- [operations/sso-gateway-known-issues-2026-05-05.md](operations/sso-gateway-known-issues-2026-05-05.md)
 
 ### `prompts/`
 
