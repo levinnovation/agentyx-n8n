@@ -1,12 +1,19 @@
 import { betterAuth } from "better-auth";
+import { Kysely, PostgresDialect } from "kysely";
+import { Pool } from "pg";
 import { config } from "./config";
 import * as http from "http";
 
+const pool = new Pool({
+  connectionString: config.databaseUrl,
+});
+
+const db = new Kysely<any>({
+  dialect: new PostgresDialect({ pool }),
+});
+
 const auth = betterAuth({
-  database: {
-    provider: "pg",
-    url: config.databaseUrl,
-  },
+  database: db,
   secret: config.betterAuthSecret,
   baseURL: config.betterAuthUrl,
   trustedOrigins: config.trustedOrigins,
