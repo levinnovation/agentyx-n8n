@@ -20,6 +20,9 @@ WORKDIR /src
 RUN apk add --no-cache python3 make g++ git curl ca-certificates \
     && npm install -g pnpm@10.32.1
 
+# Railway/CI build: skip git hooks (lefthook) during pnpm install
+ENV CI=true
+
 # Copy full source code.
 # NOTE: Layer caching is sacrificed here because the monorepo uses
 # pnpm workspaces; turbo handles incremental builds on cache hits.
