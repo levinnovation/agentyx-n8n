@@ -1,8 +1,10 @@
 # Railway configuration for services deployed from this repo via `railway up`
 # Other services (n8n, flowise, librechat, paperclip, portal) are deployed from their own repos.
-
-[build]
-builder = "DOCKERFILE"
+#
+# NOTE: Each service below has its own railway.toml in its root directory
+# that specifies the builder (e.g., DOCKERFILE for better-auth and auth-proxy).
+# Do NOT add a global [build] section here — it would force ALL services
+# (including those from other repos like the portal) to use the same builder.
 
 [better-auth]
 root = "services/better-auth"
@@ -11,14 +13,15 @@ startCommand = ""
 [better-auth.variables]
 PORT = "3000"
 BETTER_AUTH_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
-BETTER_AUTH_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=better_auth"
+BETTER_AUTH_DATABASE_URL = "${{Postgres.DATABASE_URL}}"
 
 [auth-proxy]
 root = "services/auth-proxy"
 startCommand = ""
 
 [auth-proxy.variables]
-BETTER_AUTH_INTERNAL_URL = "agx-demo-better-auth.railway.internal:3000"
-N8N_INTERNAL_URL = "http://n8n.railway.internal:5678"
-FLOWISE_INTERNAL_URL = "http://flowise.railway.internal:3000"
-PAPERCLIP_INTERNAL_URL = "http://paperclip.railway.internal:3000"
+BETTER_AUTH_INTERNAL_URL = "http://agx-demo-better-auth.railway.internal:3000"
+N8N_INTERNAL_URL = "http://agx-demo-n8n.railway.internal:5678"
+FLOWISE_INTERNAL_URL = "http://agx-demo-flowise.railway.internal:3000"
+PAPERCLIP_INTERNAL_URL = "http://agx-demo-paperclip.railway.internal:3100"
+LIBRECHAT_INTERNAL_URL = "http://agx-demo-librechat.railway.internal:3080"

@@ -3,6 +3,12 @@
 
 FROM caddy:2-alpine
 
-COPY services/auth-proxy/Caddyfile /etc/caddy/Caddyfile
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
 
+COPY services/auth-proxy/Caddyfile.template /etc/caddy/Caddyfile.template
+COPY services/auth-proxy/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]

@@ -1,15 +1,13 @@
 import { betterAuth } from "better-auth";
-import { Pool } from "pg";
+import { oAuthProvider } from "@better-auth/oauth-provider";
+import { organization } from "@better-auth/organization";
+import Fastify from "fastify";
 import { config } from "./config";
-import * as http from "http";
-
-const pool = new Pool({
-  connectionString: config.databaseUrl,
-});
 
 const auth = betterAuth({
-  database: pool,
+  baseURL: config.betterAuthUrl,
   secret: config.betterAuthSecret,
+  database: config.databaseUrl,
   trustedOrigins: config.trustedOrigins,
   emailAndPassword: {
     enabled: true,
@@ -21,79 +19,111 @@ const auth = betterAuth({
       hd: config.googleHd || undefined,
     },
   },
+  plugins: [
+    oAuthProvider(),
+    organization(),
+  ],
 });
 
-console.log("[debug] auth.api keys:", Object.keys(auth.api));
-console.log("[debug] has signInEmail:", "signInEmail" in auth.api);
-console.log("[debug] has signUpEmail:", "signUpEmail" in auth.api);
-console.log("[debug] has signOut:", "signOut" in auth.api);
-console.log("[debug] has getSession:", "getSession" in auth.api);
+const app = Fastify({ logger: true });
 
-function toWebRequest(req: http.IncomingMessage): Request {
-  const url = new URL(req.url || "/", `http://${req.headers.host}`);
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (value !== undefined) {
-      if (Array.isArray(value)) {
-        value.forEach((v) => headers.append(key, v));
-      } else {
-        headers.set(key, value);
-      }
-    }
+// CORS: reflect trusted origins instead of wildcard (required for credentials)
+app.addHook("onSend", async (req, reply) => {
+  const origin = req.headers.origin || "";
+  const allowed = config.trustedOrigins.includes(origin) ? origin : "";
+  if (allowed) {
+    reply.header("Access-Control-Allow-Origin", allowed);
+    reply.header("Access-Control-Allow-Credentials", "true");
   }
-  return new Request(url.toString(), {
-    method: req.method,
-    headers,
+});
+
+// Health check
+app.get("/health", async () => ({ status: "ok", service: "better-auth" }));
+
+// JWKS endpoint
+app.get("/.well-known/openid-configuration", async () => {
+  return {
+    issuer: config.oidcIssuer,
+    authorization_endpoint: `${config.betterAuthUrl}/api/auth/authorize`,
+    token_endpoint: `${config.betterAuthUrl}/api/auth/token`,
+    userinfo_endpoint: `${config.betterAuthUrl}/api/auth/userinfo`,
+    jwks_uri: `${config.betterAuthUrl}/jwks.json`,
+  };
+});
+
+app.get("/jwks.json", async () => {
+  return auth.api.getJwks();
+});
+
+// Internal user lookup (for shadow-user sync)
+app.get("/api/users/:sub", async (req, reply) => {
+  const internalKey = req.headers["x-internal-api-key"] as string | undefined;
+  if (!config.internalApiKey || internalKey !== config.internalApiKey) {
+    reply.status(401);
+    return { error: "Unauthorized" };
+  }
+
+  const { sub } = req.params as { sub: string };
+  const user = await auth.api.getUser({
+    query: { id: sub },
+    headers: new Headers(),
   });
-}
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host}`);
-
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Credentials": "true",
-    });
-    res.end();
-    return;
+  if (!user) {
+    reply.status(404);
+    return { error: "User not found" };
   }
 
-  // Default CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
-  // Forward-auth endpoint for Caddy
-  if (url.pathname === "/api/auth/forward-auth") {
-    const session = await auth.api.getSession({
-      headers: new Headers(Object.entries(req.headers).map(([k, v]) => [k, String(v)])),
-    });
-    if (session) {
-      res.writeHead(200, {
-        "X-Auth-User": session.user.id,
-        "X-Auth-Email": session.user.email,
-      });
-      res.end();
-    } else {
-      res.writeHead(401, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Unauthorized" }));
-    }
-    return;
-  }
-
-  // Pass everything else to Better Auth
-  const request = toWebRequest(req);
-  console.log(`[debug] handler: ${req.method} ${url.pathname}`);
-  const response = await auth.handler(request);
-  console.log(`[debug] response: ${response.status}`);
-  res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
-  const body = await response.text();
-  res.end(body);
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    image: user.image,
+    emailVerified: user.emailVerified,
+    role: (user as any).role,
+    organizationIds: (user as any).organizationIds || [],
+    roles: (user as any).roles || [],
+    customClaims: (user as any).customClaims || {},
+  };
 });
 
-server.listen(config.port, () => {
+// SCIM stub
+app.get("/api/scim/v2/Users", async (req, reply) => {
+  reply.status(501);
+  return { error: "Not implemented yet" };
+});
+
+// Forward-auth endpoint for Caddy
+app.get("/api/auth/forward-auth", async (req, reply) => {
+  const session = await auth.api.getSession({
+    headers: new Headers(Object.entries(req.headers).map(([k, v]) => [k, String(v)])),
+  });
+  if (session) {
+    reply.header("X-Auth-User", session.user.id);
+    reply.header("X-Auth-Email", session.user.email);
+    return { ok: true };
+  } else {
+    reply.status(401);
+    return { error: "Unauthorized" };
+  }
+});
+
+// Pass everything else to Better Auth handler
+// Using req.raw fixes the body-parsing bug (Fastify already parsed the body)
+app.all("/*", async (req, reply) => {
+  const response = await auth.handler(req.raw);
+  reply.status(response.status);
+  for (const [key, value] of response.headers.entries()) {
+    reply.header(key, value);
+  }
+  const body = await response.text();
+  reply.send(body);
+});
+
+app.listen({ port: config.port, host: "0.0.0.0" }, (err) => {
+  if (err) {
+    app.log.error(err);
+    process.exit(1);
+  }
   console.log(`[better-auth] listening on port ${config.port}`);
 });
