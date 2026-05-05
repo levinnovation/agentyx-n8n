@@ -20,73 +20,64 @@ We need a unified SSO architecture where a single login on `<slug>.portal.agenty
 
 ## Decision
 
-### Phase 0 — Immediate Fixes (before any migration)
+### Phase 0 — Immediate Fixes (completed ✅)
 
 1. **Fix n8n database URL**
-   - Remove or correct `DATABASE_URL` so n8n connects to the `n8n` database, not `flowise`.
-   - Keep `DB_POSTGRESDB_*` variables as the authoritative config.
+   - Removed incorrect `DATABASE_URL` from n8n. `DB_POSTGRESDB_*` variables are authoritative.
 
 2. **Fix auth gateway backend URLs**
-   - Change all `BACKEND_*` variables to use Railway private networking:
+   - Changed all `BACKEND_*` variables to use Railway private networking:
      - `BACKEND_FLOWISE=http://agx-demo-flowise.railway.internal:3000`
      - `BACKEND_N8N=http://agx-demo-n8n.railway.internal:5678`
      - `BACKEND_PAPERCLIP=http://agx-demo-paperclip.railway.internal:3100`
      - `BACKEND_LIBRECHAT=http://agx-demo-librechat.railway.internal:3080`
 
 3. **Fix cookie domain**
-   - Change `COOKIE_DOMAIN` from `.agentyx.app` to `.agentyx.one`.
-   - Update `BETTER_AUTH_TRUSTED_ORIGINS` to include all `*.agentyx.one` subdomains.
+   - Changed `COOKIE_DOMAIN` from `.agentyx.app` to `.agentyx.one`.
+   - Updated `BETTER_AUTH_TRUSTED_ORIGINS` to include all `*.agentyx.one` subdomains.
 
-### Phase 1 — SSO Gateway + Custom Domains
+### Phase 1 — SSO Gateway + Custom Domains (completed ✅)
 
 4. **Dynamic gateway configuration**
-   - Modify `agentyx-auth-service` gateway to build `protectedHosts` and `BACKENDS` dynamically from env vars using `CLIENT_SLUG`:
-     ```
-     const slug = process.env.CLIENT_SLUG || 'demo';
-     const BACKENDS = {
-       [`${slug}.flowise.agentyx.one`]: process.env.BACKEND_FLOWISE,
-       [`${slug}.n8n.agentyx.one`]: process.env.BACKEND_N8N,
-       [`${slug}.paperclip.agentyx.one`]: process.env.BACKEND_PAPERCLIP,
-       [`${slug}.chat.agentyx.one`]: process.env.BACKEND_LIBRECHAT,
-     };
-     ```
+   - Auth service builds `protectedHosts` and `BACKENDS` dynamically from `CLIENT_SLUG` env var.
 
 5. **Custom domains per backend**
-   - Add custom domains in Railway for each backend service:
-     - `demo.flowise.agentyx.one` → `agx-demo-flowise`
-     - `demo.n8n.agentyx.one` → `agx-demo-n8n`
-     - `demo.paperclip.agentyx.one` → `agx-demo-paperclip`
-     - `demo.chat.agentyx.one` → `agx-demo-librechat`
-   - Keep existing `demo-auth.agentyx.app` and `agentyx.one` during transition; migrate to `demo.auth.agentyx.one` and `demo.portal.agentyx.one` in a follow-up.
+   - Added custom domains for all backends:
+     - `demo.flowise.agentyx.one`, `demo.n8n.agentyx.one`, `demo.paperclip.agentyx.one`, `demo.chat.agentyx.one`
+   - Added canonical domains: `demo.auth.agentyx.one`, `demo.portal.agentyx.one`.
 
-6. **Disable Public Networking on backends**
-   - After custom domains are verified and DNS propagates, disable Public Networking on:
-     - `agx-demo-flowise`
-     - `agx-demo-n8n`
-     - `agx-demo-paperclip`
-     - `agx-demo-librechat`
-   - This forces all traffic through `agx-demo-auth` (gateway).
+6. **Switch to fork repos via Railway GitHub App**
+   - All custom services (auth, portal, n8n, flowise, paperclip, librechat) now deploy from `levinnovation/*` fork repos connected via Railway GitHub App.
+   - Official images used only for: Langfuse, RAG API.
 
-### Phase 2 — Paperclip Trusted Proxy Mode
+7. **Disable Public Networking on backends**
+   - Manual step: disable Public Networking on Flowise, n8n, Paperclip, LibreChat via Railway dashboard after domain verification.
 
-7. **Implement trusted proxy mode in Paperclip**
-   - Add `PAPERCLIP_AUTH_TRUSTED_PROXY=true`.
-   - Modify `actorMiddleware` to read `X-Auth-User-*` headers injected by the gateway and upsert a shadow user into the local `authUsers` table (required for FK constraints).
-   - Decision: **Keep local Better Auth as fallback** for debugging, but default to trusted proxy when headers are present.
+### Phase 2 — Paperclip Trusted Proxy Mode (completed ✅)
 
-### Phase 3 — RAG API for LibreChat
+8. **Implement trusted proxy mode in Paperclip**
+   - Added `PAPERCLIP_AUTH_TRUSTED_PROXY=true` and `PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET`.
+   - `actorMiddleware` reads `X-Auth-User-*` headers and upserts shadow user into `authUsers` via `ensureLocalUser()`.
+   - **Local Better Auth kept as fallback** for debugging.
 
-8. **Deploy RAG API service**
-   - Add `agx-demo-rag-api` service using image `registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest`.
-   - Point to existing `librechat_rag` Postgres database (pgvector already installed).
-   - Configure LibreChat env vars: `RAG_API_URL=http://agx-demo-rag-api.railway.internal:8000`.
-   - Decision: **Use OpenAI `text-embedding-3-small`** for embeddings provider (simplest, well-supported).
+### Phase 3 — RAG API for LibreChat (completed ✅)
 
-### Phase 4 — Multi-Client Onboarding
+9. **Deploy RAG API service**
+   - Created `agx-demo-rag-api` service with image `registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest`.
+   - Configured `librechat_rag` Postgres DB, OpenAI embeddings.
+   - LibreChat `RAG_API_URL` points to internal RAG service.
 
-9. **Per-client Railway project**
-   - Each new client gets a separate Railway project (`agentyx-<slug>-prod`) for maximum isolation.
-   - A bootstrap script creates the project, deploys Postgres, bootstraps 6 logical DBs, deploys MongoDB, Meilisearch, and all services, then configures custom domains and env vars.
+### Phase 4 — Multi-Client Onboarding (script created ✅)
+
+10. **Per-client Railway project bootstrap script**
+    - `scripts/railway/bootstrap-client-project.sh` automates:
+      - Project creation
+      - Service creation (auth, portal, n8n, flowise, paperclip, librechat, rag-api, langfuse)
+      - Fork repo connection via Railway GitHub App
+      - Custom domain registration
+      - Environment variable provisioning
+      - Service deployment
+    - Manual steps remaining: add Postgres/MongoDB plugins, run migrations, set secrets.
 
 ## Consequences
 

@@ -24,7 +24,7 @@ Consolidate the demo stack under a single SSO gateway with custom per-backend do
    - Update `COOKIE_DOMAIN` from `.agentyx.app` to `.agentyx.one`.
    - Update `BETTER_AUTH_TRUSTED_ORIGINS` to include all `*.agentyx.one` subdomains.
 
-### Phase 1 — SSO Gateway + Custom Domains
+### Phase 1 — SSO Gateway + Custom Domains + Fork Repos
 
 4. **Auth service env vars**
    - Add `CLIENT_SLUG=demo`.
@@ -37,9 +37,15 @@ Consolidate the demo stack under a single SSO gateway with custom per-backend do
    - `demo.n8n.agentyx.one` → `agx-demo-n8n`
    - `demo.paperclip.agentyx.one` → `agx-demo-paperclip`
    - `demo.chat.agentyx.one` → `agx-demo-librechat`
+   - `demo.auth.agentyx.one` → `agx-demo-auth`
+   - `demo.portal.agentyx.one` → `agx-demo-portal`
 
-6. **Disable Public Networking**
-   - Turn off Public Networking on Flowise, n8n, Paperclip, LibreChat after domains verify.
+6. **Switch all services to fork repos via Railway GitHub App**
+   - Auth, Portal, n8n, Flowise, Paperclip, LibreChat connected to `levinnovation/*` forks.
+   - n8n uses `master` branch; others use `agentyx/main` or `main`.
+
+7. **Disable Public Networking**
+   - Turn off Public Networking on Flowise, n8n, Paperclip, LibreChat after domains verify (manual).
 
 ### Phase 2 — Paperclip Trusted Proxy
 
@@ -74,10 +80,10 @@ Consolidate the demo stack under a single SSO gateway with custom per-backend do
 
 ## Verification
 
-- [ ] n8n health check passes with corrected DB.
-- [ ] Auth gateway health check passes with private backend URLs.
+- [x] n8n health check passes with corrected DB.
+- [x] Auth gateway health check passes with private backend URLs.
 - [ ] Login on portal creates cookie valid on all `*.agentyx.one` subdomains.
-- [ ] Each custom domain resolves and serves its backend.
+- [x] Each custom domain resolves and serves its backend.
 - [ ] Direct `*.up.railway.app` URLs for backends return 403 or timeout after Public Networking is disabled.
 - [ ] Paperclip creates shadow user on first gateway-proxied request.
 - [ ] LibreChat RAG endpoint responds to health check.
