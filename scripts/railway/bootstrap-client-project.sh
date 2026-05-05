@@ -18,15 +18,34 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLIENT_SLUG="${1:-}"
 ADMIN_EMAIL="${2:-}"
 RAILWAY_TOKEN="${RAILWAY_TOKEN:-}"
+DATABASE_URL="${DATABASE_URL:-}"
+OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 
 if [[ -z "$CLIENT_SLUG" || -z "$ADMIN_EMAIL" ]]; then
     echo "Usage: $0 <client-slug> <admin-email>"
+    echo ""
+    echo "Environment variables (optional but recommended):"
+    echo "  RAILWAY_TOKEN              - Railway account token (required)"
+    echo "  DATABASE_URL               - Postgres connection string (e.g. postgresql://... )"
+    echo "  OPENAI_API_KEY             - OpenAI API key for RAG embeddings"
+    echo "  PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET - Shared secret for Paperclip trusted proxy"
+    echo "  N8N_ENCRYPTION_KEY         - n8n encryption key (auto-generated if empty)"
     exit 1
 fi
 
 if [[ -z "$RAILWAY_TOKEN" ]]; then
     echo "[ERROR] RAILWAY_TOKEN must be set. Use Moshe's account token."
     exit 1
+fi
+
+# Generate secrets if not provided
+if [[ -z "${N8N_ENCRYPTION_KEY:-}" ]]; then
+    N8N_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+    echo "[INFO] Generated N8N_ENCRYPTION_KEY"
+fi
+if [[ -z "${PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET:-}" ]]; then
+    PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET="$(openssl rand -hex 32)"
+    echo "[INFO] Generated PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET"
 fi
 
 PROJECT_NAME="agentyx-${CLIENT_SLUG}-prod"
@@ -183,7 +202,8 @@ upsert_var "$PORTAL_SVC" "BETTER_AUTH_URL" "http://agx-${CLIENT_SLUG}-auth.railw
 upsert_var "$N8N_SVC" "N8N_PORT" "5678"
 upsert_var "$N8N_SVC" "DB_TYPE" "postgresdb"
 upsert_var "$N8N_SVC" "DB_POSTGRESDB_DATABASE" "n8n"
-upsert_var "$N8N_SVC" "WEBHOOK_URL" "${RAILWAY_PUBLIC_DOMAIN}"
+upsert_var "$N8N_SVC" "N8N_ENCRYPTION_KEY" "$N8N_ENCRYPTION_KEY"
+upsert_var "$N8N_SVC" "WEBHOOK_URL" "https://${CLIENT_SLUG}.n8n.${DOMAIN_ROOT}"
 
 # Flowise
 upsert_var "$FLOWISE_SVC" "PORT" "3000"

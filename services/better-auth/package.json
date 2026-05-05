@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "better-auth": "^1.2.0",
-    "@better-auth/oidc-provider": "^1.2.0",
     "pg": "^8.13.0",
     "dotenv": "^16.4.0"
   },
