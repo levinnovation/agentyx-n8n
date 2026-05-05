@@ -10,7 +10,6 @@ const pool = new Pool({
 const auth = betterAuth({
   database: pool,
   secret: config.betterAuthSecret,
-  baseURL: config.betterAuthUrl,
   trustedOrigins: config.trustedOrigins,
   emailAndPassword: {
     enabled: true,
@@ -24,11 +23,8 @@ const auth = betterAuth({
   },
 });
 
-// Debug: log available endpoints
-console.log("[debug] auth.api endpoints:", Object.keys(auth.api));
-
 function toWebRequest(req: http.IncomingMessage): Request {
-  const url = new URL(req.url || "/", config.betterAuthUrl);
+  const url = new URL(req.url || "/", `http://${req.headers.host}`);
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
     if (value !== undefined) {
@@ -46,7 +42,7 @@ function toWebRequest(req: http.IncomingMessage): Request {
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || "/", config.betterAuthUrl);
+  const url = new URL(req.url || "/", `http://${req.headers.host}`);
 
   // CORS preflight
   if (req.method === "OPTIONS") {
@@ -84,9 +80,7 @@ const server = http.createServer(async (req, res) => {
 
   // Pass everything else to Better Auth
   const request = toWebRequest(req);
-  console.log(`[debug] handling ${request.method} ${request.url}`);
   const response = await auth.handler(request);
-  console.log(`[debug] response status: ${response.status}`);
   res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
   const body = await response.text();
   res.end(body);
