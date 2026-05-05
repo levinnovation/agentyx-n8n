@@ -3,9 +3,9 @@
 
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY services/better-auth/package.json services/better-auth/tsconfig.json ./
+COPY package.json tsconfig.json ./
 RUN npm install
-COPY services/better-auth/src ./src
+COPY src ./src
 RUN npm run build
 
 FROM node:20-alpine
