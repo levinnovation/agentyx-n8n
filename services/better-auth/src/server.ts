@@ -3,7 +3,10 @@ import { config } from "./config";
 import * as http from "http";
 
 const auth = betterAuth({
-  database: config.databaseUrl,
+  database: {
+    provider: "pg",
+    url: config.databaseUrl,
+  },
   secret: config.betterAuthSecret,
   baseURL: config.betterAuthUrl,
   trustedOrigins: config.trustedOrigins,
