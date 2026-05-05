@@ -105,6 +105,7 @@
 
 ### `operations/`
 
+- [operations/agentyx-stack-audit-runbook-2026-05-05.md](operations/agentyx-stack-audit-runbook-2026-05-05.md)
 - [operations/how-to-close-an-architecture-change.md](operations/how-to-close-an-architecture-change.md)
 - [operations/how-to-connect-google-workspace-scim.md](operations/how-to-connect-google-workspace-scim.md)
 - [operations/how-to-deploy-without-railway-github-app.md](operations/how-to-deploy-without-railway-github-app.md)
