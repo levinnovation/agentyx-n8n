@@ -1,61 +1,18 @@
 # syntax=docker/dockerfile:1
-# Multi-stage build for n8n with Agentyx SSO patches.
-# Builds from the levinnovation/agentyx-n8n fork source.
+# Thin custom layer on top of upstream n8n image with Agentyx SSO runtime patch.
+ARG N8N_VERSION=1.84.0
+FROM n8nio/n8n:${N8N_VERSION}
 
-# ─── Stage 1: Builder ──────────────────────────────────────────────
-FROM node:24-slim AS builder
+USER root
 
-WORKDIR /build
+# Copy runtime SSO patch script
+COPY n8n-sso-patch.js /n8n-sso-patch.js
+RUN chmod +x /n8n-sso-patch.js
 
-# Install build dependencies for native modules (sqlite3, isolated-vm)
-RUN apt-get update && apt-get install -y \
-    python3 make g++ git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Enable pnpm
-RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
-
-# Copy repo source
-COPY . .
-
-# Install dependencies and build
-# CI=true skips lefthook install in prepare script
-ENV CI=true
-RUN pnpm install --frozen-lockfile || pnpm install
-RUN pnpm build
-
-# ─── Stage 2: Runtime ──────────────────────────────────────────────
-FROM node:24-slim AS runtime
-
-ENV NODE_ENV=production
-ENV N8N_RELEASE_TYPE=dev
-ENV SHELL=/bin/sh
-
-WORKDIR /home/node
-
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    git openssh-client openssl graphicsmagick tini tzdata ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy built n8n from builder
-COPY --from=builder /build/packages/cli/dist /usr/local/lib/node_modules/n8n/dist
-COPY --from=builder /build/packages/cli/package.json /usr/local/lib/node_modules/n8n/package.json
-COPY --from=builder /build/packages/cli/bin /usr/local/lib/node_modules/n8n/bin
-COPY --from=builder /build/node_modules /usr/local/lib/node_modules/n8n/node_modules
-COPY --from=builder /build/packages /usr/local/lib/node_modules/n8n/packages
-
-# Create symlink
-RUN ln -s /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n
-
-# Setup user
-RUN mkdir -p /home/node/.n8n && chown -R node:node /home/node
-
-COPY docker/images/n8n/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+RUN chown -R node:node /home/node
+USER node
 
 EXPOSE 5678/tcp
-USER node
 ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
 
 LABEL org.opencontainers.image.title="n8n" \
