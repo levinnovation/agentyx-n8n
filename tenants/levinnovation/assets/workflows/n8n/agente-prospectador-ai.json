@@ -12,41 +12,40 @@
           ]
         }
       },
-      "id": "schedule",
+      "id": "ab3d9cf1-1abc-48a9-9328-cd1abc2c8adb",
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        160,
-        260
+        -1328,
+        -384
       ]
     },
     {
       "parameters": {
         "jsCode": "const kb = {\n  tenant: 'levinnovation',\n  source: 'https://www.linkedin.com/company/levinnovation/',\n  content: `LEV Innovation helps organizations deploy practical AI automation for growth, operations, and customer experience.\\n\\nCore services:\\n1) Sales automation and lead qualification workflows\\n2) Customer support copilots and agentic orchestration\\n3) Integration-first business process automation\\n4) AI adoption strategy and implementation support\\n\\nICP:\\n- SMB and mid-market organizations in LATAM\\n- Teams with repetitive workflows and measurable efficiency goals\\n- Decision makers in operations, sales, and customer success\\n\\nDifferentiators:\\n- Deterministic AI workflow orchestration\\n- Human-in-the-loop execution design\\n- Practical implementation focused on business outcomes`\n};\n\nreturn [{ json: kb }];"
       },
-      "id": "load-kb",
+      "id": "b6486f6b-7c4a-46ed-92bf-677f6b221ae2",
       "name": "Load LEV Knowledge",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        360,
-        260
+        -1136,
+        -384
       ]
     },
     {
       "parameters": {
         "mode": "insert",
-        "memoryKey": "lev_kb",
-        "text": "={{ $json.content }}"
+        "memoryKey": "lev_kb"
       },
-      "id": "vector-upsert",
+      "id": "791ddb1e-844a-49e2-9d67-6f587deeb5f5",
       "name": "Simple Vector Store Upsert",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
       "typeVersion": 1,
       "position": [
-        560,
-        260
+        -976,
+        -384
       ]
     },
     {
@@ -75,39 +74,39 @@
         "jsonBody": "={\"query\":\"{{$env.LINKEDIN_SEARCH_QUERY}}\",\"limit\":{{$env.LEADS_PER_RUN || 25}}}",
         "options": {}
       },
-      "id": "source-leads",
+      "id": "b641634e-3a3e-4e37-9072-b13562464fed",
       "name": "Source LinkedIn Leads (RapidAPI)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        760,
-        260
+        -688,
+        -384
       ]
     },
     {
       "parameters": {
         "jsCode": "const payload = $input.first().json;\nconst rawLeads = payload.data || payload.results || payload.items || payload.profiles || [];\n\nconst normalized = rawLeads.map((lead, index) => {\n  const fullName = lead.full_name || lead.name || [lead.first_name, lead.last_name].filter(Boolean).join(' ');\n  const company = lead.company_name || lead.company || lead.current_company || '';\n  const role = lead.title || lead.headline || lead.position || '';\n  const email = (lead.email || lead.work_email || '').toLowerCase().trim();\n  const linkedin = lead.profile_url || lead.linkedin_url || lead.url || '';\n  const location = lead.location || lead.geo || '';\n  const summary = lead.summary || lead.about || role;\n\n  return {\n    lead_id: `${index + 1}-${Date.now()}`,\n    full_name: fullName,\n    company,\n    role,\n    email,\n    linkedin_url: linkedin,\n    location,\n    summary,\n    source_payload: lead\n  };\n}).filter((lead) => lead.full_name && (lead.linkedin_url || lead.email));\n\nreturn normalized.map((lead) => ({ json: lead }));"
       },
-      "id": "normalize",
+      "id": "1d085460-bbda-4e11-af4c-03fb47bde02c",
       "name": "Normalize Leads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
-        260
+        -528,
+        -384
       ]
     },
     {
       "parameters": {
-        "batchSize": 1
+        "options": {}
       },
-      "id": "split",
+      "id": "3d42355e-a96f-48b0-a080-88dbf55fbe9a",
       "name": "Split In Batches",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        1160,
-        260
+        -256,
+        -400
       ]
     },
     {
@@ -132,13 +131,13 @@
         "jsonBody": "={\"filterGroups\":[{\"filters\":[{\"propertyName\":\"email\",\"operator\":\"EQ\",\"value\":\"{{$json.email}}\"}]}],\"limit\":1}",
         "options": {}
       },
-      "id": "hubspot-search",
+      "id": "36ccd774-aa3f-4adc-81ac-32e6abba6ae4",
       "name": "HubSpot Dedup Search",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1360,
-        260
+        64,
+        -512
       ]
     },
     {
@@ -147,7 +146,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -161,15 +161,16 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "is-duplicate",
+      "id": "b97e84a7-2dd3-4f0e-90d4-38904b288bd6",
       "name": "Duplicate?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1560,
-        260
+        272,
+        -512
       ]
     },
     {
@@ -178,126 +179,60 @@
         "url": "={{ $env.SLACK_WEBHOOK_URL }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Duplicado omitido: {{$('Split In Batches').item.json.full_name}} ({{$('Split In Batches').item.json.company || 'N/A'}})\"}"
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Duplicado omitido: {{$('Split In Batches').item.json.full_name}} ({{$('Split In Batches').item.json.company || 'N/A'}})\"}",
+        "options": {}
       },
-      "id": "slack-duplicate",
+      "id": "4042d78a-18d7-4db0-bee3-8f1646b1db62",
       "name": "Slack Duplicate Log",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1760,
-        140
+        560,
+        -384
       ]
     },
     {
       "parameters": {
-        "mode": "retrieve",
-        "memoryKey": "lev_kb",
-        "query": "={{ $('Split In Batches').item.json.role + ' ' + $('Split In Batches').item.json.company }}",
-        "topK": 3
-      },
-      "id": "vector-query",
-      "name": "Query LEV Context",
-      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
-      "typeVersion": 1,
-      "position": [
-        1760,
-        320
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
+        "method": "POST",
+        "url": "={{ $env.OPENROUTER_BASE_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
             {
-              "id": "prep-chat-input",
-              "name": "chatInput",
-              "type": "string",
-              "value": "=Lead (datos normalizados):\\n{{ JSON.stringify($('Split In Batches').item.json, null, 2) }}\\n\\nContexto recuperado (RAG interno LEV):\\n{{ JSON.stringify($json, null, 2) }}\\n\\nUmbral minimo de fit_score (referencia): {{ $env.LEAD_FIT_THRESHOLD || 70 }}\\n\\nSiguiendo el system message del agente, devuelve SOLO el JSON final sin markdown ni texto adicional."
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENROUTER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
             }
           ]
         },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"{{$env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'}}\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres el sistema de calificacion y personalizacion comercial de LEV Innovation. Devuelve solo JSON con fit_score, qualification, email_subject, email_body, linkedin_dm, internal_summary.\"},{\"role\":\"user\",\"content\":\"Lead: {{JSON.stringify($('Split In Batches').item.json)}}\\nKB: {{JSON.stringify($json)}}\\nThreshold: {{$env.LEAD_FIT_THRESHOLD || 70}}\"}],\"temperature\":0.2}",
         "options": {}
       },
-      "id": "prepare-agent-input",
-      "name": "Prepare Agent Input",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "id": "d477bc73-96be-4bb1-9ea0-d68318f53bc7",
+      "name": "OpenRouter Qualification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        1860,
-        320
+        352,
+        176
       ]
     },
     {
       "parameters": {
-        "text": "={{ $json.chatInput }}",
-        "options": {
-          "systemMessage": "=Eres el sistema de calificacion y personalizacion comercial de LEV Innovation. Objetivo: (1) Evaluar fit del lead con el ICP LEV. (2) Redactar email y DM iniciales. (3) Emitir SOLO JSON valido para n8n. Reglas: espanol neutral profesional; no inventar datos ausentes en lead o contexto RAG; fit_score entero 0-100; qualification max 280 caracteres; email_subject max 90; email_body max 1200; linkedin_dm max 500; internal_summary max 400; sin promesas garantizadas. Forma exacta del JSON: {\"fit_score\":0,\"qualification\":\"\",\"email_subject\":\"\",\"email_body\":\"\",\"linkedin_dm\":\"\",\"internal_summary\":\"\"}. Puedes usar la herramienta Calculator solo si necesitas aritmetica explicita para razonar el fit; si no hace falta, no la invoques."
-        },
-        "promptType": "define"
+        "jsCode": "const raw = $input.first().json;\nconst text = raw.choices?.[0]?.message?.content || '{}';\nlet parsed;\n\ntry {\n  parsed = JSON.parse(text);\n} catch (error) {\n  parsed = {\n    fit_score: 0,\n    qualification: 'No se pudo parsear salida del modelo.',\n    email_subject: 'LEV Innovation - propuesta de automatizacion',\n    email_body: 'Hola, gracias por tu tiempo. Me gustaria compartir ideas de automatizacion aplicables a tu equipo.',\n    linkedin_dm: 'Hola, vi tu perfil y creo que podriamos aportar valor con automatizacion AI aplicada.',\n    internal_summary: 'Salida invalida del modelo; se aplico fallback.'\n  };\n}\n\nconst lead = $('Split In Batches').item.json;\nreturn [{\n  json: {\n    ...lead,\n    fit_score: Number(parsed.fit_score || 0),\n    qualification: String(parsed.qualification || ''),\n    email_subject: String(parsed.email_subject || ''),\n    email_body: String(parsed.email_body || ''),\n    linkedin_dm: String(parsed.linkedin_dm || ''),\n    internal_summary: String(parsed.internal_summary || '')\n  }\n}];"
       },
-      "id": "prospector-ai-agent",
-      "name": "Prospector AI Agent",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 1.8,
-      "position": [
-        2060,
-        320
-      ]
-    },
-    {
-      "parameters": {
-        "model": "={{ $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini' }}",
-        "options": {
-          "temperature": 0.2
-        }
-      },
-      "id": "openrouter-chat-model",
-      "name": "OpenRouter Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        2060,
-        520
-      ]
-    },
-    {
-      "parameters": {
-        "sessionKey": "={{ 'lev-prospect-' + String($('Split In Batches').item.json.lead_id) }}",
-        "sessionIdType": "customKey",
-        "contextWindowLength": 10
-      },
-      "id": "agent-memory",
-      "name": "Agent Memory",
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        2060,
-        680
-      ]
-    },
-    {
-      "parameters": {},
-      "id": "calculator-tool",
-      "name": "Calculator Tool",
-      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
-      "typeVersion": 1,
-      "position": [
-        2060,
-        840
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $input.first().json;\nconst lead = $('Split In Batches').item.json;\n\nfunction parseOutput(out) {\n  if (out && typeof out === 'object' && !Array.isArray(out) && out.fit_score !== undefined) {\n    return out;\n  }\n  let text = typeof out === 'string' ? out.trim() : JSON.stringify(out || {});\n  if (text.startsWith('```')) {\n    text = text.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  }\n  return JSON.parse(text);\n}\n\nlet parsed;\ntry {\n  parsed = parseOutput(raw.output ?? raw.text);\n} catch (error) {\n  parsed = {\n    fit_score: 0,\n    qualification: 'No se pudo parsear salida del agente.',\n    email_subject: 'LEV Innovation - propuesta de automatizacion',\n    email_body: 'Hola, gracias por tu tiempo. Me gustaria compartir ideas de automatizacion aplicables a tu equipo.',\n    linkedin_dm: 'Hola, vi tu perfil y creo que podriamos aportar valor con automatizacion AI aplicada.',\n    internal_summary: 'Salida invalida del agente; se aplico fallback.'\n  };\n}\n\nreturn [{\n  json: {\n    ...lead,\n    fit_score: Number(parsed.fit_score || 0),\n    qualification: String(parsed.qualification || ''),\n    email_subject: String(parsed.email_subject || ''),\n    email_body: String(parsed.email_body || ''),\n    linkedin_dm: String(parsed.linkedin_dm || ''),\n    internal_summary: String(parsed.internal_summary || '')\n  }\n}];"
-      },
-      "id": "parse-llm",
+      "id": "39249518-2f60-48ec-afd1-ccbef459cd33",
       "name": "Parse Qualification JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2160,
-        320
+        576,
+        176
       ]
     },
     {
@@ -306,7 +241,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -320,15 +256,16 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "fit-gate",
+      "id": "e82e67d9-4863-41b3-97b5-55b8e31b5216",
       "name": "Fit Score Gate",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2360,
-        320
+        800,
+        176
       ]
     },
     {
@@ -337,15 +274,16 @@
         "url": "={{ $env.SLACK_WEBHOOK_URL }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Low-fit: {{$json.full_name}} | score {{$json.fit_score}} | {{$json.qualification}}\"}"
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Low-fit: {{$json.full_name}} | score {{$json.fit_score}} | {{$json.qualification}}\"}",
+        "options": {}
       },
-      "id": "slack-lowfit",
+      "id": "5bdf0232-3495-4686-a1ed-21aaee3ebc1a",
       "name": "Slack Low-fit Log",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2560,
-        220
+        -48,
+        96
       ]
     },
     {
@@ -367,47 +305,44 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"properties\":{\"firstname\":\"{{$json.full_name.split(' ')[0]}}\",\"lastname\":\"{{$json.full_name.split(' ').slice(1).join(' ')}}\",\"email\":\"{{$json.email}}\",\"company\":\"{{$json.company}}\",\"jobtitle\":\"{{$json.role}}\",\"website\":\"{{$json.linkedin_url}}\",\"lifecyclestage\":\"lead\"}}"
+        "jsonBody": "={\"properties\":{\"firstname\":\"{{$json.full_name.split(' ')[0]}}\",\"lastname\":\"{{$json.full_name.split(' ').slice(1).join(' ')}}\",\"email\":\"{{$json.email}}\",\"company\":\"{{$json.company}}\",\"jobtitle\":\"{{$json.role}}\",\"website\":\"{{$json.linkedin_url}}\",\"lifecyclestage\":\"lead\"}}",
+        "options": {}
       },
-      "id": "hubspot-create-contact",
+      "id": "c9691170-3c14-484f-8b85-aaf387e160de",
       "name": "HubSpot Create Contact",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2560,
-        380
+        1024,
+        176
       ]
     },
     {
       "parameters": {
         "resource": "calendar",
         "operation": "getAll",
-        "calendar": "={{ $env.GOOGLE_CALENDAR_ID || 'primary' }}",
-        "returnAll": false,
-        "limit": 3,
-        "timeMin": "={{ $now.toISO() }}",
-        "timeMax": "={{ $now.plus({ days: 7 }).toISO() }}"
+        "calendar": "={{ $env.GOOGLE_CALENDAR_ID || 'primary' }}"
       },
-      "id": "calendar-slots",
+      "id": "52c64bf3-93ea-4b7c-bd25-84166f952bb7",
       "name": "Get Calendar Slots",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1,
       "position": [
-        2760,
-        380
+        1200,
+        176
       ]
     },
     {
       "parameters": {
         "jsCode": "const lead = $('Parse Qualification JSON').item.json;\nconst events = $input.all().map((i) => i.json).slice(0, 3);\nconst slots = events.length > 0\n  ? events.map((e) => `- ${e.start?.dateTime || e.start?.date || 'slot'} a ${e.end?.dateTime || e.end?.date || ''}`).join('\\n')\n  : '- Comparteme tus horarios preferidos y te propongo opciones';\n\nconst emailBody = `${lead.email_body}\\n\\nOpciones de agenda (aprox):\\n${slots}`;\nconst dmBody = `${lead.linkedin_dm}\\n\\nSi te sirve, puedo proponerte estos horarios:\\n${slots}`;\n\nreturn [{ json: { ...lead, proposed_slots: slots, email_body_final: emailBody, linkedin_dm_final: dmBody } }];"
       },
-      "id": "compose-outreach",
+      "id": "188249c4-c050-4aa0-93a8-a3abc28fd703",
       "name": "Compose Outreach + Slots",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2960,
-        380
+        1392,
+        176
       ]
     },
     {
@@ -416,7 +351,8 @@
           "options": {
             "caseSensitive": false,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -430,15 +366,16 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "has-email",
+      "id": "cfed45f5-3641-4abb-a4c7-baeda2f522d3",
       "name": "Has Email?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3160,
-        380
+        1600,
+        176
       ]
     },
     {
@@ -446,18 +383,17 @@
         "sendTo": "={{ $json.email }}",
         "subject": "={{ $json.email_subject }}",
         "message": "={{ $json.email_body_final }}",
-        "options": {
-          "fromEmail": "={{ $env.GMAIL_FROM }}"
-        }
+        "options": {}
       },
-      "id": "gmail-send",
+      "id": "90e9d429-661a-46c8-8556-578935133a11",
       "name": "Send Gmail Outreach",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
       "position": [
-        3360,
-        300
-      ]
+        1792,
+        96
+      ],
+      "webhookId": "a4ef5ae8-2fa0-4113-a97e-bfd5347cfbba"
     },
     {
       "parameters": {
@@ -478,15 +414,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"properties\":{\"hs_task_subject\":\"Enviar DM LinkedIn: {{$json.full_name}}\",\"hs_task_body\":\"{{$json.linkedin_dm_final}}\",\"hs_task_status\":\"NOT_STARTED\",\"hs_task_priority\":\"HIGH\"}}"
+        "jsonBody": "={\"properties\":{\"hs_task_subject\":\"Enviar DM LinkedIn: {{$json.full_name}}\",\"hs_task_body\":\"{{$json.linkedin_dm_final}}\",\"hs_task_status\":\"NOT_STARTED\",\"hs_task_priority\":\"HIGH\"}}",
+        "options": {}
       },
-      "id": "hubspot-task",
+      "id": "a34737c1-022f-4d5d-ba4b-ca54eec2f4d2",
       "name": "Create HubSpot DM Task",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3560,
-        380
+        2000,
+        176
       ]
     },
     {
@@ -495,26 +432,27 @@
         "url": "={{ $env.SLACK_WEBHOOK_URL }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Lead calificado: {{$json.full_name}} | {{$json.company}} | score {{$json.fit_score}} | tarea DM creada\"}"
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Lead calificado: {{$json.full_name}} | {{$json.company}} | score {{$json.fit_score}} | tarea DM creada\"}",
+        "options": {}
       },
-      "id": "slack-qualified",
+      "id": "886f199c-16c8-4abe-91d0-89ba6baa44a7",
       "name": "Slack Qualified Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3760,
-        380
+        2192,
+        176
       ]
     },
     {
       "parameters": {},
-      "id": "next-batch",
+      "id": "20b40b95-34df-4993-ace5-4bef278dd940",
       "name": "Next Batch",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        3960,
-        380
+        2400,
+        176
       ]
     },
     {
@@ -523,18 +461,599 @@
         "url": "={{ $env.SLACK_WEBHOOK_URL }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Ejecucion finalizada. Revisa HubSpot para nuevos leads y tareas.\"}"
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Ejecucion finalizada. Revisa HubSpot para nuevos leads y tareas.\"}",
+        "options": {}
       },
-      "id": "slack-summary",
+      "id": "7db53dfb-482e-4d49-8d74-b35ddc4a8bb2",
       "name": "Slack Run Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1360,
-        500
+        -32,
+        -368
       ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "prep-chat-input",
+              "name": "chatInput",
+              "type": "string",
+              "value": "==\"Lead (datos normalizados):\\n\" + JSON.stringify($('Split In Batches1').item.json, null, 2) + \"\\n\\nContexto recuperado (RAG interno LEV):\\n\" + JSON.stringify($json, null, 2) + \"\\n\\nUmbral minimo de fit_score (referencia): \" + ($env.LEAD_FIT_THRESHOLD || \"70\") + \"\\n\\nSiguiendo el system message del agente, devuelve SOLO el JSON final sin markdown ni texto adicional.\"\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e65ec077-0cc2-4b29-85e8-3d63b9c168a6",
+      "name": "Prepare Agent Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1408,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=Eres el sistema de calificacion y personalizacion comercial de LEV Innovation. Objetivo: (1) Evaluar fit del lead con el ICP LEV. (2) Redactar email y DM iniciales. (3) Emitir SOLO JSON valido para n8n. Reglas: espanol neutral profesional; no inventar datos ausentes en lead o contexto RAG; fit_score entero 0-100; qualification max 280 caracteres; email_subject max 90; email_body max 1200; linkedin_dm max 500; internal_summary max 400; sin promesas garantizadas. Forma exacta del JSON: {\"fit_score\":0,\"qualification\":\"\",\"email_subject\":\"\",\"email_body\":\"\",\"linkedin_dm\":\"\",\"internal_summary\":\"\"}. Puedes usar la herramienta Calculator solo si necesitas aritmetica explicita para razonar el fit; si no hace falta, no la invoques."
+        }
+      },
+      "id": "162b3f50-afad-46a5-989b-ae3d110563c3",
+      "name": "Prospector AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -1216,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.5-flash",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "ed5b43e8-b655-4f64-9891-58d560724775",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1312,
+        448
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "vhdshuMOAh17zxv6",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ 'lev-prospect-' + String($('Split In Batches1').item.json.lead_id) }}",
+        "contextWindowLength": 10
+      },
+      "id": "d5a30860-1288-40ce-bf1e-efb6ceefca68",
+      "name": "Agent Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1216,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "7e7016b8-26b8-4417-a572-4a4320f103b8",
+      "name": "Schedule Trigger1",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2864,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const kb = {\n  tenant: 'levinnovation',\n  source: 'https://www.linkedin.com/company/levinnovation/',\n  content: `LEV Innovation helps organizations deploy practical AI automation for growth, operations, and customer experience.\\n\\nCore services:\\n1) Sales automation and lead qualification workflows\\n2) Customer support copilots and agentic orchestration\\n3) Integration-first business process automation\\n4) AI adoption strategy and implementation support\\n\\nICP:\\n- SMB and mid-market organizations in LATAM\\n- Teams with repetitive workflows and measurable efficiency goals\\n- Decision makers in operations, sales, and customer success\\n\\nDifferentiators:\\n- Deterministic AI workflow orchestration\\n- Human-in-the-loop execution design\\n- Practical implementation focused on business outcomes`\n};\n\nreturn [{ json: kb }];"
+      },
+      "id": "51a56495-4d5c-4606-bde4-fae128659cdc",
+      "name": "Load LEV Knowledge1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2672,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": "lev_kb"
+      },
+      "id": "bf623f4f-9d27-4673-afc2-271a3b004b1c",
+      "name": "Simple Vector Store Upsert1",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1,
+      "position": [
+        -2528,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://www.linkedin.com/company/levinnovation/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Key",
+              "value": "={{ $env.RAPIDAPI_KEY }}"
+            },
+            {
+              "name": "X-RapidAPI-Host",
+              "value": "={{ $env.RAPIDAPI_LINKEDIN_HOST }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"query\":\"{{$env.LINKEDIN_SEARCH_QUERY}}\",\"limit\":{{$env.LEADS_PER_RUN || 25}}}",
+        "options": {}
+      },
+      "id": "b2f23c2a-f8fd-4f27-85f3-973b4380badb",
+      "name": "Source LinkedIn Leads (RapidAPI)1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2272,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json;\nconst rawLeads = payload.data || payload.results || payload.items || payload.profiles || [];\n\nconst normalized = rawLeads.map((lead, index) => {\n  const fullName = lead.full_name || lead.name || [lead.first_name, lead.last_name].filter(Boolean).join(' ');\n  const company = lead.company_name || lead.company || lead.current_company || '';\n  const role = lead.title || lead.headline || lead.position || '';\n  const email = (lead.email || lead.work_email || '').toLowerCase().trim();\n  const linkedin = lead.profile_url || lead.linkedin_url || lead.url || '';\n  const location = lead.location || lead.geo || '';\n  const summary = lead.summary || lead.about || role;\n\n  return {\n    lead_id: `${index + 1}-${Date.now()}`,\n    full_name: fullName,\n    company,\n    role,\n    email,\n    linkedin_url: linkedin,\n    location,\n    summary,\n    source_payload: lead\n  };\n}).filter((lead) => lead.full_name && (lead.linkedin_url || lead.email));\n\nreturn normalized.map((lead) => ({ json: lead }));"
+      },
+      "id": "a6df4df3-7047-4ea5-93fb-8f92667cdec5",
+      "name": "Normalize Leads1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2064,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e5d0246d-1c26-4674-b5d8-b7f35190b213",
+      "name": "Split In Batches1",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1872,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.HUBSPOT_PRIVATE_APP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"filterGroups\":[{\"filters\":[{\"propertyName\":\"email\",\"operator\":\"EQ\",\"value\":\"{{$json.email}}\"}]}],\"limit\":1}",
+        "options": {}
+      },
+      "id": "d7e2a88c-0c58-48e7-8f11-8c5131727b59",
+      "name": "HubSpot Dedup Search1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.total || 0) > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "59ff475b-8544-4893-bc26-fd67a7f5d731",
+      "name": "Duplicate?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1472,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Duplicado omitido: {{$('Split In Batches1').item.json.full_name}} ({{$('Split In Batches1').item.json.company || 'N/A'}})\"}",
+        "options": {}
+      },
+      "id": "efd5134c-7a81-4bac-b02b-ea045ff6ce79",
+      "name": "Slack Duplicate Log1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1200,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst lead = $('Split In Batches1').item.json;\n\nfunction parseOutput(out) {\n  if (out && typeof out === 'object' && !Array.isArray(out) && out.fit_score !== undefined) {\n    return out;\n  }\n  let text = typeof out === 'string' ? out.trim() : JSON.stringify(out || {});\n  if (text.startsWith('```')) {\n    text = text.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  }\n  return JSON.parse(text);\n}\n\nlet parsed;\ntry {\n  parsed = parseOutput(raw.output ?? raw.text);\n} catch (error) {\n  parsed = {\n    fit_score: 0,\n    qualification: 'No se pudo parsear salida del agente.',\n    email_subject: 'LEV Innovation - propuesta de automatizacion',\n    email_body: 'Hola, gracias por tu tiempo. Me gustaria compartir ideas de automatizacion aplicables a tu equipo.',\n    linkedin_dm: 'Hola, vi tu perfil y creo que podriamos aportar valor con automatizacion AI aplicada.',\n    internal_summary: 'Salida invalida del agente; se aplico fallback.'\n  };\n}\n\nreturn [{\n  json: {\n    ...lead,\n    fit_score: Number(parsed.fit_score || 0),\n    qualification: String(parsed.qualification || ''),\n    email_subject: String(parsed.email_subject || ''),\n    email_body: String(parsed.email_body || ''),\n    linkedin_dm: String(parsed.linkedin_dm || ''),\n    internal_summary: String(parsed.internal_summary || '')\n  }\n}];"
+      },
+      "id": "4b0c39f4-886d-4318-96a0-b0f5992ac921",
+      "name": "Parse Qualification JSON1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -912,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.fit_score >= Number($env.LEAD_FIT_THRESHOLD || 70) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "dd4e05c1-dd08-4904-a788-65caca7b818b",
+      "name": "Fit Score Gate1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -720,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Low-fit: {{$json.full_name}} | score {{$json.fit_score}} | {{$json.qualification}}\"}",
+        "options": {}
+      },
+      "id": "717a7584-1077-4129-835f-5579b9f74fc2",
+      "name": "Slack Low-fit Log1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        -272
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.HUBSPOT_PRIVATE_APP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"properties\":{\"firstname\":\"{{$json.full_name.split(' ')[0]}}\",\"lastname\":\"{{$json.full_name.split(' ').slice(1).join(' ')}}\",\"email\":\"{{$json.email}}\",\"company\":\"{{$json.company}}\",\"jobtitle\":\"{{$json.role}}\",\"website\":\"{{$json.linkedin_url}}\",\"lifecyclestage\":\"lead\"}}",
+        "options": {}
+      },
+      "id": "20746085-dd02-442d-8fd5-14551a659180",
+      "name": "HubSpot Create Contact1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "operation": "getAll",
+        "calendar": "={{ $env.GOOGLE_CALENDAR_ID || 'primary' }}"
+      },
+      "id": "a6d055de-4517-449c-b1db-83b44679c01a",
+      "name": "Get Calendar Slots1",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Parse Qualification JSON1').item.json;\nconst events = $input.all().map((i) => i.json).slice(0, 3);\nconst slots = events.length > 0\n  ? events.map((e) => `- ${e.start?.dateTime || e.start?.date || 'slot'} a ${e.end?.dateTime || e.end?.date || ''}`).join('\\n')\n  : '- Comparteme tus horarios preferidos y te propongo opciones';\n\nconst emailBody = `${lead.email_body}\\n\\nOpciones de agenda (aprox):\\n${slots}`;\nconst dmBody = `${lead.linkedin_dm}\\n\\nSi te sirve, puedo proponerte estos horarios:\\n${slots}`;\n\nreturn [{ json: { ...lead, proposed_slots: slots, email_body_final: emailBody, linkedin_dm_final: dmBody } }];"
+      },
+      "id": "c5a54ea6-5798-4496-8188-8f6d2a9eb02b",
+      "name": "Compose Outreach + Slots1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean($json.email) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4cbbf5d-5336-4d92-bf55-f23d67d8efc3",
+      "name": "Has Email?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body_final }}",
+        "options": {}
+      },
+      "id": "5b17388a-6ff8-4048-880f-58805d07d7f9",
+      "name": "Send Gmail Outreach1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        -192
+      ],
+      "webhookId": "72d2478e-fec6-4e85-b8b6-bd5df7cf15f3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.HUBSPOT_PRIVATE_APP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"properties\":{\"hs_task_subject\":\"Enviar DM LinkedIn: {{$json.full_name}}\",\"hs_task_body\":\"{{$json.linkedin_dm_final}}\",\"hs_task_status\":\"NOT_STARTED\",\"hs_task_priority\":\"HIGH\"}}",
+        "options": {}
+      },
+      "id": "dbe93150-b438-462a-adab-b1bd1b51cb69",
+      "name": "Create HubSpot DM Task1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Lead calificado: {{$json.full_name}} | {{$json.company}} | score {{$json.fit_score}} | tarea DM creada\"}",
+        "options": {}
+      },
+      "id": "197cc4bc-fdeb-4af5-8859-995c4c9d8d60",
+      "name": "Slack Qualified Lead1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        736,
+        -112
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f7f38a53-3e78-4e8c-ae55-1f517b58aa80",
+      "name": "Next Batch1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        944,
+        -112
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Ejecucion finalizada. Revisa HubSpot para nuevos leads y tareas.\"}",
+        "options": {}
+      },
+      "id": "bc821d13-26b5-4892-a9a8-120d7f94a9c7",
+      "name": "Slack Run Summary1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://backend.composio.dev/api/v1/actions/execute",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "ak_SfPCPakYY4ZZadH4f0Gg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"{{ $json.tool_name }}\",\n  \"parameters\": {{ JSON.stringify($json.parameters) }},\n  \"entityId\": \"prospecting-agent-lev\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        -1072,
+        432
+      ],
+      "id": "bf92dfc6-1424-4d6e-bfc4-8bea97f55945",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -2576,
+        0
+      ],
+      "id": "f0ae29d2-574b-48c4-8de9-5dcbe8688d0a",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "K6rkJnXdMoIthqhe",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -2400,
+        -16
+      ],
+      "id": "fa564d4b-ebae-4f58-bfa6-7a222bd1efe2",
+      "name": "Default Data Loader"
     }
   ],
+  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -628,13 +1147,6 @@
             "type": "main",
             "index": 0
           }
-        ],
-        [
-          {
-            "node": "Query LEV Context",
-            "type": "main",
-            "index": 0
-          }
         ]
       ]
     },
@@ -649,67 +1161,12 @@
         ]
       ]
     },
-    "Query LEV Context": {
-      "main": [
-        [
-          {
-            "node": "Prepare Agent Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Agent Input": {
-      "main": [
-        [
-          {
-            "node": "Prospector AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prospector AI Agent": {
+    "OpenRouter Qualification": {
       "main": [
         [
           {
             "node": "Parse Qualification JSON",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenRouter Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "Prospector AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Agent Memory": {
-      "ai_memory": [
-        [
-          {
-            "node": "Prospector AI Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Calculator Tool": {
-      "ai_tool": [
-        [
-          {
-            "node": "Prospector AI Agent",
-            "type": "ai_tool",
             "index": 0
           }
         ]
@@ -849,15 +1306,335 @@
           }
         ]
       ]
+    },
+    "Prepare Agent Input": {
+      "main": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prospector AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse Qualification JSON1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Load LEV Knowledge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load LEV Knowledge1": {
+      "main": [
+        [
+          {
+            "node": "Simple Vector Store Upsert1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store Upsert1": {
+      "main": [
+        [
+          {
+            "node": "Source LinkedIn Leads (RapidAPI)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Source LinkedIn Leads (RapidAPI)1": {
+      "main": [
+        [
+          {
+            "node": "Normalize Leads1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Leads1": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches1": {
+      "main": [
+        [
+          {
+            "node": "HubSpot Dedup Search1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Run Summary1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot Dedup Search1": {
+      "main": [
+        [
+          {
+            "node": "Duplicate?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate?1": {
+      "main": [
+        [
+          {
+            "node": "Slack Duplicate Log1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Duplicate Log1": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Qualification JSON1": {
+      "main": [
+        [
+          {
+            "node": "Fit Score Gate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fit Score Gate1": {
+      "main": [
+        [
+          {
+            "node": "Slack Low-fit Log1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot Create Contact1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Low-fit Log1": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot Create Contact1": {
+      "main": [
+        [
+          {
+            "node": "Get Calendar Slots1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Calendar Slots1": {
+      "main": [
+        [
+          {
+            "node": "Compose Outreach + Slots1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Outreach + Slots1": {
+      "main": [
+        [
+          {
+            "node": "Has Email?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?1": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Outreach1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create HubSpot DM Task1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail Outreach1": {
+      "main": [
+        [
+          {
+            "node": "Create HubSpot DM Task1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HubSpot DM Task1": {
+      "main": [
+        [
+          {
+            "node": "Slack Qualified Lead1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Qualified Lead1": {
+      "main": [
+        [
+          {
+            "node": "Next Batch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Batch1": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store Upsert1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Simple Vector Store Upsert1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
+  "active": false,
   "settings": {
     "executionOrder": "v1",
-    "timezone": "={{ $env.TZ || 'America/Costa_Rica' }}"
+    "binaryMode": "separate"
   },
-  "pinData": {},
-  "staticData": null,
+  "versionId": "f6afb25f-4703-4a76-8ceb-a86f51748e9f",
   "meta": {
-    "templateCredsSetupCompleted": false
-  }
+    "instanceId": "be4ebe30c884d3dc28719dc3b3aedef95f2f5d4079a52125b6db25e577dd88a4"
+  },
+  "id": "kOVoozvgfyuxHAXP",
+  "tags": []
 }
