@@ -15,4 +15,8 @@ sed -e "s|__N8N_PUBLIC_HOST__|${N8N_PUBLIC_HOST}|g" \
     -e "s|__LIBRECHAT_INTERNAL_URL__|${LIBRECHAT_INTERNAL_URL}|g" \
     /etc/caddy/Caddyfile.template > /etc/caddy/Caddyfile
 
+echo "--- Rendered Caddyfile ---"
+cat /etc/caddy/Caddyfile
+echo "--- End Caddyfile ---"
+
 exec caddy run --config /etc/caddy/Caddyfile
