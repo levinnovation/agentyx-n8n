@@ -1,0 +1,16 @@
+id: linkedin-lead-prospecting
+name: LinkedIn Lead Prospecting
+tenant: levinnovation
+domain: sales-prospecting
+purpose: >
+  Deterministic outbound capability that ingests LinkedIn leads from a configured
+  data source, qualifies them with OpenRouter, writes and enriches records in
+  HubSpot, drafts outreach content, proposes meeting slots, and emits internal
+  Slack updates for human follow-through.
+assets:
+  - agente-prospectador-ai
+status: scaffolded
+sla:
+  response_time_ms: 90000
+  availability: "99.5%"
+dependencies: []

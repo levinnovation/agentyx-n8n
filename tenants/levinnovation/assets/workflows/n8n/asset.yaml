@@ -1,0 +1,19 @@
+id: n8n
+name: n8n workflow exports (linkedin-lead-prospecting)
+type: n8n-workflow
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: scaffolded
+version: "0.1.0"
+description: |
+  Versioned n8n workflow JSON for LEV Innovation sales prospecting flows.
+  Includes deterministic lead sourcing, qualification, CRM writeback, outreach,
+  and internal notification orchestration.
+owner: "ops@levinnovation.com"
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: self-hosted
+  region: hostinger

@@ -1,0 +1,768 @@
+{
+  "name": "Agente Prospectador AI",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const kb = {\n  tenant: 'levinnovation',\n  source: 'https://www.linkedin.com/company/levinnovation/',\n  content: `LEV Innovation helps organizations deploy practical AI automation for growth, operations, and customer experience.\\n\\nCore services:\\n1) Sales automation and lead qualification workflows\\n2) Customer support copilots and agentic orchestration\\n3) Integration-first business process automation\\n4) AI adoption strategy and implementation support\\n\\nICP:\\n- SMB and mid-market organizations in LATAM\\n- Teams with repetitive workflows and measurable efficiency goals\\n- Decision makers in operations, sales, and customer success\\n\\nDifferentiators:\\n- Deterministic AI workflow orchestration\\n- Human-in-the-loop execution design\\n- Practical implementation focused on business outcomes`\n};\n\nreturn [{ json: kb }];"
+      },
+      "id": "load-kb",
+      "name": "Load LEV Knowledge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": "lev_kb",
+        "text": "={{ $json.content }}"
+      },
+      "id": "vector-upsert",
+      "name": "Simple Vector Store Upsert",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1,
+      "position": [
+        560,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RAPIDAPI_LINKEDIN_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-RapidAPI-Key",
+              "value": "={{ $env.RAPIDAPI_KEY }}"
+            },
+            {
+              "name": "X-RapidAPI-Host",
+              "value": "={{ $env.RAPIDAPI_LINKEDIN_HOST }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"query\":\"{{$env.LINKEDIN_SEARCH_QUERY}}\",\"limit\":{{$env.LEADS_PER_RUN || 25}}}",
+        "options": {}
+      },
+      "id": "source-leads",
+      "name": "Source LinkedIn Leads (RapidAPI)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json;\nconst rawLeads = payload.data || payload.results || payload.items || payload.profiles || [];\n\nconst normalized = rawLeads.map((lead, index) => {\n  const fullName = lead.full_name || lead.name || [lead.first_name, lead.last_name].filter(Boolean).join(' ');\n  const company = lead.company_name || lead.company || lead.current_company || '';\n  const role = lead.title || lead.headline || lead.position || '';\n  const email = (lead.email || lead.work_email || '').toLowerCase().trim();\n  const linkedin = lead.profile_url || lead.linkedin_url || lead.url || '';\n  const location = lead.location || lead.geo || '';\n  const summary = lead.summary || lead.about || role;\n\n  return {\n    lead_id: `${index + 1}-${Date.now()}`,\n    full_name: fullName,\n    company,\n    role,\n    email,\n    linkedin_url: linkedin,\n    location,\n    summary,\n    source_payload: lead\n  };\n}).filter((lead) => lead.full_name && (lead.linkedin_url || lead.email));\n\nreturn normalized.map((lead) => ({ json: lead }));"
+      },
+      "id": "normalize",
+      "name": "Normalize Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "split",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1160,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.HUBSPOT_PRIVATE_APP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"filterGroups\":[{\"filters\":[{\"propertyName\":\"email\",\"operator\":\"EQ\",\"value\":\"{{$json.email}}\"}]}],\"limit\":1}",
+        "options": {}
+      },
+      "id": "hubspot-search",
+      "name": "HubSpot Dedup Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.total || 0) > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "is-duplicate",
+      "name": "Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Duplicado omitido: {{$('Split In Batches').item.json.full_name}} ({{$('Split In Batches').item.json.company || 'N/A'}})\"}"
+      },
+      "id": "slack-duplicate",
+      "name": "Slack Duplicate Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve",
+        "memoryKey": "lev_kb",
+        "query": "={{ $('Split In Batches').item.json.role + ' ' + $('Split In Batches').item.json.company }}",
+        "topK": 3
+      },
+      "id": "vector-query",
+      "name": "Query LEV Context",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENROUTER_BASE_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENROUTER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"model\":\"{{$env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'}}\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres el sistema de calificacion y personalizacion comercial de LEV Innovation. Devuelve solo JSON con fit_score, qualification, email_subject, email_body, linkedin_dm, internal_summary.\"},{\"role\":\"user\",\"content\":\"Lead: {{JSON.stringify($('Split In Batches').item.json)}}\\nKB: {{JSON.stringify($json)}}\\nThreshold: {{$env.LEAD_FIT_THRESHOLD || 70}}\"}],\"temperature\":0.2}",
+        "options": {}
+      },
+      "id": "openrouter",
+      "name": "OpenRouter Qualification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst text = raw.choices?.[0]?.message?.content || '{}';\nlet parsed;\n\ntry {\n  parsed = JSON.parse(text);\n} catch (error) {\n  parsed = {\n    fit_score: 0,\n    qualification: 'No se pudo parsear salida del modelo.',\n    email_subject: 'LEV Innovation - propuesta de automatizacion',\n    email_body: 'Hola, gracias por tu tiempo. Me gustaria compartir ideas de automatizacion aplicables a tu equipo.',\n    linkedin_dm: 'Hola, vi tu perfil y creo que podriamos aportar valor con automatizacion AI aplicada.',\n    internal_summary: 'Salida invalida del modelo; se aplico fallback.'\n  };\n}\n\nconst lead = $('Split In Batches').item.json;\nreturn [{\n  json: {\n    ...lead,\n    fit_score: Number(parsed.fit_score || 0),\n    qualification: String(parsed.qualification || ''),\n    email_subject: String(parsed.email_subject || ''),\n    email_body: String(parsed.email_body || ''),\n    linkedin_dm: String(parsed.linkedin_dm || ''),\n    internal_summary: String(parsed.internal_summary || '')\n  }\n}];"
+      },
+      "id": "parse-llm",
+      "name": "Parse Qualification JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2160,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.fit_score >= Number($env.LEAD_FIT_THRESHOLD || 70) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "fit-gate",
+      "name": "Fit Score Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2360,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Low-fit: {{$json.full_name}} | score {{$json.fit_score}} | {{$json.qualification}}\"}"
+      },
+      "id": "slack-lowfit",
+      "name": "Slack Low-fit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/contacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.HUBSPOT_PRIVATE_APP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"properties\":{\"firstname\":\"{{$json.full_name.split(' ')[0]}}\",\"lastname\":\"{{$json.full_name.split(' ').slice(1).join(' ')}}\",\"email\":\"{{$json.email}}\",\"company\":\"{{$json.company}}\",\"jobtitle\":\"{{$json.role}}\",\"website\":\"{{$json.linkedin_url}}\",\"lifecyclestage\":\"lead\"}}"
+      },
+      "id": "hubspot-create-contact",
+      "name": "HubSpot Create Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "operation": "getAll",
+        "calendar": "={{ $env.GOOGLE_CALENDAR_ID || 'primary' }}",
+        "returnAll": false,
+        "limit": 3,
+        "timeMin": "={{ $now.toISO() }}",
+        "timeMax": "={{ $now.plus({ days: 7 }).toISO() }}"
+      },
+      "id": "calendar-slots",
+      "name": "Get Calendar Slots",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [
+        2760,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Parse Qualification JSON').item.json;\nconst events = $input.all().map((i) => i.json).slice(0, 3);\nconst slots = events.length > 0\n  ? events.map((e) => `- ${e.start?.dateTime || e.start?.date || 'slot'} a ${e.end?.dateTime || e.end?.date || ''}`).join('\\n')\n  : '- Comparteme tus horarios preferidos y te propongo opciones';\n\nconst emailBody = `${lead.email_body}\\n\\nOpciones de agenda (aprox):\\n${slots}`;\nconst dmBody = `${lead.linkedin_dm}\\n\\nSi te sirve, puedo proponerte estos horarios:\\n${slots}`;\n\nreturn [{ json: { ...lead, proposed_slots: slots, email_body_final: emailBody, linkedin_dm_final: dmBody } }];"
+      },
+      "id": "compose-outreach",
+      "name": "Compose Outreach + Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2960,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean($json.email) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "has-email",
+      "name": "Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3160,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.email_subject }}",
+        "message": "={{ $json.email_body_final }}",
+        "options": {
+          "fromEmail": "={{ $env.GMAIL_FROM }}"
+        }
+      },
+      "id": "gmail-send",
+      "name": "Send Gmail Outreach",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3360,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.hubapi.com/crm/v3/objects/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.HUBSPOT_PRIVATE_APP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"properties\":{\"hs_task_subject\":\"Enviar DM LinkedIn: {{$json.full_name}}\",\"hs_task_body\":\"{{$json.linkedin_dm_final}}\",\"hs_task_status\":\"NOT_STARTED\",\"hs_task_priority\":\"HIGH\"}}"
+      },
+      "id": "hubspot-task",
+      "name": "Create HubSpot DM Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3560,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Lead calificado: {{$json.full_name}} | {{$json.company}} | score {{$json.fit_score}} | tarea DM creada\"}"
+      },
+      "id": "slack-qualified",
+      "name": "Slack Qualified Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3760,
+        380
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "next-batch",
+      "name": "Next Batch",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3960,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"channel\":\"{{$env.SLACK_CHANNEL || '#levinnovation'}}\",\"text\":\"[ProspectorAI] Ejecucion finalizada. Revisa HubSpot para nuevos leads y tareas.\"}"
+      },
+      "id": "slack-summary",
+      "name": "Slack Run Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1360,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load LEV Knowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load LEV Knowledge": {
+      "main": [
+        [
+          {
+            "node": "Simple Vector Store Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store Upsert": {
+      "main": [
+        [
+          {
+            "node": "Source LinkedIn Leads (RapidAPI)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Source LinkedIn Leads (RapidAPI)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Leads": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "HubSpot Dedup Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot Dedup Search": {
+      "main": [
+        [
+          {
+            "node": "Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Slack Duplicate Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Query LEV Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Duplicate Log": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query LEV Context": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Qualification": {
+      "main": [
+        [
+          {
+            "node": "Parse Qualification JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Qualification JSON": {
+      "main": [
+        [
+          {
+            "node": "Fit Score Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fit Score Gate": {
+      "main": [
+        [
+          {
+            "node": "Slack Low-fit Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HubSpot Create Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Low-fit Log": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot Create Contact": {
+      "main": [
+        [
+          {
+            "node": "Get Calendar Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Calendar Slots": {
+      "main": [
+        [
+          {
+            "node": "Compose Outreach + Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Outreach + Slots": {
+      "main": [
+        [
+          {
+            "node": "Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Outreach",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create HubSpot DM Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail Outreach": {
+      "main": [
+        [
+          {
+            "node": "Create HubSpot DM Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HubSpot DM Task": {
+      "main": [
+        [
+          {
+            "node": "Slack Qualified Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Qualified Lead": {
+      "main": [
+        [
+          {
+            "node": "Next Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Batch": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "={{ $env.TZ || 'America/Costa_Rica' }}"
+  },
+  "pinData": {},
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

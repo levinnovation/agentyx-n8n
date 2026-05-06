@@ -46,6 +46,7 @@
 - [change-log/2026/05/2026-05-04-scim-and-org-provisioning.md](change-log/2026/05/2026-05-04-scim-and-org-provisioning.md)
 - [change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md](change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md)
 - [change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md](change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md)
+- [change-log/2026/05/2026-05-06-add-levinnovation-tenant.md](change-log/2026/05/2026-05-06-add-levinnovation-tenant.md)
 - [change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md](change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
@@ -57,6 +58,7 @@
 - [context-packs/common-utils-context.md](context-packs/common-utils-context.md)
 - [context-packs/cursor-session-bootstrap.md](context-packs/cursor-session-bootstrap.md)
 - [context-packs/euromobilia-context.md](context-packs/euromobilia-context.md)
+- [context-packs/levinnovation-context.md](context-packs/levinnovation-context.md)
 - [context-packs/migration-context.md](context-packs/migration-context.md)
 - [context-packs/open-codex-session-bootstrap.md](context-packs/open-codex-session-bootstrap.md)
 - [context-packs/opencode-session-bootstrap.md](context-packs/opencode-session-bootstrap.md)
@@ -86,6 +88,7 @@
 - [decisions/0017-sso-gateway-custom-domains-multi-client.md](decisions/0017-sso-gateway-custom-domains-multi-client.md)
 - [decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md](decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md)
 - [decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md](decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md)
+- [decisions/0020-add-levinnovation-as-internal-tenant.md](decisions/0020-add-levinnovation-as-internal-tenant.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -146,5 +149,8 @@
 - [tenants/euromobilia/domain-decisions.md](tenants/euromobilia/domain-decisions.md)
 - [tenants/euromobilia/migration-notes.md](tenants/euromobilia/migration-notes.md)
 - [tenants/euromobilia/README.md](tenants/euromobilia/README.md)
+- [tenants/levinnovation/capability-decisions.md](tenants/levinnovation/capability-decisions.md)
+- [tenants/levinnovation/domain-decisions.md](tenants/levinnovation/domain-decisions.md)
+- [tenants/levinnovation/README.md](tenants/levinnovation/README.md)
 - [tenants/README.md](tenants/README.md)
 <!-- knowledge-index:end -->

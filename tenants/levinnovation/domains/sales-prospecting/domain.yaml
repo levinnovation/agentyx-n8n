@@ -1,0 +1,11 @@
+id: sales-prospecting
+name: Sales Prospecting
+tenant: levinnovation
+description: |
+  Bounded context for outbound lead discovery, qualification, CRM enrichment,
+  and meeting generation workflows for LEV Innovation.
+capabilities:
+  - linkedin-lead-prospecting
+data_residency: "us-east-1"
+compliance:
+  - gdpr

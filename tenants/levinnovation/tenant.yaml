@@ -1,0 +1,20 @@
+id: levinnovation
+name: LEV Innovation
+version: "0.1.0"
+description: |
+  LEV Innovation is an AI solutions company using this tenant as its internal
+  sales-prospecting and go-to-market automation workspace.
+owner: "ops@levinnovation.com"
+contact: "ops@levinnovation.com"
+group: "LEV Innovation"
+country: "CR"
+default_locale: "es-CR"
+default_timezone: "America/Costa_Rica"
+primary_domains:
+  - sales-prospecting
+domains:
+  - sales-prospecting
+tags:
+  - internal
+  - ai-product
+  - sales-prospecting
