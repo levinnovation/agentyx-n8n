@@ -20,6 +20,8 @@ http://__N8N_PUBLIC_HOST__ {
   }
   reverse_proxy __N8N_INTERNAL_URL__ {
     header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
+    header_down X-Debug-Auth-Email {http.request.header.X-Auth-Email}
+    header_down X-Debug-Auth-Proxy-Secret-Match {http.request.header.X-Auth-Proxy-Secret}
   }
 }
 
