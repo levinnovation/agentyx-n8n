@@ -10,6 +10,9 @@
   handle /health {
     respond "OK" 200
   }
+  handle /debug {
+    respond "{http.request.host}" 200
+  }
   handle {
     respond "Auth Proxy" 200
   }
