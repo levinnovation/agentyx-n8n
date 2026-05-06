@@ -22,8 +22,6 @@ http://demo.n8n.agentyx.one {
   }
   reverse_proxy agx-demo-n8n.railway.internal:5678 {
     header_up X-Auth-Proxy-Secret d8b41ea5019707b341f3bd6b5ab7131c456801f36404c4d3785fd03f02ebaf33
-    header_down X-Debug-Auth-Email {http.request.header.X-Auth-Email}
-    header_down X-Debug-Auth-Proxy-Secret-Match {http.request.header.X-Auth-Proxy-Secret}
   }
 }
 
