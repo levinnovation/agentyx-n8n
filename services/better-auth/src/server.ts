@@ -58,6 +58,8 @@ app.get("/api/auth/forward-auth", async (req, reply) => {
   if (session) {
     reply.header("X-Auth-User", session.user.id);
     reply.header("X-Auth-Email", session.user.email);
+    reply.header("X-Auth-User-Name", session.user.name || "");
+    reply.header("X-Auth-User-Role", (session.user as any).role || "client");
     return { ok: true };
   } else {
     reply.status(401);

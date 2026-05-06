@@ -32,9 +32,15 @@ http://__FLOWISE_PUBLIC_HOST__ {
 http://__PAPERCLIP_PUBLIC_HOST__ {
   forward_auth __BETTER_AUTH_INTERNAL_URL__ {
     uri /api/auth/forward-auth
-    copy_headers X-Auth-User X-Auth-Email
+    copy_headers X-Auth-User X-Auth-Email X-Auth-User-Name X-Auth-User-Role
   }
-  reverse_proxy __PAPERCLIP_INTERNAL_URL__
+  reverse_proxy __PAPERCLIP_INTERNAL_URL__ {
+    header_up X-Auth-User-Id {http.request.header.X-Auth-User}
+    header_up X-Auth-User-Email {http.request.header.X-Auth-Email}
+    header_up X-Auth-User-Name {http.request.header.X-Auth-User-Name}
+    header_up X-Auth-User-Role {http.request.header.X-Auth-User-Role}
+    header_up X-Auth-Proxy-Secret {$TRUSTED_PROXY_SECRET}
+  }
 }
 
 http://__LIBRECHAT_PUBLIC_HOST__ {
