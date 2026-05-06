@@ -30,7 +30,9 @@ http://__FLOWISE_PUBLIC_HOST__ {
     uri /api/auth/forward-auth
     copy_headers X-Auth-User X-Auth-Email
   }
-  reverse_proxy __FLOWISE_INTERNAL_URL__
+  reverse_proxy __FLOWISE_INTERNAL_URL__ {
+    header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
+  }
 }
 
 http://__PAPERCLIP_PUBLIC_HOST__ {
@@ -52,5 +54,7 @@ http://__LIBRECHAT_PUBLIC_HOST__ {
     uri /api/auth/forward-auth
     copy_headers X-Auth-User X-Auth-Email
   }
-  reverse_proxy __LIBRECHAT_INTERNAL_URL__
+  reverse_proxy __LIBRECHAT_INTERNAL_URL__ {
+    header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
+  }
 }
