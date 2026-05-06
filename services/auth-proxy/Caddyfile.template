@@ -14,9 +14,6 @@
 }
 
 http://__N8N_PUBLIC_HOST__ {
-  handle /debug {
-    respond "X-Auth-Email: {http.request.header.X-Auth-Email}\nX-Auth-User: {http.request.header.X-Auth-User}\nX-Auth-Proxy-Secret: {http.request.header.X-Auth-Proxy-Secret}" 200
-  }
   forward_auth __BETTER_AUTH_INTERNAL_URL__ {
     uri /api/auth/forward-auth
     copy_headers X-Auth-User X-Auth-Email
