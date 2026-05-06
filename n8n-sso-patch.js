@@ -32,13 +32,16 @@ const patchCode = `
         const proxyEmail = req.header('x-auth-email');
         const proxySecret = req.header('x-auth-proxy-secret');
         const expectedSecret = process.env.N8N_AUTH_TRUSTED_PROXY_SECRET;
+        console.log('[n8n-sso-debug] authMiddleware called', { path: req.path, proxyEmail: !!proxyEmail, proxySecretMatch: proxySecret === expectedSecret, hasUser: !!req.user });
         if (proxyEmail && (!expectedSecret || proxySecret === expectedSecret) && !req.user) {
             try {
+                console.log('[n8n-sso-debug] Attempting trusted-proxy login for', proxyEmail);
                 const user = await this.userRepository.findOne({
                     where: { email: proxyEmail.toLowerCase() },
                     relations: ['role'],
                 });
                 if (user) {
+                    console.log('[n8n-sso-debug] User found, issuing JWT');
                     const jwtToken = this.issueJWT(user, false);
                     res.cookie(constants_1.AUTH_COOKIE_NAME, jwtToken, {
                         maxAge: this.jwtExpiration * constants_1.Time.seconds.toMilliseconds,
@@ -48,8 +51,12 @@ const patchCode = `
                     });
                     req.user = user;
                     req.authInfo = { usedMfa: false };
+                } else {
+                    console.log('[n8n-sso-debug] User not found for email', proxyEmail);
                 }
-            } catch (err) {}
+            } catch (err) {
+                console.log('[n8n-sso-debug] Trusted-proxy login error:', err.message);
+            }
         }
 `;
 
