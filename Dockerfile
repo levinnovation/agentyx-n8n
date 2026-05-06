@@ -34,7 +34,7 @@ WORKDIR /home/node
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
-    git openssh openssl graphicsmagick tini tzdata ca-certificates libc6-compat \
+    git openssh-client openssl graphicsmagick tini tzdata ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built n8n from builder
