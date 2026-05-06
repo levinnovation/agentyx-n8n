@@ -1,13 +1,9 @@
 # syntax=docker/dockerfile:1
-# Thin custom layer on top of upstream n8n image.
+# Thin custom layer on top of upstream n8n image with runtime auth patches.
 #
-# The levinnovation/agentyx-n8n fork is a mirror of n8n-io/n8n.
-# Rather than building the entire monorepo from source (30+ min, often fails
-# due to OOM/timeout), we extend the official n8nio/n8n image and apply
-# any fork-specific customizations (patches, config, entrypoint overrides).
-#
-# When we need actual code patches, we'll switch to a full source build
-# in a separate CI pipeline with larger runners.
+# The levinnovation/agentyx-n8n fork applies trusted-proxy SSO patches
+# at container startup by modifying the compiled JS in the upstream image.
+# This avoids a 30+ minute source build while still enabling SSO.
 #
 # Baseline: n8n-io/n8n tag 1.84.0
 
@@ -16,12 +12,13 @@ FROM n8nio/n8n:${N8N_VERSION}
 
 USER root
 
-# Copy any fork-specific customizations here.
-# Currently the fork is a pure mirror, so no patches are applied.
-# Examples of future customizations:
-#   - COPY custom-nodes/ /usr/local/lib/node_modules/n8n/dist/
-#   - COPY patches/ /patches/ && apply-patches.sh
-#   - COPY custom-entrypoint.sh /docker-entrypoint.d/
+# Copy runtime patch script
+COPY patch-auth-runtime.js /usr/local/bin/patch-auth-runtime.js
+
+# Create docker-entrypoint.d directory and add our patch
+RUN mkdir -p /docker-entrypoint.d && \
+    echo '#!/bin/sh\nnode /usr/local/bin/patch-auth-runtime.js' > /docker-entrypoint.d/99-patch-auth.sh && \
+    chmod +x /docker-entrypoint.d/99-patch-auth.sh
 
 # Ensure proper permissions
 RUN chown -R node:node /home/node
@@ -32,7 +29,7 @@ EXPOSE 5678/tcp
 ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
 
 LABEL org.opencontainers.image.title="n8n" \
-      org.opencontainers.image.description="Workflow Automation Tool (Agentyx fork)" \
+      org.opencontainers.image.description="Workflow Automation Tool (Agentyx fork with SSO patches)" \
       org.opencontainers.image.source="https://github.com/levinnovation/agentyx-n8n" \
       org.opencontainers.image.url="https://n8n.io" \
       org.opencontainers.image.version=${N8N_VERSION}
