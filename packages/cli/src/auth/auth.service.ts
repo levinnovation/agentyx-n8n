@@ -154,7 +154,8 @@ export class AuthService {
 
 			// ─── Trusted Proxy SSO (Agentyx auth-gateway) ───────────────────
 			if (!req.user && !token) {
-				const proxyEmail = req.header('x-auth-user-email');
+				// forward_auth copies X-Auth-Email from the auth response.
+				const proxyEmail = req.header('x-auth-email');
 				const proxySecret = req.header('x-auth-proxy-secret');
 				const expectedSecret = process.env.N8N_AUTH_TRUSTED_PROXY_SECRET;
 
