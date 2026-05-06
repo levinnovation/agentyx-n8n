@@ -4,13 +4,20 @@ type: deployment
 tenant: "{{tenant_id}}"
 domain: "{{domain_id}}"
 capability: "{{capability_id}}"
-status: scaffolded
+status: active
 description: |
-  Per-tenant Railway project template hosting postgres, n8n, librechat,
-  paperclip, langfuse, agent, agentyx-portal, and optional flowise.
+  Internal LEV Innovation Railway template for instant per-tenant deployment.
+  Based on client-demo-agentyx. Services: Postgres, MongoDB, meilisearch,
+  better-auth, auth-proxy, n8n, librechat, portal, paperclip, and optional flowise.
+  All environment variables are pre-populated; secrets auto-generated.
 observability:
   traces: langsmith
   metrics: none
 deployment:
   platform: railway
-  region: us-east-1
+  region: us-west2
+template:
+  sourceProject: client-demo-agentyx
+  sourceProjectId: 7d70063b-f1b4-415f-b57a-627d24ba0225
+  visibility: private
+  workspace: levinnovation

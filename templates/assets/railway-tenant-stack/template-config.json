@@ -1,0 +1,324 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "name": "Agentyx Tenant Stack",
+  "description": "Internal LEV Innovation template for deploying a complete Agentyx tenant stack on Railway. Based on client-demo-agentyx.",
+  "visibility": "private",
+  "workspace": "levinnovation",
+  "sourceProject": {
+    "id": "7d70063b-f1b4-415f-b57a-627d24ba0225",
+    "name": "client-demo-agentyx"
+  },
+  "services": {
+    "Postgres": {
+      "source": {
+        "image": "ghcr.io/railwayapp-templates/postgres-ssl:18"
+      },
+      "variables": {
+        "PGDATA": "/var/lib/postgresql/data/pgdata",
+        "POSTGRES_DB": "railway",
+        "SSL_CERT_DAYS": "820"
+      },
+      "notes": "Railway auto-generates PGHOST, PGPORT, PGUSER, PGPASSWORD, DATABASE_URL."
+    },
+    "MongoDB": {
+      "source": {
+        "image": "mongo:8.0"
+      },
+      "variables": {
+        "MONGO_INITDB_ROOT_USERNAME": "mongo"
+      },
+      "notes": "Railway auto-generates MONGOHOST, MONGOPORT, MONGOUSER, MONGOPASSWORD, MONGO_URL."
+    },
+    "meilisearch": {
+      "source": {
+        "image": "getmeili/meilisearch:v1.9"
+      },
+      "variables": {
+        "PORT": "7700",
+        "MEILI_MASTER_KEY": "${{secret(64)}}"
+      }
+    },
+    "better-auth": {
+      "source": {
+        "repo": "levinnovation/agentyx-vertical-assets",
+        "branch": "main",
+        "rootDirectory": "services/better-auth"
+      },
+      "variables": {
+        "PORT": "3000",
+        "BETTER_AUTH_SECRET": "${{secret(64)}}",
+        "BETTER_AUTH_URL": "${{RAILWAY_PUBLIC_DOMAIN}}",
+        "BETTER_AUTH_DATABASE_URL": "${{Postgres.DATABASE_URL}}?schema=better_auth",
+        "BETTER_AUTH_TRUSTED_ORIGINS": "",
+        "GOOGLE_HD": "levinnovation.com",
+        "GOOGLE_OAUTH_CLIENT_ID": "",
+        "GOOGLE_OAUTH_CLIENT_SECRET": "",
+        "OIDC_ISSUER": "",
+        "OIDC_JWKS_PRIVATE_KEY": "${{secret(64)}}"
+      }
+    },
+    "auth-proxy": {
+      "source": {
+        "repo": "levinnovation/agentyx-vertical-assets",
+        "branch": "main",
+        "rootDirectory": "services/auth-proxy"
+      },
+      "variables": {
+        "PORT": "80",
+        "TRUSTED_PROXY_SECRET": "${{secret(64)}}",
+        "BETTER_AUTH_INTERNAL_URL": "better-auth.railway.internal:3000",
+        "BETTER_AUTH_PUBLIC_HOST": "",
+        "N8N_INTERNAL_URL": "n8n.railway.internal:5678",
+        "N8N_PUBLIC_HOST": "",
+        "FLOWISE_INTERNAL_URL": "flowise.railway.internal:3000",
+        "FLOWISE_PUBLIC_HOST": "",
+        "PAPERCLIP_INTERNAL_URL": "paperclip.railway.internal:3100",
+        "PAPERCLIP_PUBLIC_HOST": "",
+        "LIBRECHAT_INTERNAL_URL": "librechat.railway.internal:3080",
+        "LIBRECHAT_PUBLIC_HOST": ""
+      }
+    },
+    "n8n": {
+      "source": {
+        "repo": "levinnovation/agentyx-n8n",
+        "branch": "master"
+      },
+      "variables": {
+        "PORT": "5678",
+        "N8N_PORT": "5678",
+        "N8N_HOST": "0.0.0.0",
+        "DB_TYPE": "postgresdb",
+        "DB_POSTGRESDB_DATABASE": "n8n",
+        "DB_POSTGRESDB_HOST": "${{Postgres.PGHOST}}",
+        "DB_POSTGRESDB_PORT": "${{Postgres.PGPORT}}",
+        "DB_POSTGRESDB_USER": "${{Postgres.PGUSER}}",
+        "DB_POSTGRESDB_PASSWORD": "${{Postgres.PGPASSWORD}}",
+        "DB_POSTGRESDB_SSL": "true",
+        "WEBHOOK_URL": "${{RAILWAY_PUBLIC_DOMAIN}}",
+        "N8N_ENCRYPTION_KEY": "${{secret(64)}}",
+        "N8N_BASIC_AUTH_ACTIVE": "true",
+        "N8N_BASIC_AUTH_USER": "admin",
+        "N8N_BASIC_AUTH_PASSWORD": "${{secret(32)}}",
+        "N8N_DIAGNOSTICS_ENABLED": "false",
+        "EXECUTIONS_MODE": "regular",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "N8N_AUTH_TRUSTED_PROXY_SECRET": ""
+      }
+    },
+    "librechat": {
+      "source": {
+        "repo": "levinnovation/agentyx-librechat",
+        "branch": "agentyx/main"
+      },
+      "variables": {
+        "PORT": "3080",
+        "HOST": "0.0.0.0",
+        "NODE_ENV": "production",
+        "ENDPOINTS": "custom",
+        "ALLOW_EMAIL_LOGIN": "true",
+        "ALLOW_REGISTRATION": "true",
+        "ALLOW_SOCIAL_LOGIN": "false",
+        "ALLOW_SOCIAL_REGISTRATION": "false",
+        "SEARCH": "true",
+        "CREDS_KEY": "${{secret(64)}}",
+        "CREDS_IV": "${{secret(32)}}",
+        "JWT_SECRET": "${{secret(64)}}",
+        "JWT_REFRESH_SECRET": "${{secret(64)}}",
+        "MEILI_HOST": "http://meilisearch.railway.internal:7700",
+        "MEILI_MASTER_KEY": "${{secret(64)}}",
+        "MONGO_URI": "${{MongoDB.MONGO_URL}}",
+        "RAG_API_URL": "",
+        "LIBRECHAT_AUTH_TRUSTED_PROXY_SECRET": ""
+      }
+    },
+    "portal": {
+      "source": {
+        "repo": "levinnovation/agentyx-client-portal",
+        "branch": "main"
+      },
+      "variables": {
+        "PORT": "3000",
+        "NODE_ENV": "production",
+        "AGENTYX_CLIENT_SLUG": "",
+        "BETTER_AUTH_SECRET": "${{secret(64)}}",
+        "BETTER_AUTH_URL": "",
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}?schema=portal",
+        "NEXTAUTH_SECRET": "${{secret(64)}}",
+        "NEXT_PUBLIC_AUTH_URL": "",
+        "NEXT_PUBLIC_BETTER_AUTH_URL": "",
+        "NEXT_PUBLIC_N8N_URL": "",
+        "NEXT_PUBLIC_FLOWISE_URL": "",
+        "NEXT_PUBLIC_LIBRECHAT_URL": "",
+        "NEXT_PUBLIC_PAPERCLIP_URL": "",
+        "N8N_URL": "",
+        "N8N_USERNAME": "admin",
+        "N8N_PASSWORD": "${{secret(32)}}",
+        "FLOWISE_URL": "",
+        "FLOWISE_USERNAME": "admin",
+        "FLOWISE_PASSWORD": "${{secret(32)}}",
+        "PAPERCLIP_URL": ""
+      }
+    },
+    "paperclip": {
+      "source": {
+        "repo": "levinnovation/agentyx-paperclip",
+        "branch": "agentyx/main"
+      },
+      "variables": {
+        "PORT": "3100",
+        "NODE_ENV": "production",
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}?schema=paperclip",
+        "PAPERCLIP_AUTH_TRUSTED_PROXY": "true",
+        "PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET": "",
+        "PAPERCLIP_ALLOWED_HOSTNAMES": "",
+        "PAPERCLIP_SECRETS_STRICT_MODE": "true",
+        "PAPERCLIP_SECRETS_MASTER_KEY": "${{secret(64)}}",
+        "BETTER_AUTH_SECRET": "${{secret(64)}}",
+        "BETTER_AUTH_TRUSTED_ORIGINS": "",
+        "MEILI_URL": "http://meilisearch.railway.internal:7700",
+        "MEILI_MASTER_KEY": "${{secret(64)}}"
+      }
+    },
+    "flowise": {
+      "source": {
+        "repo": "levinnovation/agentyx-flowise",
+        "branch": "agentyx/main"
+      },
+      "variables": {
+        "PORT": "3000",
+        "DATABASE_TYPE": "postgres",
+        "DATABASE_HOST": "${{Postgres.PGHOST}}",
+        "DATABASE_PORT": "${{Postgres.PGPORT}}",
+        "DATABASE_USER": "${{Postgres.PGUSER}}",
+        "DATABASE_PASSWORD": "${{Postgres.PGPASSWORD}}",
+        "DATABASE_NAME": "flowise",
+        "DATABASE_SSL": "true",
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}?schema=flowise",
+        "FLOWISE_USERNAME": "admin",
+        "FLOWISE_PASSWORD": "${{secret(32)}}",
+        "FLOWISE_SECRETKEY_OVERWRITE": "${{secret(64)}}",
+        "DISABLE_FLOWISE_TELEMETRY": "true",
+        "CORS_ORIGINS": "*",
+        "IFRAME_ORIGINS": "*",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "FLOWISE_AUTH_TRUSTED_PROXY_SECRET": ""
+      }
+    }
+  },
+  "sharedSecrets": {
+    "description": "These secrets must be identical across multiple services. After template deployment, run scripts/railway/deploy-from-template.sh to synchronize them.",
+    "TRUSTED_PROXY_SECRET": {
+      "services": ["auth-proxy", "n8n", "librechat", "paperclip", "flowise"]
+    }
+  },
+  "tenantCustomization": {
+    "description": "Variables that must be updated per tenant after template deployment.",
+    "variables": [
+      {
+        "name": "AGENTYX_CLIENT_SLUG",
+        "example": "euromobilia",
+        "services": ["portal"]
+      },
+      {
+        "name": "BETTER_AUTH_TRUSTED_ORIGINS",
+        "example": "https://{tenant}.portal.agentyx.one,https://{tenant}.auth.agentyx.one,...",
+        "services": ["better-auth", "paperclip"]
+      },
+      {
+        "name": "BETTER_AUTH_URL",
+        "example": "https://{tenant}.auth.agentyx.one",
+        "services": ["better-auth", "portal"]
+      },
+      {
+        "name": "OIDC_ISSUER",
+        "example": "https://{tenant}.auth.agentyx.one",
+        "services": ["better-auth"]
+      },
+      {
+        "name": "N8N_PUBLIC_HOST",
+        "example": "{tenant}.n8n.agentyx.one",
+        "services": ["auth-proxy"]
+      },
+      {
+        "name": "FLOWISE_PUBLIC_HOST",
+        "example": "{tenant}.flowise.agentyx.one",
+        "services": ["auth-proxy"]
+      },
+      {
+        "name": "PAPERCLIP_PUBLIC_HOST",
+        "example": "{tenant}.paperclip.agentyx.one",
+        "services": ["auth-proxy"]
+      },
+      {
+        "name": "LIBRECHAT_PUBLIC_HOST",
+        "example": "{tenant}.chat.agentyx.one",
+        "services": ["auth-proxy"]
+      },
+      {
+        "name": "BETTER_AUTH_PUBLIC_HOST",
+        "example": "{tenant}.auth.agentyx.one",
+        "services": ["auth-proxy"]
+      },
+      {
+        "name": "WEBHOOK_URL",
+        "example": "https://{tenant}.n8n.agentyx.one",
+        "services": ["n8n"]
+      },
+      {
+        "name": "NEXT_PUBLIC_AUTH_URL",
+        "example": "https://{tenant}.auth.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "example": "https://{tenant}.auth.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "NEXT_PUBLIC_N8N_URL",
+        "example": "https://{tenant}.n8n.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "NEXT_PUBLIC_FLOWISE_URL",
+        "example": "https://{tenant}.flowise.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "NEXT_PUBLIC_LIBRECHAT_URL",
+        "example": "https://{tenant}.chat.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "NEXT_PUBLIC_PAPERCLIP_URL",
+        "example": "https://{tenant}.paperclip.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "N8N_URL",
+        "example": "https://{tenant}.n8n.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "FLOWISE_URL",
+        "example": "https://{tenant}.flowise.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "PAPERCLIP_URL",
+        "example": "https://{tenant}.paperclip.agentyx.one",
+        "services": ["portal"]
+      },
+      {
+        "name": "PAPERCLIP_ALLOWED_HOSTNAMES",
+        "example": "paperclip.railway.internal,{tenant}.paperclip.agentyx.one",
+        "services": ["paperclip"]
+      },
+      {
+        "name": "BETTER_AUTH_TRUSTED_ORIGINS",
+        "example": "https://{tenant}.paperclip.agentyx.one",
+        "services": ["paperclip"]
+      }
+    ]
+  }
+}

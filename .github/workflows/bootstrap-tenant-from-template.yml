@@ -1,0 +1,92 @@
+name: Bootstrap Tenant from Railway Template
+
+on:
+  workflow_dispatch:
+    inputs:
+      tenant:
+        description: "Tenant ID to bootstrap"
+        required: true
+        default: "euromobilia"
+      domain_root:
+        description: "Domain root for custom domains"
+        required: true
+        default: "agentyx.one"
+
+env:
+  RAILWAY_TEMPLATE_CODE: ${{ secrets.RAILWAY_AGENTYX_TEMPLATE_CODE }}
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Verify Railway CLI
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway whoami
+
+      - name: Create project from template
+        id: create
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          PROJECT_NAME="agx-${{ inputs.tenant }}-prod"
+          echo "Creating project: $PROJECT_NAME"
+
+          # Initialize new project
+          railway init --name "$PROJECT_NAME"
+
+          # Capture project ID
+          PROJECT_ID=$(railway status --json | jq -r '.id')
+          echo "PROJECT_ID=$PROJECT_ID" >> "$GITHUB_ENV"
+          echo "Project ID: $PROJECT_ID"
+
+      - name: Deploy template
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [[ -z "${RAILWAY_TEMPLATE_CODE:-}" ]]; then
+            echo "[WARN] RAILWAY_AGENTYX_TEMPLATE_CODE not set. Skipping template deploy."
+            echo "[WARN] Services must be created manually or via bootstrap-tenant.sh."
+            exit 0
+          fi
+
+          echo "Deploying template: $RAILWAY_TEMPLATE_CODE"
+          railway deploy -t "$RAILWAY_TEMPLATE_CODE" || {
+            echo "[WARN] Template deploy may have partially succeeded or requires manual confirmation."
+            echo "[WARN] Proceeding with post-deploy configuration."
+          }
+
+      - name: Post-deploy configuration
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/configure-tenant-post-deploy.sh \
+            --tenant "${{ inputs.tenant }}" \
+            --domain-root "${{ inputs.domain_root }}"
+
+      - name: Capture project info
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          PROJECT_ID=$(railway status --json | jq -r '.id')
+          echo "## Bootstrap complete for tenant: ${{ inputs.tenant }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Project ID: \`$PROJECT_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Project Name: \`agx-${{ inputs.tenant }}-prod\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Domains:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://${{ inputs.tenant }}.auth.${{ inputs.domain_root }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://${{ inputs.tenant }}.portal.${{ inputs.domain_root }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://${{ inputs.tenant }}.n8n.${{ inputs.domain_root }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://${{ inputs.tenant }}.flowise.${{ inputs.domain_root }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://${{ inputs.tenant }}.paperclip.${{ inputs.domain_root }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://${{ inputs.tenant }}.chat.${{ inputs.domain_root }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Next steps:" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. Add Google OAuth credentials to better-auth service" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. Verify DNS CNAME records" >> "$GITHUB_STEP_SUMMARY"
+          echo "3. Run Postgres bootstrap migrations if needed" >> "$GITHUB_STEP_SUMMARY"

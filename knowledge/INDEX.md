@@ -48,6 +48,7 @@
 - [change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md](change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md)
 - [change-log/2026/05/2026-05-06-add-levinnovation-tenant.md](change-log/2026/05/2026-05-06-add-levinnovation-tenant.md)
 - [change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md](change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md)
+- [change-log/2026/05/2026-05-06-railway-internal-template.md](change-log/2026/05/2026-05-06-railway-internal-template.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -122,6 +123,7 @@
 - [operations/how-to-update-context-packs.md](operations/how-to-update-context-packs.md)
 - [operations/n8n-mcp-setup.md](operations/n8n-mcp-setup.md)
 - [operations/railway-dashboard-setup-guide.md](operations/railway-dashboard-setup-guide.md)
+- [operations/railway-internal-template.md](operations/railway-internal-template.md)
 - [operations/railway-template-sources.md](operations/railway-template-sources.md)
 - [operations/README.md](operations/README.md)
 - [operations/sso-gateway-known-issues-2026-05-05.md](operations/sso-gateway-known-issues-2026-05-05.md)
