@@ -19,7 +19,8 @@ RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 COPY . .
 
 # Install dependencies and build
-# We build only the CLI package and its dependencies
+# CI=true skips lefthook install in prepare script
+ENV CI=true
 RUN pnpm install --frozen-lockfile || pnpm install
 RUN pnpm build
 
