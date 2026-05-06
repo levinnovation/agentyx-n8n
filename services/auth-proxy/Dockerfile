@@ -4,7 +4,9 @@
 
 FROM caddy:2-alpine
 
-# Copy the Caddyfile template — Caddy substitutes {$VAR} syntax natively at runtime
-COPY Caddyfile.template /etc/caddy/Caddyfile
+# Copy the Caddyfile template and entrypoint script
+COPY Caddyfile.template /etc/caddy/Caddyfile.template
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
