@@ -5,15 +5,16 @@ FROM n8nio/n8n:${N8N_VERSION}
 
 USER root
 
-# Copy runtime SSO patch script
+# Copy runtime SSO patch script and wrapper entrypoint
 COPY n8n-sso-patch.js /n8n-sso-patch.js
-RUN chmod +x /n8n-sso-patch.js
+COPY docker-entrypoint-wrapper.sh /docker-entrypoint-wrapper.sh
+RUN chmod +x /n8n-sso-patch.js /docker-entrypoint-wrapper.sh
 
 RUN chown -R node:node /home/node
 USER node
 
 EXPOSE 5678/tcp
-ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
+ENTRYPOINT ["tini", "--", "/docker-entrypoint-wrapper.sh"]
 
 LABEL org.opencontainers.image.title="n8n" \
       org.opencontainers.image.description="Workflow Automation Tool (Agentyx fork with SSO)" \
