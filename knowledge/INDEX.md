@@ -46,6 +46,7 @@
 - [change-log/2026/05/2026-05-04-scim-and-org-provisioning.md](change-log/2026/05/2026-05-04-scim-and-org-provisioning.md)
 - [change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md](change-log/2026/05/2026-05-04-sso-gateway-custom-domains-paperclip-rag.md)
 - [change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md](change-log/2026/05/2026-05-05-railway-n8n-dockerfile-build-fix.md)
+- [change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md](change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -84,6 +85,7 @@
 - [decisions/0016-scim-and-org-provisioning.md](decisions/0016-scim-and-org-provisioning.md)
 - [decisions/0017-sso-gateway-custom-domains-multi-client.md](decisions/0017-sso-gateway-custom-domains-multi-client.md)
 - [decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md](decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md)
+- [decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md](decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
