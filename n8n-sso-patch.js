@@ -38,7 +38,6 @@ const patchCode = `
                 console.log('[n8n-sso-debug] Attempting trusted-proxy login for', proxyEmail);
                 const user = await this.userRepository.findOne({
                     where: { email: proxyEmail.toLowerCase() },
-                    relations: ['role'],
                 });
                 if (user) {
                     console.log('[n8n-sso-debug] User found, issuing JWT');

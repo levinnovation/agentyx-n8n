@@ -161,10 +161,9 @@ export class AuthService {
 
 				if (proxyEmail && (!expectedSecret || proxySecret === expectedSecret)) {
 					try {
-						const user = await this.userRepository.findOne({
-							where: { email: proxyEmail.toLowerCase() },
-							relations: ['role'],
-						});
+					const user = await this.userRepository.findOne({
+						where: { email: proxyEmail.toLowerCase() },
+					});
 						if (user) {
 							// Bypass issueCookie license check for SSO gateway users.
 							// Directly issue JWT and set cookie.
