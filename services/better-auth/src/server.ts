@@ -23,6 +23,13 @@ const auth = betterAuth({
       hd: config.googleHd || undefined,
     },
   },
+  advanced: {
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: "agentyx.one",
+    },
+    useSecureCookies: true,
+  },
   plugins: [
     organization(),
   ],
