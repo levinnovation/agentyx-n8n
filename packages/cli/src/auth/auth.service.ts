@@ -165,7 +165,16 @@ export class AuthService {
 							relations: ['role'],
 						});
 						if (user) {
-							this.issueCookie(res, user, false);
+							// Bypass issueCookie license check for SSO gateway users.
+							// Directly issue JWT and set cookie.
+							const jwtToken = this.issueJWT(user, false);
+							const { samesite, secure } = this.globalConfig.auth.cookie;
+							res.cookie(AUTH_COOKIE_NAME, jwtToken, {
+								maxAge: this.jwtExpiration * Time.seconds.toMilliseconds,
+								httpOnly: true,
+								sameSite: samesite,
+								secure,
+							});
 							req.user = user;
 							req.authInfo = { usedMfa: false };
 						}
