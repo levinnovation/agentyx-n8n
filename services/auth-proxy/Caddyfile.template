@@ -14,10 +14,6 @@
 }
 
 __N8N_PUBLIC_HOST__ {
-  forward_auth __BETTER_AUTH_INTERNAL_URL__ {
-    uri /api/auth/forward-auth
-    copy_headers X-Auth-User X-Auth-Email
-  }
   reverse_proxy __N8N_INTERNAL_URL__
 }
 
