@@ -1,3 +1,15 @@
+# Disable auto-HTTPS because Railway terminates TLS at the edge
+{
+  auto_https off
+}
+
+# Health check endpoint for Railway
+:80 {
+  handle /health {
+    respond "OK" 200
+  }
+}
+
 {$N8N_PUBLIC_HOST} {
   forward_auth {$BETTER_AUTH_INTERNAL_URL} {
     uri /api/auth/forward-auth

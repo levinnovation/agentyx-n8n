@@ -1,5 +1,16 @@
 # Caddy auth proxy for Agentyx tenant stack
-# Caddy natively supports {$ENV_VAR} syntax — no envsubst needed.
+# Railway terminates TLS at the edge — auto-HTTPS must be off.
+
+{
+  auto_https off
+}
+
+# Health check endpoint for Railway
+:80 {
+  handle /health {
+    respond "OK" 200
+  }
+}
 
 {$N8N_PUBLIC_HOST} {
   forward_auth {$BETTER_AUTH_INTERNAL_URL} {
@@ -23,4 +34,12 @@
     copy_headers X-Auth-User X-Auth-Email
   }
   reverse_proxy {$PAPERCLIP_INTERNAL_URL}
+}
+
+{$LIBRECHAT_PUBLIC_HOST} {
+  forward_auth {$BETTER_AUTH_INTERNAL_URL} {
+    uri /api/auth/forward-auth
+    copy_headers X-Auth-User X-Auth-Email
+  }
+  reverse_proxy {$LIBRECHAT_INTERNAL_URL}
 }
