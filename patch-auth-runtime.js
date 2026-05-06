@@ -59,12 +59,28 @@ function patchAuthService(filePath) {
         return;
     }
 
-    // Find the pattern: "const isPreviewMode = process.env.N8N_PREVIEW_MODE"
-    // and inject our trusted-proxy code before it.
-    const targetPattern = /const isPreviewMode = process\.env\.N8N_PREVIEW_MODE/g;
+    // The compiled JS may be minified/obfuscated. Try multiple patterns.
+    const patterns = [
+        /const isPreviewMode = process\.env\.N8N_PREVIEW_MODE/g,
+        /const \w+ = process\.env\.N8N_PREVIEW_MODE/g,
+        /process\.env\.N8N_PREVIEW_MODE/g,
+    ];
 
-    if (!targetPattern.test(content)) {
-        console.error('[n8n-patch] Could not find injection point (isPreviewMode)');
+    let targetPattern = null;
+    for (const p of patterns) {
+        if (p.test(content)) {
+            targetPattern = p;
+            break;
+        }
+    }
+
+    if (!targetPattern) {
+        console.error('[n8n-patch] Could not find injection point (N8N_PREVIEW_MODE)');
+        // Log a snippet around "N8N_PREVIEW_MODE" for debugging
+        const idx = content.indexOf('N8N_PREVIEW_MODE');
+        if (idx >= 0) {
+            console.error('[n8n-patch] Context:', content.substring(Math.max(0, idx - 100), idx + 100));
+        }
         process.exit(1);
     }
 
@@ -103,6 +119,12 @@ function patchAuthService(filePath) {
 `;
 
     content = content.replace(targetPattern, trustedProxyCode + '        const isPreviewMode = process.env.N8N_PREVIEW_MODE');
+    // Also fix any remaining user.role -> user.roleSlug in auth service
+    content = content.replace(/user\.role = :role/g, 'user.roleSlug = :role /* ROLESLUG_PATCH */');
+    content = content.replace(/user\.role <> :role/g, 'user.roleSlug <> :role /* ROLESLUG_PATCH */');
+    content = content.replace(/user\.role <> :ownerRole/g, 'user.roleSlug <> :ownerRole /* ROLESLUG_PATCH */');
+    content = content.replace(/user\.role='global:owner'/g, "user.roleSlug='global:owner' /* ROLESLUG_PATCH */");
+    content = content.replace(/user\.role='global:admin'/g, "user.roleSlug='global:admin' /* ROLESLUG_PATCH */");
 
     fs.writeFileSync(filePath, content);
     console.log('[n8n-patch] Patched:', filePath);
