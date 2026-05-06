@@ -18,7 +18,10 @@ http://__N8N_PUBLIC_HOST__ {
     uri /api/auth/forward-auth
     copy_headers X-Auth-User X-Auth-Email
   }
-  reverse_proxy __N8N_INTERNAL_URL__
+  reverse_proxy __N8N_INTERNAL_URL__ {
+    header_up X-Auth-User-Email {http.request.header.X-Auth-Email}
+    header_up X-Auth-Proxy-Secret {$TRUSTED_PROXY_SECRET}
+  }
 }
 
 http://__FLOWISE_PUBLIC_HOST__ {
