@@ -10,6 +10,9 @@
   handle /health {
     respond "OK" 200
   }
+  handle {
+    respond "Auth Proxy" 200
+  }
 }
 
 {$N8N_PUBLIC_HOST} {
