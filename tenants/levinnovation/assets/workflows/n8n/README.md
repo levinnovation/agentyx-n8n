@@ -14,10 +14,8 @@
 ## Required environment variables
 
 ```bash
-# OpenRouter
-OPENROUTER_API_KEY=...
+# OpenRouter (model id for OpenRouter Chat Model node; API key lives in n8n credential)
 OPENROUTER_MODEL=openai/gpt-4o-mini
-OPENROUTER_BASE_URL=https://openrouter.ai/api/v1/chat/completions
 
 # LinkedIn data source (RapidAPI)
 RAPIDAPI_KEY=...
@@ -49,7 +47,8 @@ TZ=America/Costa_Rica
 - HubSpot credential for CRM nodes (or private app token via HTTP nodes).
 - Google credential for Calendar and Gmail nodes.
 - Slack webhook secret.
-- OpenRouter and RapidAPI keys in n8n environment or credential vault.
+- **OpenRouter API** credential assigned to the **OpenRouter Chat Model** node (AI Agent stack).
+- RapidAPI key in n8n environment or credential vault for the LinkedIn HTTP node.
 
 ## v1 constraints
 

@@ -15,7 +15,7 @@ meeting proposal steps.
 Schedule -> Load KB -> RapidAPI Search -> Normalize -> SplitInBatches
   -> HubSpot Dedup
     -> (duplicate) Slack skip log
-    -> (new) Vector query -> OpenRouter qualify -> Parse JSON -> Fit gate
+    -> (new) Vector query -> Prepare Agent Input -> Prospector AI Agent -> Parse JSON -> Fit gate
         -> (low-fit) Slack low-fit log
         -> (qualified) HubSpot create/update -> Calendar slots -> Compose message
             -> (has email) Gmail send
@@ -34,7 +34,9 @@ Schedule -> Load KB -> RapidAPI Search -> Normalize -> SplitInBatches
 ## External systems
 
 - LinkedIn source: RapidAPI endpoint (`RAPIDAPI_LINKEDIN_URL`).
-- LLM: OpenRouter Chat Completions (`OPENROUTER_BASE_URL`).
+- LLM: n8n **OpenRouter Chat Model** sub-node (`@n8n/n8n-nodes-langchain.lmChatOpenRouter`) wired to **Prospector AI Agent** (`@n8n/n8n-nodes-langchain.agent`). Authenticate with the **OpenRouter API** credential in n8n (not raw HTTP to `OPENROUTER_BASE_URL`).
+- Agent tools: **Calculator Tool** satisfies n8n requirement for at least one tool on the AI Agent; it is optional at runtime for simple fit reasoning.
+- Session: **Simple Memory** (`memoryBufferWindow`) keyed per `lead_id` to isolate batch items.
 - CRM: HubSpot contacts/deals/tasks.
 - Calendar: Google Calendar free-busy query.
 - Outreach: Gmail send.

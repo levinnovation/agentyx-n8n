@@ -207,38 +207,89 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.OPENROUTER_BASE_URL }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "assignments": {
+          "assignments": [
             {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.OPENROUTER_API_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
+              "id": "prep-chat-input",
+              "name": "chatInput",
+              "type": "string",
+              "value": "=Lead (datos normalizados):\\n{{ JSON.stringify($('Split In Batches').item.json, null, 2) }}\\n\\nContexto recuperado (RAG interno LEV):\\n{{ JSON.stringify($json, null, 2) }}\\n\\nUmbral minimo de fit_score (referencia): {{ $env.LEAD_FIT_THRESHOLD || 70 }}\\n\\nSiguiendo el system message del agente, devuelve SOLO el JSON final sin markdown ni texto adicional."
             }
           ]
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\"model\":\"{{$env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'}}\",\"messages\":[{\"role\":\"system\",\"content\":\"Eres el sistema de calificacion y personalizacion comercial de LEV Innovation. Devuelve solo JSON con fit_score, qualification, email_subject, email_body, linkedin_dm, internal_summary.\"},{\"role\":\"user\",\"content\":\"Lead: {{JSON.stringify($('Split In Batches').item.json)}}\\nKB: {{JSON.stringify($json)}}\\nThreshold: {{$env.LEAD_FIT_THRESHOLD || 70}}\"}],\"temperature\":0.2}",
         "options": {}
       },
-      "id": "openrouter",
-      "name": "OpenRouter Qualification",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "prepare-agent-input",
+      "name": "Prepare Agent Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
-        1960,
+        1860,
         320
       ]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json;\nconst text = raw.choices?.[0]?.message?.content || '{}';\nlet parsed;\n\ntry {\n  parsed = JSON.parse(text);\n} catch (error) {\n  parsed = {\n    fit_score: 0,\n    qualification: 'No se pudo parsear salida del modelo.',\n    email_subject: 'LEV Innovation - propuesta de automatizacion',\n    email_body: 'Hola, gracias por tu tiempo. Me gustaria compartir ideas de automatizacion aplicables a tu equipo.',\n    linkedin_dm: 'Hola, vi tu perfil y creo que podriamos aportar valor con automatizacion AI aplicada.',\n    internal_summary: 'Salida invalida del modelo; se aplico fallback.'\n  };\n}\n\nconst lead = $('Split In Batches').item.json;\nreturn [{\n  json: {\n    ...lead,\n    fit_score: Number(parsed.fit_score || 0),\n    qualification: String(parsed.qualification || ''),\n    email_subject: String(parsed.email_subject || ''),\n    email_body: String(parsed.email_body || ''),\n    linkedin_dm: String(parsed.linkedin_dm || ''),\n    internal_summary: String(parsed.internal_summary || '')\n  }\n}];"
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=Eres el sistema de calificacion y personalizacion comercial de LEV Innovation. Objetivo: (1) Evaluar fit del lead con el ICP LEV. (2) Redactar email y DM iniciales. (3) Emitir SOLO JSON valido para n8n. Reglas: espanol neutral profesional; no inventar datos ausentes en lead o contexto RAG; fit_score entero 0-100; qualification max 280 caracteres; email_subject max 90; email_body max 1200; linkedin_dm max 500; internal_summary max 400; sin promesas garantizadas. Forma exacta del JSON: {\"fit_score\":0,\"qualification\":\"\",\"email_subject\":\"\",\"email_body\":\"\",\"linkedin_dm\":\"\",\"internal_summary\":\"\"}. Puedes usar la herramienta Calculator solo si necesitas aritmetica explicita para razonar el fit; si no hace falta, no la invoques."
+        },
+        "promptType": "define"
+      },
+      "id": "prospector-ai-agent",
+      "name": "Prospector AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        2060,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "model": "={{ $env.OPENROUTER_MODEL || 'openai/gpt-4o-mini' }}",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "openrouter-chat-model",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "sessionKey": "={{ 'lev-prospect-' + String($('Split In Batches').item.json.lead_id) }}",
+        "sessionIdType": "customKey",
+        "contextWindowLength": 10
+      },
+      "id": "agent-memory",
+      "name": "Agent Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        2060,
+        680
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "calculator-tool",
+      "name": "Calculator Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        840
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst lead = $('Split In Batches').item.json;\n\nfunction parseOutput(out) {\n  if (out && typeof out === 'object' && !Array.isArray(out) && out.fit_score !== undefined) {\n    return out;\n  }\n  let text = typeof out === 'string' ? out.trim() : JSON.stringify(out || {});\n  if (text.startsWith('```')) {\n    text = text.replace(/^```(?:json)?\\s*/i, '').replace(/\\s*```$/i, '').trim();\n  }\n  return JSON.parse(text);\n}\n\nlet parsed;\ntry {\n  parsed = parseOutput(raw.output ?? raw.text);\n} catch (error) {\n  parsed = {\n    fit_score: 0,\n    qualification: 'No se pudo parsear salida del agente.',\n    email_subject: 'LEV Innovation - propuesta de automatizacion',\n    email_body: 'Hola, gracias por tu tiempo. Me gustaria compartir ideas de automatizacion aplicables a tu equipo.',\n    linkedin_dm: 'Hola, vi tu perfil y creo que podriamos aportar valor con automatizacion AI aplicada.',\n    internal_summary: 'Salida invalida del agente; se aplico fallback.'\n  };\n}\n\nreturn [{\n  json: {\n    ...lead,\n    fit_score: Number(parsed.fit_score || 0),\n    qualification: String(parsed.qualification || ''),\n    email_subject: String(parsed.email_subject || ''),\n    email_body: String(parsed.email_body || ''),\n    linkedin_dm: String(parsed.linkedin_dm || ''),\n    internal_summary: String(parsed.internal_summary || '')\n  }\n}];"
       },
       "id": "parse-llm",
       "name": "Parse Qualification JSON",
@@ -602,19 +653,63 @@
       "main": [
         [
           {
-            "node": "OpenRouter Qualification",
+            "node": "Prepare Agent Input",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "OpenRouter Qualification": {
+    "Prepare Agent Input": {
+      "main": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prospector AI Agent": {
       "main": [
         [
           {
             "node": "Parse Qualification JSON",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Prospector AI Agent",
+            "type": "ai_tool",
             "index": 0
           }
         ]
