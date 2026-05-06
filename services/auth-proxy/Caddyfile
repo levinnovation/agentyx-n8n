@@ -15,7 +15,7 @@
   }
 }
 
-__N8N_PUBLIC_HOST__ {
+http://__N8N_PUBLIC_HOST__ {
   reverse_proxy __N8N_INTERNAL_URL__
 }
 
