@@ -13,6 +13,7 @@ sed -e "s|__N8N_PUBLIC_HOST__|${N8N_PUBLIC_HOST}|g" \
     -e "s|__FLOWISE_INTERNAL_URL__|${FLOWISE_INTERNAL_URL}|g" \
     -e "s|__PAPERCLIP_INTERNAL_URL__|${PAPERCLIP_INTERNAL_URL}|g" \
     -e "s|__LIBRECHAT_INTERNAL_URL__|${LIBRECHAT_INTERNAL_URL}|g" \
+    -e "s|__TRUSTED_PROXY_SECRET__|${TRUSTED_PROXY_SECRET}|g" \
     /etc/caddy/Caddyfile.template > /etc/caddy/Caddyfile
 
 exec caddy run --config /etc/caddy/Caddyfile

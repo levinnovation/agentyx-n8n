@@ -22,7 +22,7 @@ http://__N8N_PUBLIC_HOST__ {
   }
   reverse_proxy __N8N_INTERNAL_URL__ {
     header_up X-Auth-User-Email {http.request.header.X-Auth-Email}
-    header_up X-Auth-Proxy-Secret {$TRUSTED_PROXY_SECRET}
+    header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
   }
 }
 
@@ -44,7 +44,7 @@ http://__PAPERCLIP_PUBLIC_HOST__ {
     header_up X-Auth-User-Email {http.request.header.X-Auth-Email}
     header_up X-Auth-User-Name {http.request.header.X-Auth-User-Name}
     header_up X-Auth-User-Role {http.request.header.X-Auth-User-Role}
-    header_up X-Auth-Proxy-Secret {$TRUSTED_PROXY_SECRET}
+    header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
   }
 }
 
