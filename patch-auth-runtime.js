@@ -59,6 +59,10 @@ function patchAuthService(filePath) {
         return;
     }
 
+    // Log first 500 chars for debugging compiled structure
+    console.log('[n8n-patch] File:', filePath, 'Size:', content.length);
+    console.log('[n8n-patch] First 500 chars:', content.substring(0, 500));
+
     // The compiled JS may be minified/obfuscated. Try multiple patterns.
     const patterns = [
         /const isPreviewMode = process\.env\.N8N_PREVIEW_MODE/g,
