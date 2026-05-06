@@ -11,7 +11,7 @@
     respond "OK" 200
   }
   handle /debug {
-    respond "{http.request.host}" 200
+    respond "host={http.request.host} env_n8n={env.N8N_PUBLIC_HOST}" 200
   }
   handle {
     respond "Auth Proxy" 200
