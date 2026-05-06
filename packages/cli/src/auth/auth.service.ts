@@ -152,6 +152,29 @@ export class AuthService {
 				}
 			}
 
+			// ─── Trusted Proxy SSO (Agentyx auth-gateway) ───────────────────
+			if (!req.user && !token) {
+				const proxyEmail = req.header('x-auth-user-email');
+				const proxySecret = req.header('x-auth-proxy-secret');
+				const expectedSecret = process.env.N8N_AUTH_TRUSTED_PROXY_SECRET;
+
+				if (proxyEmail && (!expectedSecret || proxySecret === expectedSecret)) {
+					try {
+						const user = await this.userRepository.findOne({
+							where: { email: proxyEmail.toLowerCase() },
+							relations: ['role'],
+						});
+						if (user) {
+							this.issueCookie(res, user, false);
+							req.user = user;
+							req.authInfo = { usedMfa: false };
+						}
+					} catch (err) {
+						this.logger.warn('Trusted proxy auth failed', { error: (err as Error).message });
+					}
+				}
+			}
+
 			const isPreviewMode = process.env.N8N_PREVIEW_MODE === 'true';
 			const shouldSkipAuth = (allowSkipPreviewAuth && isPreviewMode) || allowUnauthenticated;
 

@@ -232,11 +232,11 @@ export class UserRepository extends Repository<User> {
 
 		if (filter?.isOwner !== undefined) {
 			if (filter.isOwner) {
-				queryBuilder.andWhere('user.role = :role', {
+				queryBuilder.andWhere('user.roleSlug = :role', {
 					role: 'global:owner',
 				});
 			} else {
-				queryBuilder.andWhere('user.role <> :role', {
+				queryBuilder.andWhere('user.roleSlug <> :role', {
 					role: 'global:owner',
 				});
 			}
@@ -250,7 +250,7 @@ export class UserRepository extends Repository<User> {
 
 		if (filter?.isPending !== undefined) {
 			if (filter.isPending) {
-				queryBuilder.andWhere('user.password IS NULL AND user.role <> :ownerRole', {
+				queryBuilder.andWhere('user.password IS NULL AND user.roleSlug <> :ownerRole', {
 					ownerRole: 'global:owner',
 				});
 			} else {
@@ -313,13 +313,13 @@ export class UserRepository extends Repository<User> {
 		if (sortBy) {
 			for (const sort of sortBy) {
 				const [field, order] = sort.split(':');
-				if (field === 'role') {
-					queryBuilder.addSelect(
-						"CASE WHEN user.role='global:owner' THEN 0 WHEN user.role='global:admin' THEN 1 ELSE 2 END",
-						'userroleorder',
-					);
-					queryBuilder.addOrderBy('userroleorder', order.toUpperCase() as 'ASC' | 'DESC');
-				} else {
+			if (field === 'role') {
+				queryBuilder.addSelect(
+					"CASE WHEN user.roleSlug='global:owner' THEN 0 WHEN user.roleSlug='global:admin' THEN 1 ELSE 2 END",
+					'userroleorder',
+				);
+				queryBuilder.addOrderBy('userroleorder', order.toUpperCase() as 'ASC' | 'DESC');
+			} else {
 					queryBuilder.addOrderBy(`user.${field}`, order.toUpperCase() as 'ASC' | 'DESC');
 				}
 			}
