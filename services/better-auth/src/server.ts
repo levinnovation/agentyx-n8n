@@ -23,6 +23,13 @@ const auth = betterAuth({
       hd: config.googleHd || undefined,
     },
   },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+      },
+    },
+  },
   advanced: {
     crossSubDomainCookies: {
       enabled: true,
