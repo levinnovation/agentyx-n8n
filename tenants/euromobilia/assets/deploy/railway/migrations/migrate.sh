@@ -98,7 +98,7 @@ echo "========================================"
 for file in "$SCRIPT_DIR"/[0-9][0-9][0-9]_*.sql; do
     [[ -e "$file" ]] || continue
 
-    local version
+    version=""
     version=$(basename "$file" | sed 's/_.*//')
 
     if [[ "$TARGET" != "all" && "$version" > "$TARGET" ]]; then

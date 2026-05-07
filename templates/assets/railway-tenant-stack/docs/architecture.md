@@ -41,7 +41,7 @@ flowchart LR
 ## Service responsibilities
 
 ### postgres
-Railway Postgres plugin. One physical instance, multiple logical databases:
+Railway Postgres plugin. One physical instance with a shared database (`railway`) and per-service schemas:
 - `n8n` — n8n execution history and credentials metadata
 - `langfuse` — Langfuse events and trace data
 - `librechat` — LibreChat conversations and user data

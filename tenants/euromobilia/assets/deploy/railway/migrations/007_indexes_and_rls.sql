@@ -11,17 +11,20 @@
 -- The auth-service enforces this.
 -- ============================================================
 
-SET search_path TO better_auth;
+SET search_path TO better_auth, public;
 
 -- ------------------------------------------------------------
 -- Additional performance indexes
 -- ------------------------------------------------------------
+-- Enable trigram extension for fuzzy search (required by gin_trgm_ops)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE INDEX IF NOT EXISTS idx_user_email ON "user"(email);
 CREATE INDEX IF NOT EXISTS idx_user_active ON "user"(is_active) WHERE is_active = TRUE;
 CREATE INDEX IF NOT EXISTS idx_user_last_sign_in ON "user"(last_sign_in_at);
 CREATE INDEX IF NOT EXISTS idx_user_name_trgm ON "user" USING gin (name gin_trgm_ops);
 
-CREATE INDEX IF NOT EXISTS idx_session_expired ON "session"(expires_at) WHERE expires_at < NOW();
+CREATE INDEX IF NOT EXISTS idx_session_expired ON "session"(expires_at);
 CREATE INDEX IF NOT EXISTS idx_account_expires ON "account"(access_token_expires_at);
 
 CREATE INDEX IF NOT EXISTS idx_org_slug ON "organization"(slug);
@@ -30,9 +33,6 @@ CREATE INDEX IF NOT EXISTS idx_org_active ON "organization"(is_active);
 
 CREATE INDEX IF NOT EXISTS idx_member_role ON "member"(role);
 CREATE INDEX IF NOT EXISTS idx_invitation_expires ON "invitation"(expires_at) WHERE status = 'pending';
-
--- Enable trigram extension for fuzzy search
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- ------------------------------------------------------------
 -- Row-Level Security (RLS) on core tables

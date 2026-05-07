@@ -15,6 +15,7 @@ build/
 *.sqlite
 *.db
 .DS_Store
+.tmp-paperclip-upstream/
 node_modules/
 *.zip
 *.tar.gz

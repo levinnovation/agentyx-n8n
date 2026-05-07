@@ -202,7 +202,8 @@ upsert_var "$PORTAL_SVC" "BETTER_AUTH_URL" "http://agx-${CLIENT_SLUG}-auth.railw
 # n8n
 upsert_var "$N8N_SVC" "N8N_PORT" "5678"
 upsert_var "$N8N_SVC" "DB_TYPE" "postgresdb"
-upsert_var "$N8N_SVC" "DB_POSTGRESDB_DATABASE" "n8n"
+upsert_var "$N8N_SVC" "DB_POSTGRESDB_DATABASE" "railway"
+upsert_var "$N8N_SVC" "DB_POSTGRESDB_SCHEMA" "n8n"
 upsert_var "$N8N_SVC" "N8N_ENCRYPTION_KEY" "$N8N_ENCRYPTION_KEY"
 upsert_var "$N8N_SVC" "WEBHOOK_URL" "https://${CLIENT_SLUG}.n8n.${DOMAIN_ROOT}"
 

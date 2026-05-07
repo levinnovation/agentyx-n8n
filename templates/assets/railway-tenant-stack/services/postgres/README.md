@@ -1,14 +1,16 @@
 # Postgres
 
-Railway Postgres plugin. Provides a single Postgres instance shared across multiple logical databases.
+Railway Postgres plugin. Provides a single Postgres instance with one shared database and per-service schemas.
 
-## Logical databases
+## Shared database and schemas
 
-- `n8n` — n8n execution history and credentials metadata
-- `langfuse` — Langfuse trace events
-- `librechat` — LibreChat conversation storage
-- `paperclip` — Paperclip orchestration state
-- `better_auth` — Better Auth user sessions and OIDC data
+- Shared database: `railway`
+- Service schemas:
+  - `n8n` — n8n execution history and credentials metadata
+  - `langfuse` — Langfuse trace events
+  - `librechat` — LibreChat conversation storage
+  - `paperclip` — Paperclip orchestration state
+  - `better_auth` — Better Auth user sessions and OIDC data
 
 ## Connection
 

@@ -8,7 +8,7 @@
 -- Schema: better_auth
 -- ============================================================
 
-SET search_path TO better_auth;
+SET search_path TO better_auth, public;
 
 -- ------------------------------------------------------------
 -- Table: organization

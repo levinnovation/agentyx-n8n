@@ -8,7 +8,7 @@
 -- Based on Better Auth v1.2+ PostgreSQL adapter expectations.
 -- ============================================================
 
-SET search_path TO better_auth;
+SET search_path TO better_auth, public;
 
 -- ------------------------------------------------------------
 -- Table: user
