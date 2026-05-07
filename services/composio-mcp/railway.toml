@@ -1,0 +1,3 @@
+# Optional: Railway references this file when the service root is `services/composio-mcp`.
+[build]
+builder = "DOCKERFILE"
