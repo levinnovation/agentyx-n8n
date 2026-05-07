@@ -6,13 +6,13 @@ FROM n8nio/n8n:${N8N_VERSION}
 USER root
 
 # Copy runtime SSO patch script and wrapper entrypoint
-COPY n8n-sso-patch.js /n8n-sso-patch.js
+COPY patch-auth-runtime.js /patch-auth-runtime.js
 COPY docker-entrypoint-wrapper.sh /docker-entrypoint-wrapper.sh
-RUN chmod +x /n8n-sso-patch.js /docker-entrypoint-wrapper.sh
+RUN chmod +x /patch-auth-runtime.js /docker-entrypoint-wrapper.sh
 
 # Apply the SSO patch at build time while we still have root access.
 # The upstream image stores compiled JS under /usr/local/lib/node_modules/n8n
-RUN node /n8n-sso-patch.js
+RUN node /patch-auth-runtime.js
 RUN npm install -g n8n-nodes-mcp
 
 RUN chown -R node:node /home/node

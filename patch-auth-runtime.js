@@ -31,36 +31,43 @@ if (content.includes('TRUSTED_PROXY_SSO_PATCH')) {
     process.exit(0);
 }
 
-// The minified code has createAuthMiddleware returning an async function.
-// We need to inject our trusted-proxy code right after `next)=>{` in that function.
-// Pattern: `return async(req,res,next)=>{const token=req.cookies[...`
-const injectionPattern = /return async\((\w+),(\w+),(\w+)\)=>\{const (\w+)=\4\.cookies\[/;
+// Support both minified and formatted builds where createAuthMiddleware
+// returns an async middleware function.
+const injectionPattern = /return\s+async\s*\(\s*([^)]*?)\s*\)\s*=>\s*\{/;
+const match = content.match(injectionPattern);
 
-if (!injectionPattern.test(content)) {
-    console.error('[n8n-patch] Could not find injection pattern in minified code');
+if (!match) {
+    console.error('[n8n-patch] Could not find createAuthMiddleware async return');
     process.exit(1);
 }
 
+const rawParams = match[1].split(',').map((p) => p.trim()).filter(Boolean);
+const reqVar = rawParams[0] || 'req';
+const resVar = rawParams[1] || 'res';
+
 const patchCode = `
-const proxyEmail=req.header("x-auth-email");
-const proxySecret=req.header("x-auth-proxy-secret");
+/*TRUSTED_PROXY_SSO_PATCH*/
+const proxyEmail=${reqVar}.header("x-auth-email");
+const proxySecret=${reqVar}.header("x-auth-proxy-secret");
 const expectedSecret=process.env.N8N_AUTH_TRUSTED_PROXY_SECRET;
-if(proxyEmail&&(!expectedSecret||proxySecret===expectedSecret)){
+if(proxyEmail&&(!expectedSecret||proxySecret===expectedSecret)&&!${reqVar}.user){
   try{
-    const user=await this.userRepository.findOne({where:{email:proxyEmail.toLowerCase()},relations:["role"]});
+    const user=await this.userRepository.findOne({where:{email:proxyEmail.toLowerCase()},select:["id","email","password","firstName","lastName","disabled","mfaEnabled"]});
     if(user){
       const jwtToken=this.issueJWT(user,false);
-      const{sameSite:samesite,secure}=this.globalConfig.auth.cookie;
-      res.cookie(AUTH_COOKIE_NAME,jwtToken,{maxAge:this.jwtExpiration*Time.seconds.toMilliseconds,httpOnly:true,sameSite:samesite,secure});
-      req.user=user;
-      req.authInfo={usedMfa:false};
+      const{samesite,secure}=this.globalConfig.auth.cookie;
+      ${resVar}.cookie(AUTH_COOKIE_NAME,jwtToken,{maxAge:this.jwtExpiration*Time.seconds.toMilliseconds,httpOnly:true,sameSite:samesite,secure});
+      ${reqVar}.user=user;
+      ${reqVar}.authInfo={usedMfa:false};
     }
-  }catch(err){}
+  }catch(err){
+    this.logger.warn("Trusted proxy auth failed",{error:err?.message});
+  }
 }
 `;
 
-// Insert the patch right after the opening brace of the async function
-content = content.replace(injectionPattern, (match) => match + patchCode + '//TRUSTED_PROXY_SSO_PATCH');
+// Insert the patch right after the opening brace of the async function.
+content = content.replace(injectionPattern, (fullMatch) => `${fullMatch}${patchCode}`);
 
 // Also fix user.role -> user.roleSlug in user.repository.js
 const userRepoPaths = [
