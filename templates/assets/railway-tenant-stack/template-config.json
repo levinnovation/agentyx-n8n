@@ -182,6 +182,26 @@
         "MEILI_MASTER_KEY": "${{secret(64)}}"
       }
     },
+    "composio-mcp": {
+      "source": {
+        "repo": "levinnovation/agentyx-vertical-assets",
+        "branch": "main",
+        "rootDirectory": "services/composio-mcp"
+      },
+      "variables": {
+        "PORT": "3000",
+        "COMPOSIO_API_BASE": "https://backend.composio.dev/api/v3.1",
+        "COMPOSIO_API_KEY": "",
+        "COMPOSIO_ENTITY_ID": "",
+        "MCP_AUTH_TOKEN": "${{secret(64)}}",
+        "COMPOSIO_TOOLS_MAX": "500",
+        "COMPOSIO_TOOLS_PAGE_LIMIT": "100",
+        "COMPOSIO_EXCLUDE_DEPRECATED": "true",
+        "COMPOSIO_HTTP_TIMEOUT_MS": "60000",
+        "COMPOSIO_HTTP_MAX_RETRIES": "3"
+      },
+      "notes": "Set COMPOSIO_API_KEY and COMPOSIO_ENTITY_ID after deploy. Point n8n MCP Client Tool to https://<public-host>/mcp with Bearer MCP_AUTH_TOKEN."
+    },
     "flowise": {
       "source": {
         "repo": "levinnovation/agentyx-flowise",

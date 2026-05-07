@@ -29,6 +29,7 @@
 
 ### `change-log/`
 
+- [change-log/2026-05-07-composio-mcp-service.md](change-log/2026-05-07-composio-mcp-service.md)
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
 - [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
@@ -112,6 +113,8 @@
 ### `operations/`
 
 - [operations/agentyx-stack-audit-runbook-2026-05-05.md](operations/agentyx-stack-audit-runbook-2026-05-05.md)
+- [operations/composio-mcp-n8n-runbook.md](operations/composio-mcp-n8n-runbook.md)
+- [operations/composio-mcp-security-preflight.md](operations/composio-mcp-security-preflight.md)
 - [operations/how-to-close-an-architecture-change.md](operations/how-to-close-an-architecture-change.md)
 - [operations/how-to-connect-google-workspace-scim.md](operations/how-to-connect-google-workspace-scim.md)
 - [operations/how-to-deploy-without-railway-github-app.md](operations/how-to-deploy-without-railway-github-app.md)
@@ -139,6 +142,7 @@
 - [prompts/cursor/0005-hostinger-n8n-self-host.md](prompts/cursor/0005-hostinger-n8n-self-host.md)
 - [prompts/cursor/0005-migrate-aurea-to-euromobilia.md](prompts/cursor/0005-migrate-aurea-to-euromobilia.md)
 - [prompts/cursor/0006-whatsapp-interactive-intake-forms.md](prompts/cursor/0006-whatsapp-interactive-intake-forms.md)
+- [prompts/cursor/0007-composio-mcp-bridge.md](prompts/cursor/0007-composio-mcp-bridge.md)
 - [prompts/cursor/README.md](prompts/cursor/README.md)
 - [prompts/open-codex/README.md](prompts/open-codex/README.md)
 - [prompts/opencode/README.md](prompts/opencode/README.md)

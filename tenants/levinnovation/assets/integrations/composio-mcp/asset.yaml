@@ -1,0 +1,35 @@
+id: composio-mcp
+name: Composio MCP bridge (HTTP)
+type: integration
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: active
+version: "1.0.0"
+description: |
+  Railway-hosted Model Context Protocol (Streamable HTTP) server that proxies
+  Composio tool discovery and execution for n8n AI Agent "MCP Client Tool" nodes.
+  Credentials (COMPOSIO_API_KEY, MCP_AUTH_TOKEN) live in Railway variables only.
+owner: "ops@levinnovation.com"
+observability:
+  traces: none
+  metrics: none
+documentation: |
+  # Composio MCP (levinnovation)
+
+  Runtime source: `services/composio-mcp/` in `levinnovation/agentyx-vertical-assets`.
+
+  ## n8n
+
+  - Add an **MCP Client Tool** node connected to the AI Agent.
+  - Endpoint: `https://<composio-mcp-public-host>/mcp`
+  - Transport: **Streamable HTTP**
+  - Auth: **Bearer** token = `MCP_AUTH_TOKEN` from Railway.
+
+  ## Env (Railway)
+
+  See `services/composio-mcp/.env.example`.
+
+deployment:
+  platform: railway
+  region: us-west2

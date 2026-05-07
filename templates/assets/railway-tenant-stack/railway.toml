@@ -179,3 +179,20 @@ N8N_API_URL = "http://n8n.railway.internal:5678/api/v1"
 N8N_API_KEY = "${{N8N_API_KEY}}"
 MCP_MODE = "http"
 AUTH_TOKEN = "${{N8N_MCP_AUTH_TOKEN}}"
+
+# ─── Composio MCP (HTTP bridge for n8n MCP Client Tool + AI Agent) ─
+[composio-mcp]
+root = "services/composio-mcp"
+startCommand = ""
+
+[composio-mcp.build]
+builder = "DOCKERFILE"
+
+[composio-mcp.variables]
+PORT = "3000"
+COMPOSIO_API_BASE = "https://backend.composio.dev/api/v3.1"
+COMPOSIO_API_KEY = "${{COMPOSIO_API_KEY}}"
+COMPOSIO_ENTITY_ID = "${{COMPOSIO_ENTITY_ID}}"
+MCP_AUTH_TOKEN = "${{MCP_AUTH_TOKEN}}"
+COMPOSIO_TOOLS_MAX = "500"
+COMPOSIO_EXCLUDE_DEPRECATED = "true"
