@@ -13,6 +13,7 @@ RUN chmod +x /n8n-sso-patch.js /docker-entrypoint-wrapper.sh
 # Apply the SSO patch at build time while we still have root access.
 # The upstream image stores compiled JS under /usr/local/lib/node_modules/n8n
 RUN node /n8n-sso-patch.js
+RUN npm install -g n8n-nodes-mcp
 
 RUN chown -R node:node /home/node
 USER node
