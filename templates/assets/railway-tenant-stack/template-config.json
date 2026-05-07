@@ -103,7 +103,9 @@
         "N8N_DIAGNOSTICS_ENABLED": "false",
         "EXECUTIONS_MODE": "regular",
         "NODE_TLS_REJECT_UNAUTHORIZED": "0",
-        "N8N_AUTH_TRUSTED_PROXY_SECRET": ""
+        "N8N_AUTH_TRUSTED_PROXY_SECRET": "",
+        "GOOGLE_OAUTH_CLIENT_ID": "",
+        "GOOGLE_OAUTH_CLIENT_SECRET": ""
       }
     },
     "librechat": {
