@@ -72,9 +72,15 @@ get_service_name() {
 
 POSTGRES_SVC=$(get_service_name "Postgres")
 MONGO_SVC=$(get_service_name "MongoDB")
+REDIS_SVC=$(get_service_name "redis")
 BETTER_AUTH_SVC=$(get_service_name "better-auth")
 AUTH_PROXY_SVC=$(get_service_name "auth-proxy")
-N8N_SVC=$(get_service_name "n8n")
+N8N_MAIN_SVC=$(get_service_name "n8n-main")
+N8N_WORKER_SVC=$(get_service_name "n8n-worker")
+N8N_WEBHOOK_SVC=$(get_service_name "n8n-webhook")
+if [[ -z "$N8N_MAIN_SVC" ]]; then
+    N8N_MAIN_SVC=$(get_service_name "n8n")
+fi
 LIBRECHAT_SVC=$(get_service_name "librechat")
 PORTAL_SVC=$(get_service_name "portal")
 PAPERCLIP_SVC=$(get_service_name "paperclip")
@@ -86,9 +92,11 @@ echo ""
 echo "[INFO] Generating shared secrets..."
 TRUSTED_PROXY_SECRET=$(openssl rand -hex 32)
 N8N_ENCRYPTION_KEY=$(openssl rand -hex 32)
+REDIS_PASSWORD=$(openssl rand -hex 24)
 
 echo "  TRUSTED_PROXY_SECRET  = ${TRUSTED_PROXY_SECRET:0:8}..."
 echo "  N8N_ENCRYPTION_KEY    = ${N8N_ENCRYPTION_KEY:0:8}..."
+echo "  REDIS_PASSWORD        = ${REDIS_PASSWORD:0:8}..."
 
 # ─── Helper: set variable on a service ───────────────────────
 set_var() {
@@ -120,25 +128,54 @@ echo ""
 echo "[INFO] Configuring auth-proxy..."
 set_var "$AUTH_PROXY_SVC" "BETTER_AUTH_PUBLIC_HOST" "${TENANT}.auth.${DOMAIN_ROOT}"
 set_var "$AUTH_PROXY_SVC" "N8N_PUBLIC_HOST" "${TENANT}.n8n.${DOMAIN_ROOT}"
+if [[ -n "$N8N_MAIN_SVC" ]]; then
+    set_var "$AUTH_PROXY_SVC" "N8N_INTERNAL_URL" "http://${N8N_MAIN_SVC}.railway.internal:5678"
+fi
+if [[ -n "$N8N_WEBHOOK_SVC" ]]; then
+    set_var "$AUTH_PROXY_SVC" "N8N_WEBHOOK_INTERNAL_URL" "http://${N8N_WEBHOOK_SVC}.railway.internal:5678"
+fi
 set_var "$AUTH_PROXY_SVC" "FLOWISE_PUBLIC_HOST" "${TENANT}.flowise.${DOMAIN_ROOT}"
 set_var "$AUTH_PROXY_SVC" "PAPERCLIP_PUBLIC_HOST" "${TENANT}.paperclip.${DOMAIN_ROOT}"
 set_var "$AUTH_PROXY_SVC" "LIBRECHAT_PUBLIC_HOST" "${TENANT}.chat.${DOMAIN_ROOT}"
 set_var "$AUTH_PROXY_SVC" "TRUSTED_PROXY_SECRET" "$TRUSTED_PROXY_SECRET"
 
-# ─── 3. Configure n8n ────────────────────────────────────────
+# ─── 3. Configure redis ───────────────────────────────────────
 echo ""
-echo "[INFO] Configuring n8n..."
-set_var "$N8N_SVC" "WEBHOOK_URL" "https://${TENANT}.n8n.${DOMAIN_ROOT}"
-set_var "$N8N_SVC" "N8N_ENCRYPTION_KEY" "$N8N_ENCRYPTION_KEY"
-set_var "$N8N_SVC" "N8N_AUTH_TRUSTED_PROXY_SECRET" "$TRUSTED_PROXY_SECRET"
+echo "[INFO] Configuring redis..."
+set_var "$REDIS_SVC" "REDIS_PASSWORD" "$REDIS_PASSWORD"
 
-# ─── 4. Configure librechat ──────────────────────────────────
+# ─── 4. Configure n8n cluster ────────────────────────────────
+echo ""
+echo "[INFO] Configuring n8n cluster..."
+for svc in "$N8N_MAIN_SVC" "$N8N_WORKER_SVC" "$N8N_WEBHOOK_SVC"; do
+    [[ -z "$svc" ]] && continue
+    set_var "$svc" "WEBHOOK_URL" "https://${TENANT}.n8n.${DOMAIN_ROOT}"
+    set_var "$svc" "N8N_ENCRYPTION_KEY" "$N8N_ENCRYPTION_KEY"
+    set_var "$svc" "N8N_AUTH_TRUSTED_PROXY_SECRET" "$TRUSTED_PROXY_SECRET"
+    if [[ -n "$REDIS_SVC" ]]; then
+        set_var "$svc" "QUEUE_BULL_REDIS_HOST" "${REDIS_SVC}.railway.internal"
+        set_var "$svc" "QUEUE_BULL_REDIS_PORT" "6379"
+        set_var "$svc" "QUEUE_BULL_REDIS_PASSWORD" "$REDIS_PASSWORD"
+        set_var "$svc" "QUEUE_BULL_REDIS_DB" "0"
+    fi
+done
+set_var "$N8N_MAIN_SVC" "EXECUTIONS_MODE" "queue"
+set_var "$N8N_MAIN_SVC" "OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS" "true"
+set_var "$N8N_MAIN_SVC" "N8N_DISABLE_PRODUCTION_MAIN_PROCESS" "true"
+set_var "$N8N_MAIN_SVC" "N8N_RUNNERS_ENABLED" "true"
+set_var "$N8N_WORKER_SVC" "EXECUTIONS_MODE" "queue"
+set_var "$N8N_WORKER_SVC" "N8N_RUNNERS_ENABLED" "true"
+set_var "$N8N_WORKER_SVC" "N8N_CONCURRENCY_PRODUCTION_LIMIT" "10"
+set_var "$N8N_WEBHOOK_SVC" "EXECUTIONS_MODE" "queue"
+set_var "$N8N_WEBHOOK_SVC" "N8N_RUNNERS_ENABLED" "true"
+
+# ─── 5. Configure librechat ──────────────────────────────────
 echo ""
 echo "[INFO] Configuring librechat..."
 set_var "$LIBRECHAT_SVC" "LIBRECHAT_AUTH_TRUSTED_PROXY_SECRET" "$TRUSTED_PROXY_SECRET"
 set_var "$LIBRECHAT_SVC" "RAG_API_URL" "http://rag-api.railway.internal:8000"
 
-# ─── 5. Configure portal ─────────────────────────────────────
+# ─── 6. Configure portal ─────────────────────────────────────
 echo ""
 echo "[INFO] Configuring portal..."
 set_var "$PORTAL_SVC" "AGENTYX_CLIENT_SLUG" "$TENANT"
@@ -153,20 +190,20 @@ set_var "$PORTAL_SVC" "N8N_URL" "https://${TENANT}.n8n.${DOMAIN_ROOT}"
 set_var "$PORTAL_SVC" "FLOWISE_URL" "https://${TENANT}.flowise.${DOMAIN_ROOT}"
 set_var "$PORTAL_SVC" "PAPERCLIP_URL" "https://${TENANT}.paperclip.${DOMAIN_ROOT}"
 
-# ─── 6. Configure paperclip ──────────────────────────────────
+# ─── 7. Configure paperclip ──────────────────────────────────
 echo ""
 echo "[INFO] Configuring paperclip..."
 set_var "$PAPERCLIP_SVC" "PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET" "$TRUSTED_PROXY_SECRET"
 set_var "$PAPERCLIP_SVC" "PAPERCLIP_ALLOWED_HOSTNAMES" "paperclip.railway.internal,${TENANT}.paperclip.${DOMAIN_ROOT}"
 set_var "$PAPERCLIP_SVC" "BETTER_AUTH_TRUSTED_ORIGINS" "https://${TENANT}.paperclip.${DOMAIN_ROOT},https://${TENANT}.auth.${DOMAIN_ROOT}"
 
-# ─── 7. Configure flowise ────────────────────────────────────
+# ─── 8. Configure flowise ────────────────────────────────────
 echo ""
 echo "[INFO] Configuring flowise..."
 set_var "$FLOWISE_SVC" "FLOWISE_AUTH_TRUSTED_PROXY_SECRET" "$TRUSTED_PROXY_SECRET"
 set_var "$FLOWISE_SVC" "NEXTAUTH_URL" "https://${TENANT}.flowise.${DOMAIN_ROOT}"
 
-# ─── 8. Add custom domains ───────────────────────────────────
+# ─── 9. Add custom domains ───────────────────────────────────
 echo ""
 echo "[INFO] Adding custom domains..."
 
@@ -182,13 +219,13 @@ add_domain() {
 }
 
 add_domain "$BETTER_AUTH_SVC" "${TENANT}.auth.${DOMAIN_ROOT}"
-add_domain "$N8N_SVC" "${TENANT}.n8n.${DOMAIN_ROOT}"
+add_domain "$N8N_MAIN_SVC" "${TENANT}.n8n.${DOMAIN_ROOT}"
 add_domain "$FLOWISE_SVC" "${TENANT}.flowise.${DOMAIN_ROOT}"
 add_domain "$PAPERCLIP_SVC" "${TENANT}.paperclip.${DOMAIN_ROOT}"
 add_domain "$LIBRECHAT_SVC" "${TENANT}.chat.${DOMAIN_ROOT}"
 add_domain "$PORTAL_SVC" "${TENANT}.portal.${DOMAIN_ROOT}"
 
-# ─── 9. Summary ──────────────────────────────────────────────
+# ─── 10. Summary ─────────────────────────────────────────────
 echo ""
 echo "========================================"
 echo "Tenant Configuration Complete"

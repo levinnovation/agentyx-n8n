@@ -7,6 +7,7 @@ The `composio-mcp` service exposes Composio tools over **MCP Streamable HTTP** s
 ## Architecture
 
 - **n8n** → Bearer `MCP_AUTH_TOKEN` → **composio-mcp** `/mcp` → Composio REST API (`x-api-key`).
+- Railway edge proxy is the load balancer entry point for the public host and distributes requests round-robin across healthy service replicas.
 - Health: `GET /healthz` (no auth).
 
 ## Deploy (Railway)
@@ -22,6 +23,27 @@ The `composio-mcp` service exposes Composio tools over **MCP Streamable HTTP** s
 
 See `services/composio-mcp/.env.example` for tuning variables.
 
+## Scaling (Railway)
+
+Baseline is `numReplicas = 3` in `services/composio-mcp/railway.toml`.
+
+```bash
+railway link --project client-levinnovation-agentyx --environment production
+railway service composio-mcp
+railway up
+```
+
+If replicas are not applied by `railway up`, set them directly:
+
+```bash
+railway service update --replicas 3
+```
+
+Notes:
+
+- Keep n8n MCP endpoint unchanged (`https://<railway-public-host>/mcp`); the public host stays as the load balancer entry point.
+- Railway plan must support multi-replica deployments (Pro/Team).
+
 ## n8n node configuration
 
 | Parameter | Value |
@@ -30,6 +52,7 @@ See `services/composio-mcp/.env.example` for tuning variables.
 | Server Transport | Streamable HTTP |
 | Authentication | Bearer Token |
 | Token | Railway `MCP_AUTH_TOKEN` |
+| Optional headers | `x-entity-id`, `x-connected-account-id`, `x-user-prompt={{ $('Chat Trigger').item.json.chatInput }}` |
 
 ## Verification
 
@@ -52,8 +75,10 @@ Structured JSON logs include:
 | 401 on `/mcp` | Bearer token mismatch; verify `MCP_AUTH_TOKEN` in n8n vs Railway |
 | Composio 401/403 | Rotate `COMPOSIO_API_KEY`; confirm project key |
 | Empty tool list | Adjust `COMPOSIO_ALLOWED_*`; increase `COMPOSIO_TOOLS_MAX`; check toolkits connected in Composio |
+| Search tool returns unrelated actions | Keep `COMPOSIO_SEARCH_PLANNER_FALLBACK=true` so `composio_search_tools` can use Composio planner fallback when local ranking misses intent |
 | Execute errors | Set `COMPOSIO_ENTITY_ID` / `COMPOSIO_CONNECTED_ACCOUNT_ID`; verify OAuth connection in Composio dashboard |
-| Agent says it cannot send email | Check `/accounts` output for `gmail`; set `x-connected-account-id` in n8n MCP headers; optionally constrain with `COMPOSIO_ALLOWED_TOOLKITS=gmail,...` |
+| Agent says it cannot send email | Check `/accounts` output for `gmail`; verify `x-user-prompt` header is forwarded; set `x-connected-account-id`; confirm allowlists do not hide Gmail |
+| User has no connected account for toolkit | Add toolkit to `COMPOSIO_AUTO_CONNECT_TOOLKITS`; agent can call `composio_initiate_connection` and return redirect URL for OAuth completion |
 
 ## Security
 

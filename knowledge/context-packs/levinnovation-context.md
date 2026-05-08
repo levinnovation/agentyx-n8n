@@ -23,7 +23,18 @@
 - External systems: RapidAPI (LinkedIn source), OpenRouter, HubSpot,
   Google Calendar, Gmail, Slack
 
+## Deployment highlights
+
+- Tenant Railway source of truth: `tenants/levinnovation/assets/deploy/railway/`
+- n8n runs in queue mode cluster:
+  - `n8n-main` (UI/API/scheduler),
+  - `n8n-worker` (execution workers),
+  - `n8n-webhook` (webhook ingress),
+  - `redis` (Bull queue backend).
+- Public entrypoint remains `levinnovation.n8n.agentyx.one` via `auth-proxy` path-based routing.
+
 ## Tenant-specific knowledge
 
 - `knowledge/tenants/levinnovation/domain-decisions.md`
 - `knowledge/tenants/levinnovation/capability-decisions.md`
+- `knowledge/decisions/0025-n8n-queue-mode-cluster.md`

@@ -6,7 +6,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 
-import { ComposioClient } from './composio.js';
+import { ComposioClient, StructuredToolError } from './composio.js';
 import { logLine } from './logger.js';
 import { inputParametersToJsonSchema } from './schema-utils.js';
 
@@ -57,12 +57,124 @@ function getComposioClient(): ComposioClient {
 	return composioClient;
 }
 
+function normalizeListFromEnv(value?: string): string[] {
+	return (value ?? '')
+		.split(',')
+		.map((item) => item.trim())
+		.filter(Boolean);
+}
+
+function hasExplicitAllowlistConfigured(): boolean {
+	return (
+		normalizeListFromEnv(process.env.COMPOSIO_ALLOWED_TOOLKITS).length > 0 ||
+		normalizeListFromEnv(process.env.COMPOSIO_ALLOWED_ACTIONS).length > 0
+	);
+}
+
+function getAutoConnectAllowlist(): Set<string> {
+	return new Set(
+		normalizeListFromEnv(process.env.COMPOSIO_AUTO_CONNECT_TOOLKITS).map((item) => item.toLowerCase()),
+	);
+}
+
+function getMetaTools(): MetaToolDescriptor[] {
+	if (hasExplicitAllowlistConfigured()) return [];
+	const base = [SEARCH_META_TOOL, EXECUTE_META_TOOL];
+	if (getAutoConnectAllowlist().size > 0) {
+		base.push(INITIATE_CONNECTION_META_TOOL, CHECK_CONNECTION_META_TOOL);
+	}
+	return base;
+}
+
+function extractUserPrompt(req: Request, body: unknown): string | undefined {
+	const cap = 4000;
+	const header = req.headers['x-user-prompt'];
+	if (typeof header === 'string') {
+		const trimmed = header.trim();
+		if (trimmed) return trimmed.slice(0, cap);
+	}
+	if (Array.isArray(header)) {
+		const first = header.find((value) => value.trim().length > 0);
+		if (first) return first.trim().slice(0, cap);
+	}
+	if (typeof body !== 'object' || body === null) return undefined;
+	const params = (body as { params?: unknown }).params;
+	if (typeof params !== 'object' || params === null) return undefined;
+	const meta = (params as { _meta?: unknown })._meta;
+	if (typeof meta !== 'object' || meta === null) return undefined;
+	const direct = (meta as { userPrompt?: unknown }).userPrompt;
+	if (typeof direct === 'string' && direct.trim()) return direct.trim().slice(0, cap);
+	const alternative = (meta as { 'x-user-prompt'?: unknown })['x-user-prompt'];
+	if (typeof alternative === 'string' && alternative.trim()) return alternative.trim().slice(0, cap);
+	return undefined;
+}
+
 interface McpRequestContext {
 	preferredCategories?: string[];
 	maxTools?: number;
 	entityId?: string;
 	connectedAccountId?: string;
+	userPrompt?: string;
 }
+
+interface MetaToolDescriptor {
+	name: string;
+	description: string;
+	inputSchema: Record<string, unknown>;
+}
+
+const SEARCH_META_TOOL: MetaToolDescriptor = {
+	name: 'composio_search_tools',
+	description:
+		'Search the full Composio tool catalog by natural-language query and return matching slugs with JSON Schemas.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			query: { type: 'string' },
+			max_results: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
+		},
+		required: ['query'],
+	},
+};
+
+const EXECUTE_META_TOOL: MetaToolDescriptor = {
+	name: 'composio_execute_tool',
+	description: 'Execute any Composio tool by slug after discovering it via composio_search_tools.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			slug: { type: 'string' },
+			arguments: { type: 'object' },
+		},
+		required: ['slug'],
+	},
+};
+
+const INITIATE_CONNECTION_META_TOOL: MetaToolDescriptor = {
+	name: 'composio_initiate_connection',
+	description:
+		'Start Composio connected-account creation for a toolkit. OAuth returns redirect_url; API-key toolkits accept credentials object.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			toolkit: { type: 'string' },
+			credentials: { type: 'object' },
+		},
+		required: ['toolkit'],
+	},
+};
+
+const CHECK_CONNECTION_META_TOOL: MetaToolDescriptor = {
+	name: 'composio_check_connection',
+	description: 'Check status of a previously initiated Composio connected account.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			connected_account_id: { type: 'string' },
+		},
+		required: ['connected_account_id'],
+	},
+};
 
 function createMcpServer(client: ComposioClient, correlationId: string, ctx?: McpRequestContext) {
 	const server = new Server(
@@ -77,22 +189,28 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 				preferredCategories: ctx?.preferredCategories,
 				maxTools: ctx?.maxTools,
 				entityId: ctx?.entityId,
+				userPrompt: ctx?.userPrompt,
 			});
+			const metaTools = getMetaTools();
+			const boundedTools =
+				ctx?.maxTools && ctx.maxTools > 0 && metaTools.length > 0
+					? tools.slice(0, Math.max(ctx.maxTools - metaTools.length, 1))
+					: tools;
+			const formattedTools = boundedTools.map((t) => ({
+				name: t.slug,
+				description: t.description || t.human_description || t.name || `Composio tool ${t.slug}`,
+				inputSchema: inputParametersToJsonSchema(t.input_parameters),
+			}));
 			logLine('info', 'mcp_list_tools', {
 				correlationId,
-				toolCount: tools.length,
+				toolCount: formattedTools.length + metaTools.length,
 				durationMs: Date.now() - t0,
 			});
 			return {
-				tools: tools.map((t) => ({
-					name: t.slug,
-					description:
-						t.description ||
-						t.human_description ||
-						t.name ||
-						`Composio tool ${t.slug}`,
-					inputSchema: inputParametersToJsonSchema(t.input_parameters),
-				})),
+				tools: [
+					...metaTools,
+					...formattedTools,
+				],
 			};
 		} catch (e) {
 			logLine('error', 'mcp_list_tools_failed', {
@@ -123,10 +241,73 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 		}
 
 		try {
-			const result = await client.executeTool(name, args as Record<string, unknown>, correlationId, {
-				entityId: ctx?.entityId,
-				connectedAccountId: ctx?.connectedAccountId,
-			});
+			let result: unknown;
+			if (name === 'composio_search_tools') {
+				const query = typeof args.query === 'string' ? args.query.trim() : '';
+				if (!query) throw new Error('query is required');
+				const maxResultsRaw = Number(args.max_results ?? 10);
+				const maxResults = Math.max(1, Math.min(Number.isFinite(maxResultsRaw) ? maxResultsRaw : 10, 50));
+				const search = await client.searchToolsWithComposioFallback(correlationId, query, maxResults);
+				const tools = search.tools;
+				result = tools.map((tool) => ({
+					slug: tool.slug,
+					name: tool.name,
+					description: tool.description || tool.human_description || '',
+					toolkit: tool.toolkit?.slug ?? null,
+					inputSchema: inputParametersToJsonSchema(tool.input_parameters),
+					search_source: search.source,
+				}));
+			} else if (name === 'composio_execute_tool') {
+				const slug = typeof args.slug === 'string' ? args.slug.trim() : '';
+				if (!/^[A-Z0-9_]+$/.test(slug)) {
+					throw new Error('slug must be uppercase + underscores');
+				}
+				const invokeArgs =
+					typeof args.arguments === 'object' && args.arguments !== null
+						? (args.arguments as Record<string, unknown>)
+						: {};
+				result = await client.executeTool(slug, invokeArgs, correlationId, {
+					entityId: ctx?.entityId,
+					connectedAccountId: ctx?.connectedAccountId,
+					userPrompt: ctx?.userPrompt,
+				});
+			} else if (name === 'composio_initiate_connection') {
+				const toolkit = typeof args.toolkit === 'string' ? args.toolkit.trim() : '';
+				if (!toolkit) throw new Error('toolkit is required');
+				const credentials =
+					typeof args.credentials === 'object' && args.credentials !== null
+						? (args.credentials as Record<string, unknown>)
+						: undefined;
+				const initiated = await client.initiateConnectedAccount(
+					{ toolkit, credentials, entityId: ctx?.entityId },
+					correlationId,
+				);
+				result = initiated.redirectUrl
+					? {
+							kind: 'oauth_connection_required',
+							toolkit: initiated.toolkit,
+							connected_account_id: initiated.connectedAccountId,
+							redirect_url: initiated.redirectUrl,
+							message: `OAuth required. Open this URL to connect ${initiated.toolkit}, then retry.`,
+						}
+					: {
+							kind: 'connection_ready',
+							toolkit: initiated.toolkit,
+							connected_account_id: initiated.connectedAccountId,
+							status: initiated.status,
+							message: `${initiated.toolkit} connected. You can retry now.`,
+						};
+			} else if (name === 'composio_check_connection') {
+				const id = typeof args.connected_account_id === 'string' ? args.connected_account_id.trim() : '';
+				if (!id) throw new Error('connected_account_id is required');
+				result = await client.getConnectedAccountStatus(correlationId, id);
+			} else {
+				result = await client.executeTool(name, args as Record<string, unknown>, correlationId, {
+					entityId: ctx?.entityId,
+					connectedAccountId: ctx?.connectedAccountId,
+					userPrompt: ctx?.userPrompt,
+				});
+			}
 			logLine('info', 'mcp_tool_ok', {
 				correlationId,
 				name,
@@ -141,6 +322,18 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 				],
 			};
 		} catch (e) {
+			if (e instanceof StructuredToolError) {
+				logLine('warn', 'mcp_tool_structured_error', {
+					correlationId,
+					name,
+					durationMs: Date.now() - t0,
+					kind: e.payload.kind ?? 'unknown',
+				});
+				return {
+					content: [{ type: 'text' as const, text: JSON.stringify(e.payload, null, 2) }],
+					isError: true,
+				};
+			}
 			const msg = e instanceof Error ? e.message : String(e);
 			logLine('error', 'mcp_tool_failed', {
 				correlationId,
@@ -223,8 +416,15 @@ app.post('/mcp', async (req, res) => {
 	const accountHeader = req.headers['x-connected-account-id'];
 	const connectedAccountId =
 		typeof accountHeader === 'string' && accountHeader.trim() ? accountHeader.trim() : undefined;
+	const userPrompt = extractUserPrompt(req, req.body);
 
-	const mcp = createMcpServer(client, cid, { preferredCategories, maxTools, entityId, connectedAccountId });
+	const mcp = createMcpServer(client, cid, {
+		preferredCategories,
+		maxTools,
+		entityId,
+		connectedAccountId,
+		userPrompt,
+	});
 	try {
 		const transport = new StreamableHTTPServerTransport({
 			sessionIdGenerator: undefined,

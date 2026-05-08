@@ -1,3 +1,10 @@
 # Optional: Railway references this file when the service root is `services/composio-mcp`.
 [build]
 builder = "DOCKERFILE"
+
+[deploy]
+numReplicas = 3
+healthcheckPath = "/healthz"
+healthcheckTimeout = 10
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

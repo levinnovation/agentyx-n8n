@@ -16,12 +16,29 @@
 }
 
 http://demo.n8n.agentyx.one {
-  forward_auth agx-demo-better-auth.railway.internal:3000 {
-    uri /api/auth/forward-auth
-    copy_headers X-Auth-User X-Auth-Email
+  @n8n_webhooks path /webhook /webhook/* /form /form/* /rest/oauth2-credential/callback /rest/oauth1-credential/callback
+  @n8n_test_webhooks path /webhook-test /webhook-test/* /webhook-waiting /webhook-waiting/*
+
+  handle @n8n_webhooks {
+    reverse_proxy agx-demo-n8n-webhook.railway.internal:5678 {
+      header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
+    }
   }
-  reverse_proxy agx-demo-n8n.railway.internal:5678 {
-    header_up X-Auth-Proxy-Secret d8b41ea5019707b341f3bd6b5ab7131c456801f36404c4d3785fd03f02ebaf33
+
+  handle @n8n_test_webhooks {
+    reverse_proxy agx-demo-n8n.railway.internal:5678 {
+      header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
+    }
+  }
+
+  handle {
+    forward_auth agx-demo-better-auth.railway.internal:3000 {
+      uri /api/auth/forward-auth
+      copy_headers X-Auth-User X-Auth-Email
+    }
+    reverse_proxy agx-demo-n8n.railway.internal:5678 {
+      header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
+    }
   }
 }
 
@@ -31,7 +48,7 @@ http://demo.flowise.agentyx.one {
     copy_headers X-Auth-User X-Auth-Email
   }
   reverse_proxy agx-demo-flowise.railway.internal:3000 {
-    header_up X-Auth-Proxy-Secret d8b41ea5019707b341f3bd6b5ab7131c456801f36404c4d3785fd03f02ebaf33
+    header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
   }
 }
 
@@ -45,7 +62,7 @@ http://demo.paperclip.agentyx.one {
     header_up X-Auth-User-Email {http.request.header.X-Auth-Email}
     header_up X-Auth-User-Name {http.request.header.X-Auth-User-Name}
     header_up X-Auth-User-Role {http.request.header.X-Auth-User-Role}
-    header_up X-Auth-Proxy-Secret d8b41ea5019707b341f3bd6b5ab7131c456801f36404c4d3785fd03f02ebaf33
+    header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
   }
 }
 
@@ -55,6 +72,6 @@ http://demo.chat.agentyx.one {
     copy_headers X-Auth-User X-Auth-Email
   }
   reverse_proxy agx-demo-librechat.railway.internal:3080 {
-    header_up X-Auth-Proxy-Secret d8b41ea5019707b341f3bd6b5ab7131c456801f36404c4d3785fd03f02ebaf33
+    header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
   }
 }

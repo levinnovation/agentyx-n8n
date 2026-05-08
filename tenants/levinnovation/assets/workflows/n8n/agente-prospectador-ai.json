@@ -1000,7 +1000,7 @@
           "parameters": [
             {
               "name": "X-API-Key",
-              "value": "ak_SfPCPakYY4ZZadH4f0Gg"
+              "value": "={{ $env.COMPOSIO_API_KEY }}"
             },
             {
               "name": "Content-Type",

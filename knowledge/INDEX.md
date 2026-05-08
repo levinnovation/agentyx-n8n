@@ -29,8 +29,11 @@
 
 ### `change-log/`
 
+- [change-log/2026-05-07-composio-mcp-horizontal-scaling.md](change-log/2026-05-07-composio-mcp-horizontal-scaling.md)
+- [change-log/2026-05-07-composio-mcp-prompt-inferred-tools.md](change-log/2026-05-07-composio-mcp-prompt-inferred-tools.md)
 - [change-log/2026-05-07-composio-mcp-service.md](change-log/2026-05-07-composio-mcp-service.md)
 - [change-log/2026-05-07-composio-mcp-smart-accounts.md](change-log/2026-05-07-composio-mcp-smart-accounts.md)
+- [change-log/2026-05-07-n8n-queue-mode-cluster.md](change-log/2026-05-07-n8n-queue-mode-cluster.md)
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
 - [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
@@ -93,6 +96,10 @@
 - [decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md](decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md)
 - [decisions/0020-add-levinnovation-as-internal-tenant.md](decisions/0020-add-levinnovation-as-internal-tenant.md)
 - [decisions/0021-composio-mcp-smart-account-selection.md](decisions/0021-composio-mcp-smart-account-selection.md)
+- [decisions/0022-composio-mcp-prompt-inferred-tools.md](decisions/0022-composio-mcp-prompt-inferred-tools.md)
+- [decisions/0023-composio-mcp-auto-connect-accounts.md](decisions/0023-composio-mcp-auto-connect-accounts.md)
+- [decisions/0024-composio-mcp-horizontal-scaling.md](decisions/0024-composio-mcp-horizontal-scaling.md)
+- [decisions/0025-n8n-queue-mode-cluster.md](decisions/0025-n8n-queue-mode-cluster.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -127,6 +134,7 @@
 - [operations/how-to-update-agent-context-files.md](operations/how-to-update-agent-context-files.md)
 - [operations/how-to-update-context-packs.md](operations/how-to-update-context-packs.md)
 - [operations/n8n-mcp-setup.md](operations/n8n-mcp-setup.md)
+- [operations/n8n-queue-mode-runbook.md](operations/n8n-queue-mode-runbook.md)
 - [operations/railway-dashboard-setup-guide.md](operations/railway-dashboard-setup-guide.md)
 - [operations/railway-internal-template.md](operations/railway-internal-template.md)
 - [operations/railway-template-sources.md](operations/railway-template-sources.md)

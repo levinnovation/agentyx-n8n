@@ -12,7 +12,7 @@ LangGraph agents, n8n workflows, channel adapters, prompts, integrations, data c
 
 **n8n runtime:** Euromobilia may use a **self-hosted** n8n CE stack documented under `tenants/euromobilia/assets/deploy/n8n-hostinger/`; workflow JSON remains under `tenants/euromobilia/assets/workflows/n8n/`.
 
-**Railway tenant stack:** The canonical per-tenant deployment platform is Railway (ADR-0010). Template lives at `templates/assets/railway-tenant-stack/` with services: postgres, n8n, librechat, paperclip, langfuse, agent, agentyx-portal, flowise (optional), **better-auth**, and **auth-proxy** (ADR-0012).
+**Railway tenant stack:** The canonical per-tenant deployment platform is Railway (ADR-0010). Template lives at `templates/assets/railway-tenant-stack/` with services: postgres, redis, n8n-main, n8n-worker, n8n-webhook, librechat, paperclip, langfuse, agent, agentyx-portal, flowise (optional), **better-auth**, and **auth-proxy** (ADR-0012, ADR-0024).
 
 **Interfaces:** Customer and operator surfaces (WhatsApp, Slack, Microsoft Teams, web widget, web chat, Telegram, email, etc.) attach through **channel-adapter** and related workflow assets. A capability may reference **several** channels over time. Do not describe the repository as a single-channel or single-vendor product—see **ADR-0007** in `knowledge/decisions/`.
 

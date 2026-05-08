@@ -1,0 +1,14 @@
+id: redis
+name: Redis Queue
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: Redis backing store for n8n queue-mode services.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

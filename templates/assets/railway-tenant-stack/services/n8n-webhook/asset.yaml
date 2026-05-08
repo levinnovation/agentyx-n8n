@@ -1,0 +1,14 @@
+id: n8n-webhook
+name: n8n Webhook
+type: deployment
+tenant: "{{tenant_id}}"
+domain: "{{domain_id}}"
+capability: "{{capability_id}}"
+status: active
+description: n8n queue-mode webhook processor service.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

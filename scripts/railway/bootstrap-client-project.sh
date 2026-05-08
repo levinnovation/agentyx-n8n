@@ -111,13 +111,16 @@ create_service() {
 
 AUTH_SVC=$(create_service "agx-${CLIENT_SLUG}-auth")
 PORTAL_SVC=$(create_service "agx-${CLIENT_SLUG}-portal")
-N8N_SVC=$(create_service "agx-${CLIENT_SLUG}-n8n")
+N8N_MAIN_SVC=$(create_service "agx-${CLIENT_SLUG}-n8n-main")
+N8N_WORKER_SVC=$(create_service "agx-${CLIENT_SLUG}-n8n-worker")
+N8N_WEBHOOK_SVC=$(create_service "agx-${CLIENT_SLUG}-n8n-webhook")
 FLOWISE_SVC=$(create_service "agx-${CLIENT_SLUG}-flowise")
 PAPERCLIP_SVC=$(create_service "agx-${CLIENT_SLUG}-paperclip")
 LIBRECHAT_SVC=$(create_service "agx-${CLIENT_SLUG}-librechat")
 RAG_SVC=$(create_service "agx-${CLIENT_SLUG}-rag-api")
 LANGFUSE_SVC=$(create_service "agx-${CLIENT_SLUG}-langfuse")
 AGENT_SVC=$(create_service "agx-${CLIENT_SLUG}-agent")
+REDIS_SVC=$(create_service "agx-${CLIENT_SLUG}-redis")
 
 echo "  [OK] Services created"
 
@@ -136,7 +139,9 @@ connect_repo() {
 
 connect_repo "$AUTH_SVC"     "$ORG/agentyx-auth-service"     "main"
 connect_repo "$PORTAL_SVC"   "$ORG/agentyx-client-portal"    "agentyx/main"
-connect_repo "$N8N_SVC"      "$ORG/agentyx-n8n"              "master"
+connect_repo "$N8N_MAIN_SVC" "$ORG/agentyx-n8n"              "master"
+connect_repo "$N8N_WORKER_SVC" "$ORG/agentyx-n8n"            "master"
+connect_repo "$N8N_WEBHOOK_SVC" "$ORG/agentyx-n8n"           "master"
 connect_repo "$FLOWISE_SVC"  "$ORG/agentyx-flowise"          "agentyx/main"
 connect_repo "$PAPERCLIP_SVC" "$ORG/agentyx-paperclip"       "agentyx/main"
 connect_repo "$LIBRECHAT_SVC" "$ORG/agentyx-librechat"       "agentyx/main"
@@ -167,7 +172,7 @@ create_domain() {
 create_domain "$AUTH_SVC"      "${CLIENT_SLUG}.auth.${DOMAIN_ROOT}"     3000
 create_domain "$PORTAL_SVC"   "${CLIENT_SLUG}.portal.${DOMAIN_ROOT}"   3000
 create_domain "$FLOWISE_SVC"  "${CLIENT_SLUG}.flowise.${DOMAIN_ROOT}"  3000
-create_domain "$N8N_SVC"      "${CLIENT_SLUG}.n8n.${DOMAIN_ROOT}"      5678
+create_domain "$N8N_MAIN_SVC" "${CLIENT_SLUG}.n8n.${DOMAIN_ROOT}"      5678
 create_domain "$PAPERCLIP_SVC" "${CLIENT_SLUG}.paperclip.${DOMAIN_ROOT}" 3100
 create_domain "$LIBRECHAT_SVC" "${CLIENT_SLUG}.chat.${DOMAIN_ROOT}"     3080
 
@@ -190,7 +195,7 @@ upsert_var "$AUTH_SVC" "PORTAL_URL" "https://${CLIENT_SLUG}.portal.${DOMAIN_ROOT
 upsert_var "$AUTH_SVC" "BETTER_AUTH_URL" "https://${CLIENT_SLUG}.auth.${DOMAIN_ROOT}"
 upsert_var "$AUTH_SVC" "BETTER_AUTH_TRUSTED_ORIGINS" "https://${CLIENT_SLUG}.portal.${DOMAIN_ROOT},https://${CLIENT_SLUG}.auth.${DOMAIN_ROOT},https://${CLIENT_SLUG}.flowise.${DOMAIN_ROOT},https://${CLIENT_SLUG}.n8n.${DOMAIN_ROOT},https://${CLIENT_SLUG}.paperclip.${DOMAIN_ROOT},https://${CLIENT_SLUG}.chat.${DOMAIN_ROOT}"
 upsert_var "$AUTH_SVC" "BACKEND_FLOWISE" "http://agx-${CLIENT_SLUG}-flowise.railway.internal:3000"
-upsert_var "$AUTH_SVC" "BACKEND_N8N" "http://agx-${CLIENT_SLUG}-n8n.railway.internal:5678"
+upsert_var "$AUTH_SVC" "BACKEND_N8N" "http://agx-${CLIENT_SLUG}-n8n-main.railway.internal:5678"
 upsert_var "$AUTH_SVC" "BACKEND_PAPERCLIP" "http://agx-${CLIENT_SLUG}-paperclip.railway.internal:3100"
 upsert_var "$AUTH_SVC" "BACKEND_LIBRECHAT" "http://agx-${CLIENT_SLUG}-librechat.railway.internal:3080"
 upsert_var "$AUTH_SVC" "PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET" "$PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET"
@@ -199,13 +204,32 @@ upsert_var "$AUTH_SVC" "PAPERCLIP_AUTH_TRUSTED_PROXY_SECRET" "$PAPERCLIP_AUTH_TR
 upsert_var "$PORTAL_SVC" "PORT" "8080"
 upsert_var "$PORTAL_SVC" "BETTER_AUTH_URL" "http://agx-${CLIENT_SLUG}-auth.railway.internal:3000"
 
-# n8n
-upsert_var "$N8N_SVC" "N8N_PORT" "5678"
-upsert_var "$N8N_SVC" "DB_TYPE" "postgresdb"
-upsert_var "$N8N_SVC" "DB_POSTGRESDB_DATABASE" "railway"
-upsert_var "$N8N_SVC" "DB_POSTGRESDB_SCHEMA" "n8n"
-upsert_var "$N8N_SVC" "N8N_ENCRYPTION_KEY" "$N8N_ENCRYPTION_KEY"
-upsert_var "$N8N_SVC" "WEBHOOK_URL" "https://${CLIENT_SLUG}.n8n.${DOMAIN_ROOT}"
+# redis
+REDIS_PASSWORD="$(openssl rand -hex 24)"
+upsert_var "$REDIS_SVC" "REDIS_PASSWORD" "$REDIS_PASSWORD"
+
+# n8n cluster
+for svc in "$N8N_MAIN_SVC" "$N8N_WORKER_SVC" "$N8N_WEBHOOK_SVC"; do
+    upsert_var "$svc" "N8N_PORT" "5678"
+    upsert_var "$svc" "DB_TYPE" "postgresdb"
+    upsert_var "$svc" "DB_POSTGRESDB_DATABASE" "railway"
+    upsert_var "$svc" "DB_POSTGRESDB_SCHEMA" "n8n"
+    upsert_var "$svc" "N8N_ENCRYPTION_KEY" "$N8N_ENCRYPTION_KEY"
+    upsert_var "$svc" "WEBHOOK_URL" "https://${CLIENT_SLUG}.n8n.${DOMAIN_ROOT}"
+    upsert_var "$svc" "QUEUE_BULL_REDIS_HOST" "agx-${CLIENT_SLUG}-redis.railway.internal"
+    upsert_var "$svc" "QUEUE_BULL_REDIS_PORT" "6379"
+    upsert_var "$svc" "QUEUE_BULL_REDIS_PASSWORD" "$REDIS_PASSWORD"
+    upsert_var "$svc" "QUEUE_BULL_REDIS_DB" "0"
+done
+upsert_var "$N8N_MAIN_SVC" "EXECUTIONS_MODE" "queue"
+upsert_var "$N8N_MAIN_SVC" "OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS" "true"
+upsert_var "$N8N_MAIN_SVC" "N8N_DISABLE_PRODUCTION_MAIN_PROCESS" "true"
+upsert_var "$N8N_MAIN_SVC" "N8N_RUNNERS_ENABLED" "true"
+upsert_var "$N8N_WORKER_SVC" "EXECUTIONS_MODE" "queue"
+upsert_var "$N8N_WORKER_SVC" "N8N_RUNNERS_ENABLED" "true"
+upsert_var "$N8N_WORKER_SVC" "N8N_CONCURRENCY_PRODUCTION_LIMIT" "10"
+upsert_var "$N8N_WEBHOOK_SVC" "EXECUTIONS_MODE" "queue"
+upsert_var "$N8N_WEBHOOK_SVC" "N8N_RUNNERS_ENABLED" "true"
 
 # Flowise
 upsert_var "$FLOWISE_SVC" "PORT" "3000"
@@ -262,7 +286,7 @@ deploy_svc() {
     graphql "$query" >/dev/null
 }
 
-for svc in "$AUTH_SVC" "$PORTAL_SVC" "$N8N_SVC" "$FLOWISE_SVC" "$PAPERCLIP_SVC" "$LIBRECHAT_SVC" "$RAG_SVC" "$LANGFUSE_SVC"; do
+for svc in "$AUTH_SVC" "$PORTAL_SVC" "$N8N_MAIN_SVC" "$N8N_WORKER_SVC" "$N8N_WEBHOOK_SVC" "$FLOWISE_SVC" "$PAPERCLIP_SVC" "$LIBRECHAT_SVC" "$RAG_SVC" "$LANGFUSE_SVC" "$REDIS_SVC"; do
     deploy_svc "$svc"
 done
 echo "  [OK] All services deployed"

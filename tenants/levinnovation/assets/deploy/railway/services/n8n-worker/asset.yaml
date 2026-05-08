@@ -1,0 +1,14 @@
+id: levinnovation-n8n-worker
+name: n8n Worker
+type: deployment
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: active
+description: n8n queue-mode worker service for LEV Innovation.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

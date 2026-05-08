@@ -1,0 +1,18 @@
+id: levinnovation-railway-stack
+name: LEV Innovation Railway Stack
+type: deployment
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: active
+version: "1.0.0"
+description: |
+  Per-tenant Railway project for LEV Innovation using a clustered n8n queue-mode
+  topology (main + workers + webhook processors + Redis).
+owner: "ops@levinnovation.com"
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

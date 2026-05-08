@@ -38,6 +38,15 @@
         "MEILI_MASTER_KEY": "${{secret(64)}}"
       }
     },
+    "redis": {
+      "source": {
+        "image": "redis:7-alpine"
+      },
+      "variables": {
+        "REDIS_PASSWORD": "${{secret(48)}}"
+      },
+      "notes": "Queue backend for n8n Bull workers and webhook processors."
+    },
     "better-auth": {
       "source": {
         "repo": "levinnovation/agentyx-vertical-assets",
@@ -68,7 +77,8 @@
         "TRUSTED_PROXY_SECRET": "${{secret(64)}}",
         "BETTER_AUTH_INTERNAL_URL": "better-auth.railway.internal:3000",
         "BETTER_AUTH_PUBLIC_HOST": "",
-        "N8N_INTERNAL_URL": "n8n.railway.internal:5678",
+        "N8N_INTERNAL_URL": "n8n-main.railway.internal:5678",
+        "N8N_WEBHOOK_INTERNAL_URL": "n8n-webhook.railway.internal:5678",
         "N8N_PUBLIC_HOST": "",
         "FLOWISE_INTERNAL_URL": "flowise.railway.internal:3000",
         "FLOWISE_PUBLIC_HOST": "",
@@ -78,7 +88,7 @@
         "LIBRECHAT_PUBLIC_HOST": ""
       }
     },
-    "n8n": {
+    "n8n-main": {
       "source": {
         "repo": "levinnovation/agentyx-n8n",
         "branch": "master"
@@ -87,6 +97,10 @@
         "PORT": "5678",
         "N8N_PORT": "5678",
         "N8N_HOST": "0.0.0.0",
+        "EXECUTIONS_MODE": "queue",
+        "OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS": "true",
+        "N8N_DISABLE_PRODUCTION_MAIN_PROCESS": "true",
+        "N8N_RUNNERS_ENABLED": "true",
         "DB_TYPE": "postgresdb",
         "DB_POSTGRESDB_DATABASE": "railway",
         "DB_POSTGRESDB_SCHEMA": "n8n",
@@ -95,17 +109,83 @@
         "DB_POSTGRESDB_USER": "${{Postgres.PGUSER}}",
         "DB_POSTGRESDB_PASSWORD": "${{Postgres.PGPASSWORD}}",
         "DB_POSTGRESDB_SSL": "true",
+        "QUEUE_BULL_REDIS_HOST": "redis.railway.internal",
+        "QUEUE_BULL_REDIS_PORT": "6379",
+        "QUEUE_BULL_REDIS_PASSWORD": "${{redis.REDIS_PASSWORD}}",
+        "QUEUE_BULL_REDIS_DB": "0",
         "WEBHOOK_URL": "${{RAILWAY_PUBLIC_DOMAIN}}",
-        "N8N_ENCRYPTION_KEY": "${{secret(64)}}",
+        "N8N_ENCRYPTION_KEY": "",
         "N8N_BASIC_AUTH_ACTIVE": "true",
         "N8N_BASIC_AUTH_USER": "admin",
         "N8N_BASIC_AUTH_PASSWORD": "${{secret(32)}}",
         "N8N_DIAGNOSTICS_ENABLED": "false",
-        "EXECUTIONS_MODE": "regular",
         "NODE_TLS_REJECT_UNAUTHORIZED": "0",
         "N8N_AUTH_TRUSTED_PROXY_SECRET": "",
         "GOOGLE_OAUTH_CLIENT_ID": "",
         "GOOGLE_OAUTH_CLIENT_SECRET": ""
+      }
+    },
+    "n8n-worker": {
+      "source": {
+        "repo": "levinnovation/agentyx-n8n",
+        "branch": "master"
+      },
+      "deploy": {
+        "numReplicas": 3
+      },
+      "variables": {
+        "PORT": "5678",
+        "N8N_PORT": "5678",
+        "N8N_HOST": "0.0.0.0",
+        "EXECUTIONS_MODE": "queue",
+        "N8N_RUNNERS_ENABLED": "true",
+        "N8N_CONCURRENCY_PRODUCTION_LIMIT": "10",
+        "DB_TYPE": "postgresdb",
+        "DB_POSTGRESDB_DATABASE": "railway",
+        "DB_POSTGRESDB_SCHEMA": "n8n",
+        "DB_POSTGRESDB_HOST": "${{Postgres.PGHOST}}",
+        "DB_POSTGRESDB_PORT": "${{Postgres.PGPORT}}",
+        "DB_POSTGRESDB_USER": "${{Postgres.PGUSER}}",
+        "DB_POSTGRESDB_PASSWORD": "${{Postgres.PGPASSWORD}}",
+        "DB_POSTGRESDB_SSL": "true",
+        "QUEUE_BULL_REDIS_HOST": "redis.railway.internal",
+        "QUEUE_BULL_REDIS_PORT": "6379",
+        "QUEUE_BULL_REDIS_PASSWORD": "${{redis.REDIS_PASSWORD}}",
+        "QUEUE_BULL_REDIS_DB": "0",
+        "WEBHOOK_URL": "${{RAILWAY_PUBLIC_DOMAIN}}",
+        "N8N_ENCRYPTION_KEY": "",
+        "N8N_AUTH_TRUSTED_PROXY_SECRET": ""
+      }
+    },
+    "n8n-webhook": {
+      "source": {
+        "repo": "levinnovation/agentyx-n8n",
+        "branch": "master"
+      },
+      "deploy": {
+        "numReplicas": 2
+      },
+      "variables": {
+        "PORT": "5678",
+        "N8N_PORT": "5678",
+        "N8N_HOST": "0.0.0.0",
+        "EXECUTIONS_MODE": "queue",
+        "N8N_RUNNERS_ENABLED": "true",
+        "DB_TYPE": "postgresdb",
+        "DB_POSTGRESDB_DATABASE": "railway",
+        "DB_POSTGRESDB_SCHEMA": "n8n",
+        "DB_POSTGRESDB_HOST": "${{Postgres.PGHOST}}",
+        "DB_POSTGRESDB_PORT": "${{Postgres.PGPORT}}",
+        "DB_POSTGRESDB_USER": "${{Postgres.PGUSER}}",
+        "DB_POSTGRESDB_PASSWORD": "${{Postgres.PGPASSWORD}}",
+        "DB_POSTGRESDB_SSL": "true",
+        "QUEUE_BULL_REDIS_HOST": "redis.railway.internal",
+        "QUEUE_BULL_REDIS_PORT": "6379",
+        "QUEUE_BULL_REDIS_PASSWORD": "${{redis.REDIS_PASSWORD}}",
+        "QUEUE_BULL_REDIS_DB": "0",
+        "WEBHOOK_URL": "${{RAILWAY_PUBLIC_DOMAIN}}",
+        "N8N_ENCRYPTION_KEY": "",
+        "N8N_AUTH_TRUSTED_PROXY_SECRET": ""
       }
     },
     "librechat": {
@@ -188,6 +268,10 @@
         "branch": "main",
         "rootDirectory": "services/composio-mcp"
       },
+      "deploy": {
+        "numReplicas": 3,
+        "healthcheckPath": "/healthz"
+      },
       "variables": {
         "PORT": "3000",
         "COMPOSIO_API_BASE": "https://backend.composio.dev/api/v3.1",
@@ -231,7 +315,10 @@
   "sharedSecrets": {
     "description": "These secrets must be identical across multiple services. After template deployment, run scripts/railway/deploy-from-template.sh to synchronize them.",
     "TRUSTED_PROXY_SECRET": {
-      "services": ["auth-proxy", "n8n", "librechat", "paperclip", "flowise"]
+      "services": ["auth-proxy", "n8n-main", "n8n-worker", "n8n-webhook", "librechat", "paperclip", "flowise"]
+    },
+    "N8N_ENCRYPTION_KEY": {
+      "services": ["n8n-main", "n8n-worker", "n8n-webhook"]
     }
   },
   "tenantCustomization": {
@@ -263,6 +350,11 @@
         "services": ["auth-proxy"]
       },
       {
+        "name": "N8N_WEBHOOK_INTERNAL_URL",
+        "example": "n8n-webhook.railway.internal:5678",
+        "services": ["auth-proxy"]
+      },
+      {
         "name": "FLOWISE_PUBLIC_HOST",
         "example": "{tenant}.flowise.agentyx.one",
         "services": ["auth-proxy"]
@@ -285,7 +377,7 @@
       {
         "name": "WEBHOOK_URL",
         "example": "https://{tenant}.n8n.agentyx.one",
-        "services": ["n8n"]
+        "services": ["n8n-main", "n8n-worker", "n8n-webhook"]
       },
       {
         "name": "NEXT_PUBLIC_AUTH_URL",

@@ -63,7 +63,23 @@
             "name": "MCP Bearer Auth"
           }
         },
-        "include": "all"
+        "include": "all",
+        "headers": {
+          "values": [
+            {
+              "name": "x-entity-id",
+              "value": "={{ $env.COMPOSIO_ENTITY_ID }}"
+            },
+            {
+              "name": "x-connected-account-id",
+              "value": "={{ $env.COMPOSIO_CONNECTED_ACCOUNT_ID }}"
+            },
+            {
+              "name": "x-user-prompt",
+              "value": "={{ $('Chat Trigger').item.json.chatInput }}"
+            }
+          ]
+        }
       },
       "id": "3f3b400e-0d8d-bbbc-89f9-9707068dbae8",
       "name": "MCP Client Tool (Composio)",

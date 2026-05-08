@@ -1,0 +1,14 @@
+id: levinnovation-auth-proxy
+name: Auth Proxy
+type: deployment
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: active
+description: Caddy forward-auth proxy for LEV Innovation public service domains.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

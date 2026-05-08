@@ -39,6 +39,13 @@ docker run --rm -p 3000:3000 \
 2. Set variables from [`.env.example`](./.env.example).
 3. Deploy and note the public HTTPS URL.
 
+### Horizontal scaling (Railway)
+
+- `services/composio-mcp/railway.toml` sets `numReplicas = 3` as the baseline.
+- Railway's edge proxy keeps the same public service URL and load balances requests round-robin across healthy replicas.
+- Each replica keeps its own in-memory cache (tool catalog and connected accounts), refreshed lazily with a 5-minute TTL.
+- Keep n8n endpoint unchanged: `https://<your-service-host>/mcp`.
+
 ### n8n MCP Client Tool
 
 | Field | Value |
@@ -61,6 +68,48 @@ Optional per-request headers on `/mcp`:
 
 - `x-entity-id` to override the execution user/entity.
 - `x-connected-account-id` to force a specific connected account.
+- `x-user-prompt` to pass the latest user request for prompt-aware tool ranking.
+
+### Prompt-inferred tools + meta-tools
+
+When no explicit allowlists are set (`COMPOSIO_ALLOWED_TOOLKITS` and `COMPOSIO_ALLOWED_ACTIONS` are empty), the server can infer relevant tools per request:
+
+1. `tools/list` uses `x-user-prompt` (or JSON-RPC `params._meta.userPrompt`) to rank tools by relevance.
+2. If prompt inference is unavailable, smart default curation is used.
+3. The server prepends synthetic discovery tools:
+   - `composio_search_tools`
+   - `composio_execute_tool`
+
+This allows the LLM to discover and execute tools dynamically in-session without restarting MCP sessions.
+
+`composio_search_tools` behavior:
+
+- First uses local ranked catalog search.
+- If local results miss specific intent terms (for example, query contains `gmail` but local results do not), it falls back to Composio planner search and maps returned slugs back to local schemas.
+- Controlled by `COMPOSIO_SEARCH_PLANNER_FALLBACK` (default `true`).
+
+### Auto-create connected accounts
+
+Auto-creation is opt-in with:
+
+- `COMPOSIO_AUTO_CONNECT_TOOLKITS` (CSV toolkit allowlist, e.g. `gmail,slack`)
+
+When this allowlist is non-empty, two extra meta-tools are exposed:
+
+- `composio_initiate_connection`:
+  - OAuth toolkits return `redirect_url` for user approval.
+  - API-key toolkits accept `credentials` object and create immediately.
+- `composio_check_connection`: checks a connected account status.
+
+Execution fallback:
+
+- If a tool call fails due to missing connection and toolkit is allowlisted, the server returns structured `missing_connection` guidance with `redirect_url` when available.
+
+Guardrails:
+
+- Feature is disabled by default (empty allowlist).
+- Logs never include credential values (only credential key names).
+- API-key creation is only via explicit `composio_initiate_connection` calls.
 
 Debug connected-account visibility with:
 
