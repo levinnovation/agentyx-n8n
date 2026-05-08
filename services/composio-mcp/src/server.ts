@@ -15,6 +15,7 @@ const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY ?? '';
 const COMPOSIO_API_BASE =
 	process.env.COMPOSIO_API_BASE ?? 'https://backend.composio.dev/api/v3.1';
 const MCP_AUTH_TOKEN = process.env.MCP_AUTH_TOKEN ?? '';
+let composioClient: ComposioClient | null = null;
 
 function requireEnv(name: string, value: string) {
 	if (!value) {
@@ -50,12 +51,17 @@ function bearerAuthMiddleware(req: Request, res: Response, next: NextFunction) {
 }
 
 function getComposioClient(): ComposioClient {
-	return new ComposioClient(COMPOSIO_API_KEY, COMPOSIO_API_BASE);
+	if (!composioClient) {
+		composioClient = new ComposioClient(COMPOSIO_API_KEY, COMPOSIO_API_BASE);
+	}
+	return composioClient;
 }
 
 interface McpRequestContext {
 	preferredCategories?: string[];
 	maxTools?: number;
+	entityId?: string;
+	connectedAccountId?: string;
 }
 
 function createMcpServer(client: ComposioClient, correlationId: string, ctx?: McpRequestContext) {
@@ -70,6 +76,7 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 			const tools = await client.listTools(correlationId, {
 				preferredCategories: ctx?.preferredCategories,
 				maxTools: ctx?.maxTools,
+				entityId: ctx?.entityId,
 			});
 			logLine('info', 'mcp_list_tools', {
 				correlationId,
@@ -116,7 +123,10 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 		}
 
 		try {
-			const result = await client.executeTool(name, args as Record<string, unknown>, correlationId);
+			const result = await client.executeTool(name, args as Record<string, unknown>, correlationId, {
+				entityId: ctx?.entityId,
+				connectedAccountId: ctx?.connectedAccountId,
+			});
 			logLine('info', 'mcp_tool_ok', {
 				correlationId,
 				name,
@@ -208,8 +218,13 @@ app.post('/mcp', async (req, res) => {
 	const maxTools = typeof maxHeader === 'string'
 		? parseInt(maxHeader, 10)
 		: undefined;
+	const entityHeader = req.headers['x-entity-id'];
+	const entityId = typeof entityHeader === 'string' && entityHeader.trim() ? entityHeader.trim() : undefined;
+	const accountHeader = req.headers['x-connected-account-id'];
+	const connectedAccountId =
+		typeof accountHeader === 'string' && accountHeader.trim() ? accountHeader.trim() : undefined;
 
-	const mcp = createMcpServer(client, cid, { preferredCategories, maxTools });
+	const mcp = createMcpServer(client, cid, { preferredCategories, maxTools, entityId, connectedAccountId });
 	try {
 		const transport = new StreamableHTTPServerTransport({
 			sessionIdGenerator: undefined,
@@ -232,6 +247,27 @@ app.post('/mcp', async (req, res) => {
 				id: null,
 			});
 		}
+	}
+});
+
+app.get('/accounts', async (req, res) => {
+	const cid = (req as Request & { correlationId: string }).correlationId;
+	const client = getComposioClient();
+	const refresh = req.query.refresh === '1' || req.query.refresh === 'true';
+	const queryEntity = typeof req.query.entity_id === 'string' ? req.query.entity_id.trim() : '';
+	const headerEntity = typeof req.headers['x-entity-id'] === 'string' ? req.headers['x-entity-id'].trim() : '';
+	const entityId = queryEntity || headerEntity || undefined;
+
+	try {
+		const debug = await client.getConnectedAccountsDebug(cid, {
+			entityId,
+			forceRefresh: refresh,
+		});
+		res.status(200).json(debug);
+	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
+		logLine('error', 'accounts_debug_failed', { correlationId: cid, error: msg });
+		res.status(500).json({ error: 'accounts_debug_failed', detail: msg });
 	}
 });
 

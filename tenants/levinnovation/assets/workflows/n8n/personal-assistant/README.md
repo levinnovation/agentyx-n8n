@@ -59,10 +59,15 @@ The node is pre-configured with:
 - **Server Transport**: `HTTP (Streamable)`
 - **Authentication**: `Bearer Auth`
 - **Tools to Include**: `All` *(safe — the server automatically curates tools)*
+- **Optional Headers**:
+  - `x-entity-id`: force execution as a specific Composio entity.
+  - `x-connected-account-id`: force a specific connected account for tool execution.
 
 > ✅ **Smart Default Protection**: The composio-mcp server automatically curates a diverse subset of tools (max 50) based on connected OAuth accounts, category utility, and description quality. You no longer need to manually select tools to avoid token overflow.
 >
 > If you want **full control**, set `COMPOSIO_ALLOWED_TOOLKITS` or `COMPOSIO_ALLOWED_ACTIONS` on the Railway service.
+>
+> If the agent says it cannot send email even with Gmail connected, add `x-connected-account-id` with the target account id (for example `ca_GeLgoRnWcm-G`) in the MCP Client Tool headers.
 
 ### 4. Test
 

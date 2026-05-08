@@ -17,8 +17,48 @@ interface ToolsListResponse {
 
 interface ConnectedAccount {
 	id: string;
-	appName: string;
+	status?: string;
+	toolkit?: { slug?: string; name?: string };
+	user_id?: string;
+	updated_at?: string;
+	auth_config?: { id?: string; scopes?: string[] | string };
+	scopes?: string[] | string;
+	appName?: string;
+}
+
+interface ConnectedAccountsResponse {
+	items?: ConnectedAccount[];
+	next_cursor?: string | null;
+}
+
+export interface ListToolsOptions {
+	preferredCategories?: string[];
+	maxTools?: number;
+	entityId?: string;
+}
+
+export interface ExecuteToolOptions {
+	entityId?: string;
+	connectedAccountId?: string;
+}
+
+export interface ConnectedAccountDebugItem {
+	id: string;
 	status: string;
+	updatedAt: string | null;
+	userId: string | null;
+	scopeCount: number;
+}
+
+export interface ConnectedAccountsDebugResponse {
+	entityId: string | null;
+	count: number;
+	byToolkit: Record<string, ConnectedAccountDebugItem[]>;
+}
+
+interface ConnectedAccountsDebugOptions {
+	entityId?: string;
+	forceRefresh?: boolean;
 }
 
 function sleep(ms: number) {
@@ -91,6 +131,114 @@ function redactUrl(url: string): string {
 		return `${u.origin}${u.pathname}`;
 	} catch {
 		return 'invalid-url';
+	}
+}
+
+function normalizeToolkitSlug(account: ConnectedAccount): string {
+	return (account.toolkit?.slug ?? account.appName ?? '').trim().toLowerCase();
+}
+
+function isActiveStatus(status?: string): boolean {
+	return String(status ?? '').toUpperCase() === 'ACTIVE';
+}
+
+function parseTimestamp(value?: string): number {
+	if (!value) return 0;
+	const ts = Date.parse(value);
+	return Number.isFinite(ts) ? ts : 0;
+}
+
+function getScopeCount(account: ConnectedAccount): number {
+	const scopes = account.auth_config?.scopes ?? account.scopes;
+	if (Array.isArray(scopes)) return scopes.length;
+	if (typeof scopes === 'string') {
+		return scopes
+			.split(/[,\s]+/)
+			.map((item) => item.trim())
+			.filter(Boolean).length;
+	}
+	return 0;
+}
+
+function compareAccounts(a: ConnectedAccount, b: ConnectedAccount): number {
+	const activeDelta = Number(isActiveStatus(b.status)) - Number(isActiveStatus(a.status));
+	if (activeDelta !== 0) return activeDelta;
+	const updatedDelta = parseTimestamp(b.updated_at) - parseTimestamp(a.updated_at);
+	if (updatedDelta !== 0) return updatedDelta;
+	const scopeDelta = getScopeCount(b) - getScopeCount(a);
+	if (scopeDelta !== 0) return scopeDelta;
+	return a.id.localeCompare(b.id);
+}
+
+class ConnectedAccountsRegistry {
+	private byToolkit = new Map<string, ConnectedAccount[]>();
+	private byId = new Map<string, ConnectedAccount>();
+
+	rebuild(accounts: ConnectedAccount[]) {
+		this.byToolkit.clear();
+		this.byId.clear();
+		for (const account of accounts) {
+			if (!account.id) continue;
+			this.byId.set(account.id, account);
+			const toolkit = normalizeToolkitSlug(account);
+			if (!toolkit) continue;
+			const existing = this.byToolkit.get(toolkit) ?? [];
+			existing.push(account);
+			this.byToolkit.set(toolkit, existing);
+		}
+		for (const [toolkit, toolkitAccounts] of this.byToolkit.entries()) {
+			toolkitAccounts.sort(compareAccounts);
+			this.byToolkit.set(toolkit, toolkitAccounts);
+		}
+	}
+
+	hasAccount(id: string): boolean {
+		return this.byId.has(id);
+	}
+
+	toolkits(activeOnly = true): string[] {
+		const result: string[] = [];
+		for (const [toolkit, accounts] of this.byToolkit.entries()) {
+			if (!activeOnly || accounts.some((account) => isActiveStatus(account.status))) {
+				result.push(toolkit);
+			}
+		}
+		result.sort();
+		return result;
+	}
+
+	pickBest(toolkitSlug: string, entityId?: string): ConnectedAccount | null {
+		const toolkit = toolkitSlug.trim().toLowerCase();
+		const candidates = this.byToolkit.get(toolkit) ?? [];
+		if (candidates.length === 0) return null;
+		if (!entityId) return candidates[0] ?? null;
+		const byEntity = candidates.filter((account) => account.user_id === entityId);
+		return (byEntity.length > 0 ? byEntity[0] : candidates[0]) ?? null;
+	}
+
+	count(entityId?: string): number {
+		if (!entityId) return this.byId.size;
+		let count = 0;
+		for (const account of this.byId.values()) {
+			if (account.user_id === entityId) count++;
+		}
+		return count;
+	}
+
+	summary(entityId?: string): Record<string, ConnectedAccountDebugItem[]> {
+		const byToolkit: Record<string, ConnectedAccountDebugItem[]> = {};
+		for (const [toolkit, accounts] of this.byToolkit.entries()) {
+			const filtered = entityId ? accounts.filter((account) => account.user_id === entityId) : accounts;
+			if (filtered.length === 0) continue;
+			byToolkit[toolkit] = filtered.map((account) => ({
+				id: account.id,
+				status: String(account.status ?? 'UNKNOWN').toUpperCase(),
+				updatedAt: account.updated_at ?? null,
+				userId: account.user_id ?? null,
+				scopeCount: getScopeCount(account),
+			}));
+		}
+		return byToolkit;
 	}
 }
 
@@ -173,9 +321,10 @@ function pickDiverseTop(
 
 	const picked: ComposioToolItem[] = [];
 	const catsUsed = new Map<string, number>();
-	const preferredSet = preferredCategories && preferredCategories.length > 0
-		? new Set(preferredCategories.map((c) => c.toLowerCase()))
-		: null;
+	const preferredSet =
+		preferredCategories && preferredCategories.length > 0
+			? new Set(preferredCategories.map((c) => c.toLowerCase()))
+			: null;
 	const maxPerCategory = Math.ceil(targetCount / (preferredSet ? preferredSet.size : 6));
 
 	for (const { tool } of scored) {
@@ -196,7 +345,8 @@ function pickDiverseTop(
 
 function searchRelevanceScore(tool: ComposioToolItem, queryTerms: string[]): number {
 	let score = 0;
-	const text = `${tool.slug} ${tool.name} ${tool.description} ${tool.human_description ?? ''} ${tool.toolkit?.name ?? ''}`.toLowerCase();
+	const text =
+		`${tool.slug} ${tool.name} ${tool.description} ${tool.human_description ?? ''} ${tool.toolkit?.name ?? ''}`.toLowerCase();
 	for (const term of queryTerms) {
 		if (text.includes(term)) score += 1;
 	}
@@ -208,8 +358,12 @@ function searchRelevanceScore(tool: ComposioToolItem, queryTerms: string[]): num
 export class ComposioClient {
 	private readonly baseUrlNorm: string;
 	private allToolsCache: ComposioToolItem[] | null = null;
+	private allToolsBySlug = new Map<string, ComposioToolItem>();
 	private connectedToolkits: Set<string> = new Set();
-	private cacheTimestamp = 0;
+	private toolsCacheTimestamp = 0;
+	private accountsCacheTimestamp = 0;
+	private accountsCacheEntityId: string | null = null;
+	private readonly connectedAccounts = new ConnectedAccountsRegistry();
 	private readonly cacheTtlMs = 5 * 60 * 1000; // 5 minutes
 
 	constructor(
@@ -226,47 +380,116 @@ export class ComposioClient {
 		};
 	}
 
-	/* ─── Connected accounts discovery ──────────────────────────────── */
+	private resolveEntityId(override?: string): string | undefined {
+		return override ?? process.env.COMPOSIO_ENTITY_ID ?? process.env.COMPOSIO_USER_ID;
+	}
 
-	async refreshConnectedAccounts(correlationId: string): Promise<void> {
+	private setToolsCache(tools: ComposioToolItem[]) {
+		this.allToolsCache = tools;
+		this.allToolsBySlug = new Map(tools.map((tool) => [tool.slug, tool]));
+		this.toolsCacheTimestamp = Date.now();
+	}
+
+	private async refreshConnectedAccounts(correlationId: string, entityIdOverride?: string): Promise<void> {
 		try {
-			const entityId = process.env.COMPOSIO_ENTITY_ID ?? process.env.COMPOSIO_USER_ID;
-			const params = new URLSearchParams();
-			if (entityId) params.set('user_uuid', entityId);
-			const url = `${this.baseUrlNorm}/connected_accounts${params.toString() ? '?' + params.toString() : ''}`;
-			const res = await fetchWithRetry(url, { method: 'GET', headers: this.headers() }, correlationId);
-			if (!res.ok) {
-				logLine('warn', 'connected_accounts_fetch_failed', { correlationId, status: res.status });
-				return;
-			}
-			const data = (await res.json()) as { items?: ConnectedAccount[] };
-			const items = data.items ?? [];
-			this.connectedToolkits = new Set(
-				items
-					.filter((a) => a.status === 'ACTIVE')
-					.map((a) => a.appName.toLowerCase()),
-			);
+			const entityId = this.resolveEntityId(entityIdOverride);
+			const pageLimit = 200;
+			let cursor: string | undefined;
+			const merged: ConnectedAccount[] = [];
+			let endpoint = `${this.baseUrlNorm}/connected_accounts`;
+
+			do {
+				const params = new URLSearchParams();
+				params.set('limit', String(pageLimit));
+				if (entityId) params.append('user_ids[]', entityId);
+				if (cursor) params.set('cursor', cursor);
+				endpoint = `${this.baseUrlNorm}/connected_accounts?${params.toString()}`;
+				const res = await fetchWithRetry(endpoint, { method: 'GET', headers: this.headers() }, correlationId);
+				if (!res.ok) {
+					const body = (await res.text()).slice(0, 500);
+					logLine('warn', 'connected_accounts_fetch_failed', {
+						correlationId,
+						status: res.status,
+						endpoint: redactUrl(endpoint),
+						bodySnippet: body,
+					});
+					return;
+				}
+				const data = (await res.json()) as ConnectedAccountsResponse;
+				merged.push(...(data.items ?? []));
+				cursor = data.next_cursor ?? undefined;
+			} while (cursor);
+
+			this.connectedAccounts.rebuild(merged);
+			this.connectedToolkits = new Set(this.connectedAccounts.toolkits(true));
+			this.accountsCacheTimestamp = Date.now();
+			this.accountsCacheEntityId = entityId ?? null;
+
+			const byToolkitSummary = Object.entries(this.connectedAccounts.summary(entityId))
+				.map(([toolkit, accounts]) => `${toolkit}:${accounts.length}`)
+				.slice(0, 20)
+				.join(',');
+
 			logLine('info', 'connected_accounts_refreshed', {
 				correlationId,
-				count: this.connectedToolkits.size,
+				entityId: entityId ?? null,
+				count: this.connectedAccounts.count(entityId),
 				toolkits: [...this.connectedToolkits].slice(0, 20),
+				byToolkit: byToolkitSummary,
 			});
 		} catch (e) {
 			logLine('warn', 'connected_accounts_refresh_error', {
 				correlationId,
 				error: e instanceof Error ? e.message : String(e),
+				endpoint: `${this.baseUrlNorm}/connected_accounts`,
 			});
 		}
+	}
+
+	async ensureConnectedAccounts(
+		correlationId: string,
+		options?: { entityId?: string; forceRefresh?: boolean },
+	): Promise<void> {
+		const entityId = this.resolveEntityId(options?.entityId) ?? null;
+		const now = Date.now();
+		const stale = now - this.accountsCacheTimestamp > this.cacheTtlMs;
+		const entityChanged = entityId !== this.accountsCacheEntityId;
+		if (options?.forceRefresh || stale || this.accountsCacheTimestamp === 0 || entityChanged) {
+			await this.refreshConnectedAccounts(correlationId, entityId ?? undefined);
+		}
+	}
+
+	private async getToolkitForToolSlug(correlationId: string, slug: string): Promise<string | undefined> {
+		const now = Date.now();
+		if (!this.allToolsCache || now - this.toolsCacheTimestamp > this.cacheTtlMs) {
+			const tools = await this.fetchAllTools(correlationId);
+			this.setToolsCache(tools);
+		}
+		const tool = this.allToolsBySlug.get(slug);
+		return tool?.toolkit?.slug?.toLowerCase();
+	}
+
+	async getConnectedAccountsDebug(
+		correlationId: string,
+		options?: ConnectedAccountsDebugOptions,
+	): Promise<ConnectedAccountsDebugResponse> {
+		await this.ensureConnectedAccounts(correlationId, {
+			entityId: options?.entityId,
+			forceRefresh: options?.forceRefresh,
+		});
+		const entityId = this.resolveEntityId(options?.entityId) ?? null;
+		return {
+			entityId,
+			count: this.connectedAccounts.count(entityId ?? undefined),
+			byToolkit: this.connectedAccounts.summary(entityId ?? undefined),
+		};
 	}
 
 	/* ─── Raw tool fetching (bypass cache) ──────────────────────────── */
 
 	async fetchAllTools(correlationId: string): Promise<ComposioToolItem[]> {
 		const excludeDeprecated = process.env.COMPOSIO_EXCLUDE_DEPRECATED !== 'false';
-		const maxItems = Math.min(
-			Math.max(parseInt(process.env.COMPOSIO_TOOLS_MAX ?? '2000', 10), 1),
-			5000,
-		);
+		const maxItems = Math.min(Math.max(parseInt(process.env.COMPOSIO_TOOLS_MAX ?? '2000', 10), 1), 5000);
 		const pageLimit = Math.min(
 			Math.max(parseInt(process.env.COMPOSIO_TOOLS_PAGE_LIMIT ?? '250', 10), 1),
 			1000,
@@ -304,11 +527,7 @@ export class ComposioClient {
 				if (cursor) params.set('cursor', cursor);
 				else params.delete('cursor');
 				const url = `${this.baseUrlNorm}/tools?${params.toString()}`;
-				const res = await fetchWithRetry(
-					url,
-					{ method: 'GET', headers: this.headers() },
-					correlationId,
-				);
+				const res = await fetchWithRetry(url, { method: 'GET', headers: this.headers() }, correlationId);
 				if (!res.ok) {
 					const text = await res.text();
 					throw new Error(`Composio list tools failed: ${res.status} ${text.slice(0, 500)}`);
@@ -334,15 +553,14 @@ export class ComposioClient {
 			await fetchAllForQuery(params);
 		}
 
-		return [...merged.values()].slice(0, maxItems);
+		const tools = [...merged.values()].slice(0, maxItems);
+		this.setToolsCache(tools);
+		return tools;
 	}
 
 	/* ─── Cached tool list (with smart defaults) ────────────────────── */
 
-	async listTools(
-		correlationId: string,
-		options?: { preferredCategories?: string[]; maxTools?: number },
-	): Promise<ComposioToolItem[]> {
+	async listTools(correlationId: string, options?: ListToolsOptions): Promise<ComposioToolItem[]> {
 		const smartDefault = process.env.COMPOSIO_SMART_DEFAULT !== 'false';
 		const smartDefaultCount = Math.min(
 			Math.max(parseInt(process.env.COMPOSIO_SMART_DEFAULT_COUNT ?? '50', 10), 1),
@@ -355,29 +573,25 @@ export class ComposioClient {
 			.map((s) => s.trim())
 			.filter(Boolean);
 
-		// If explicit allowlists are set, respect them fully (power-user mode)
-		const hasExplicitFilters = (allowedToolkits && allowedToolkits.length > 0) || (allowedSlugs && allowedSlugs.length > 0);
+		const hasExplicitFilters =
+			(allowedToolkits && allowedToolkits.length > 0) || (allowedSlugs && allowedSlugs.length > 0);
 
 		if (hasExplicitFilters || !smartDefault) {
 			return this.fetchAllTools(correlationId);
 		}
 
-		// Smart default mode: cache + curate
 		const now = Date.now();
-		if (!this.allToolsCache || now - this.cacheTimestamp > this.cacheTtlMs) {
+		if (!this.allToolsCache || now - this.toolsCacheTimestamp > this.cacheTtlMs) {
 			logLine('info', 'tools_cache_refresh', { correlationId });
-			this.allToolsCache = await this.fetchAllTools(correlationId);
-			await this.refreshConnectedAccounts(correlationId);
-			this.cacheTimestamp = now;
+			await this.fetchAllTools(correlationId);
 		}
+		await this.ensureConnectedAccounts(correlationId, { entityId: options?.entityId });
+		const cachedTools = this.allToolsCache ?? [];
 
-		const totalAvailable = this.allToolsCache.length;
-		const targetCount = Math.min(
-			Math.max(options?.maxTools ?? smartDefaultCount, 1),
-			200,
-		);
+		const totalAvailable = cachedTools.length;
+		const targetCount = Math.min(Math.max(options?.maxTools ?? smartDefaultCount, 1), 200);
 		const curated = pickDiverseTop(
-			this.allToolsCache,
+			cachedTools,
 			this.connectedToolkits,
 			targetCount,
 			options?.preferredCategories,
@@ -408,11 +622,11 @@ export class ComposioClient {
 
 	async searchTools(correlationId: string, query: string, maxResults = 25): Promise<ComposioToolItem[]> {
 		const now = Date.now();
-		if (!this.allToolsCache || now - this.cacheTimestamp > this.cacheTtlMs) {
-			this.allToolsCache = await this.fetchAllTools(correlationId);
-			await this.refreshConnectedAccounts(correlationId);
-			this.cacheTimestamp = now;
+		if (!this.allToolsCache || now - this.toolsCacheTimestamp > this.cacheTtlMs) {
+			await this.fetchAllTools(correlationId);
 		}
+		await this.ensureConnectedAccounts(correlationId);
+		const cachedTools = this.allToolsCache ?? [];
 
 		const terms = query
 			.toLowerCase()
@@ -420,15 +634,14 @@ export class ComposioClient {
 			.filter((t) => t.length > 1);
 
 		if (terms.length === 0) {
-			return pickDiverseTop(this.allToolsCache, this.connectedToolkits, maxResults);
+			return pickDiverseTop(cachedTools, this.connectedToolkits, maxResults);
 		}
 
-		const scored = this.allToolsCache.map((tool) => ({
+		const scored = cachedTools.map((tool) => ({
 			tool,
 			score: searchRelevanceScore(tool, terms),
 		}));
 
-		// Sort by relevance, then boost connected toolkits
 		scored.sort((a, b) => {
 			const aTk = a.tool.toolkit?.slug ?? '';
 			const bTk = b.tool.toolkit?.slug ?? '';
@@ -455,15 +668,56 @@ export class ComposioClient {
 		slug: string,
 		args: Record<string, unknown>,
 		correlationId: string,
+		options?: ExecuteToolOptions,
 	): Promise<unknown> {
-		const entityId = process.env.COMPOSIO_ENTITY_ID ?? process.env.COMPOSIO_USER_ID;
+		const entityId = this.resolveEntityId(options?.entityId);
+		const requestedConnectedAccountId = options?.connectedAccountId?.trim();
+		let connectedAccountId: string | undefined;
+		let accountSelectionSource: 'header' | 'registry' | 'env' | 'none' = 'none';
+		const toolkitSlug = await this.getToolkitForToolSlug(correlationId, slug);
+
+		await this.ensureConnectedAccounts(correlationId, { entityId: options?.entityId });
+
+		if (requestedConnectedAccountId) {
+			connectedAccountId = requestedConnectedAccountId;
+			accountSelectionSource = 'header';
+			if (!this.connectedAccounts.hasAccount(requestedConnectedAccountId)) {
+				logLine('warn', 'mcp_account_override_unknown', {
+					correlationId,
+					slug,
+					connectedAccountId: requestedConnectedAccountId,
+				});
+			}
+		} else if (toolkitSlug) {
+			const best = this.connectedAccounts.pickBest(toolkitSlug, entityId);
+			if (best?.id) {
+				connectedAccountId = best.id;
+				accountSelectionSource = 'registry';
+			}
+		}
+		if (!connectedAccountId) {
+			const envConnected = process.env.COMPOSIO_CONNECTED_ACCOUNT_ID;
+			if (envConnected) {
+				connectedAccountId = envConnected;
+				accountSelectionSource = 'env';
+			}
+		}
+
+		logLine('info', 'mcp_account_selected', {
+			correlationId,
+			slug,
+			toolkit: toolkitSlug ?? null,
+			entityId: entityId ?? null,
+			accountId: connectedAccountId ?? null,
+			source: accountSelectionSource,
+		});
+
 		const url = `${this.baseUrlNorm}/tools/execute/${encodeURIComponent(slug)}`;
 		const body: Record<string, unknown> = {
 			arguments: args,
 		};
 		if (entityId) body.user_id = entityId;
-		const connected = process.env.COMPOSIO_CONNECTED_ACCOUNT_ID;
-		if (connected) body.connected_account_id = connected;
+		if (connectedAccountId) body.connected_account_id = connectedAccountId;
 
 		const res = await fetchWithRetry(
 			url,

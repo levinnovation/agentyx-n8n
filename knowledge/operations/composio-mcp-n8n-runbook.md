@@ -34,8 +34,9 @@ See `services/composio-mcp/.env.example` for tuning variables.
 ## Verification
 
 1. `curl -sf https://<host>/healthz` → `{"ok":true,...}`
-2. From n8n, open MCP Client Tool → run tool list (should show Composio slugs).
-3. Execute a read-only tool, then a low-risk write in a test account.
+2. `curl -sS https://<host>/accounts -H "Authorization: Bearer <MCP_AUTH_TOKEN>"` → shows connected accounts by toolkit.
+3. From n8n, open MCP Client Tool → run tool list (should show Composio slugs).
+4. Execute a read-only tool, then a low-risk write in a test account.
 
 ## Logs
 
@@ -52,6 +53,7 @@ Structured JSON logs include:
 | Composio 401/403 | Rotate `COMPOSIO_API_KEY`; confirm project key |
 | Empty tool list | Adjust `COMPOSIO_ALLOWED_*`; increase `COMPOSIO_TOOLS_MAX`; check toolkits connected in Composio |
 | Execute errors | Set `COMPOSIO_ENTITY_ID` / `COMPOSIO_CONNECTED_ACCOUNT_ID`; verify OAuth connection in Composio dashboard |
+| Agent says it cannot send email | Check `/accounts` output for `gmail`; set `x-connected-account-id` in n8n MCP headers; optionally constrain with `COMPOSIO_ALLOWED_TOOLKITS=gmail,...` |
 
 ## Security
 

@@ -7,6 +7,7 @@ Production MCP server exposing [Composio](https://composio.dev) tools over **Str
 - Dynamic tool discovery via `GET {COMPOSIO_API_BASE}/tools` (pagination + optional toolkit filters).
 - Tool execution via `POST {COMPOSIO_API_BASE}/tools/execute/{slug}` with retries on 429/5xx.
 - Bearer auth on `/mcp` (`MCP_AUTH_TOKEN`).
+- `GET /accounts` debug endpoint (auth required) to inspect connected account visibility.
 - `GET /healthz` for load balancers (no auth).
 - Structured JSON logs with `correlationId` (from `X-Request-Id` or generated).
 
@@ -46,6 +47,27 @@ docker run --rm -p 3000:3000 \
 | Server Transport | Streamable HTTP |
 | Authentication | Bearer Token |
 | Token | Same as `MCP_AUTH_TOKEN` |
+
+### Account selection precedence
+
+When executing tools, the server selects `connected_account_id` in this order:
+
+1. `x-connected-account-id` request header.
+2. Best connected account for the tool toolkit and entity (server-side auto-pick).
+3. `COMPOSIO_CONNECTED_ACCOUNT_ID` environment variable fallback.
+4. No account id (Composio default behavior).
+
+Optional per-request headers on `/mcp`:
+
+- `x-entity-id` to override the execution user/entity.
+- `x-connected-account-id` to force a specific connected account.
+
+Debug connected-account visibility with:
+
+```bash
+curl -sS https://<your-service-host>/accounts \
+  -H "Authorization: Bearer <MCP_AUTH_TOKEN>"
+```
 
 If `railway add` returns **Unauthorized**, run `railway login` again and rotate tokens that were exposed in shared logs.
 

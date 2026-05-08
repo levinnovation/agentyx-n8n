@@ -30,6 +30,7 @@
 ### `change-log/`
 
 - [change-log/2026-05-07-composio-mcp-service.md](change-log/2026-05-07-composio-mcp-service.md)
+- [change-log/2026-05-07-composio-mcp-smart-accounts.md](change-log/2026-05-07-composio-mcp-smart-accounts.md)
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
 - [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
@@ -91,6 +92,7 @@
 - [decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md](decisions/0018-n8n-mcp-for-ai-assisted-workflow-authoring.md)
 - [decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md](decisions/0019-auth-proxy-portal-cutover-caddy-forward-auth.md)
 - [decisions/0020-add-levinnovation-as-internal-tenant.md](decisions/0020-add-levinnovation-as-internal-tenant.md)
+- [decisions/0021-composio-mcp-smart-account-selection.md](decisions/0021-composio-mcp-smart-account-selection.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
