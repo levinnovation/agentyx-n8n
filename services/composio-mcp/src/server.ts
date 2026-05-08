@@ -53,7 +53,12 @@ function getComposioClient(): ComposioClient {
 	return new ComposioClient(COMPOSIO_API_KEY, COMPOSIO_API_BASE);
 }
 
-function createMcpServer(client: ComposioClient, correlationId: string) {
+interface McpRequestContext {
+	preferredCategories?: string[];
+	maxTools?: number;
+}
+
+function createMcpServer(client: ComposioClient, correlationId: string, ctx?: McpRequestContext) {
 	const server = new Server(
 		{ name: 'composio-mcp', version: '1.0.0' },
 		{ capabilities: { tools: {}, logging: {} } },
@@ -62,7 +67,10 @@ function createMcpServer(client: ComposioClient, correlationId: string) {
 	server.setRequestHandler(ListToolsRequestSchema, async () => {
 		const t0 = Date.now();
 		try {
-			const tools = await client.listTools(correlationId);
+			const tools = await client.listTools(correlationId, {
+				preferredCategories: ctx?.preferredCategories,
+				maxTools: ctx?.maxTools,
+			});
 			logLine('info', 'mcp_list_tools', {
 				correlationId,
 				toolCount: tools.length,
@@ -190,7 +198,18 @@ app.post('/search-tools', async (req, res) => {
 app.post('/mcp', async (req, res) => {
 	const cid = (req as Request & { correlationId: string }).correlationId;
 	const client = getComposioClient();
-	const mcp = createMcpServer(client, cid);
+
+	// Parse request-level control headers
+	const catsHeader = req.headers['x-preferred-categories'];
+	const preferredCategories = typeof catsHeader === 'string'
+		? catsHeader.split(',').map((s) => s.trim()).filter(Boolean)
+		: undefined;
+	const maxHeader = req.headers['x-max-tools'];
+	const maxTools = typeof maxHeader === 'string'
+		? parseInt(maxHeader, 10)
+		: undefined;
+
+	const mcp = createMcpServer(client, cid, { preferredCategories, maxTools });
 	try {
 		const transport = new StreamableHTTPServerTransport({
 			sessionIdGenerator: undefined,

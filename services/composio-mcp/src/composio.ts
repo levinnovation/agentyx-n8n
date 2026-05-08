@@ -161,6 +161,7 @@ function pickDiverseTop(
 	tools: ComposioToolItem[],
 	connectedToolkits: Set<string>,
 	targetCount: number,
+	preferredCategories?: string[],
 ): ComposioToolItem[] {
 	const scored = tools.map((t) => ({
 		tool: t,
@@ -172,11 +173,16 @@ function pickDiverseTop(
 
 	const picked: ComposioToolItem[] = [];
 	const catsUsed = new Map<string, number>();
-	const maxPerCategory = Math.ceil(targetCount / 6); // spread across ~6 categories
+	const preferredSet = preferredCategories && preferredCategories.length > 0
+		? new Set(preferredCategories.map((c) => c.toLowerCase()))
+		: null;
+	const maxPerCategory = Math.ceil(targetCount / (preferredSet ? preferredSet.size : 6));
 
 	for (const { tool } of scored) {
 		if (picked.length >= targetCount) break;
 		const cat = getCategory(tool.toolkit?.slug);
+		// If preferred categories are specified, skip tools outside them
+		if (preferredSet && !preferredSet.has(cat)) continue;
 		const catCount = catsUsed.get(cat) ?? 0;
 		if (catCount >= maxPerCategory) continue;
 		picked.push(tool);
@@ -333,7 +339,10 @@ export class ComposioClient {
 
 	/* ─── Cached tool list (with smart defaults) ────────────────────── */
 
-	async listTools(correlationId: string): Promise<ComposioToolItem[]> {
+	async listTools(
+		correlationId: string,
+		options?: { preferredCategories?: string[]; maxTools?: number },
+	): Promise<ComposioToolItem[]> {
 		const smartDefault = process.env.COMPOSIO_SMART_DEFAULT !== 'false';
 		const smartDefaultCount = Math.min(
 			Math.max(parseInt(process.env.COMPOSIO_SMART_DEFAULT_COUNT ?? '50', 10), 1),
@@ -363,12 +372,23 @@ export class ComposioClient {
 		}
 
 		const totalAvailable = this.allToolsCache.length;
-		const curated = pickDiverseTop(this.allToolsCache, this.connectedToolkits, smartDefaultCount);
+		const targetCount = Math.min(
+			Math.max(options?.maxTools ?? smartDefaultCount, 1),
+			200,
+		);
+		const curated = pickDiverseTop(
+			this.allToolsCache,
+			this.connectedToolkits,
+			targetCount,
+			options?.preferredCategories,
+		);
 
 		logLine('info', 'tools_smart_default_applied', {
 			correlationId,
 			totalAvailable,
 			returned: curated.length,
+			targetCount,
+			preferredCategories: options?.preferredCategories?.join(',') ?? 'none',
 			connectedToolkits: this.connectedToolkits.size,
 			categories: Object.entries(
 				curated.reduce((acc, t) => {
