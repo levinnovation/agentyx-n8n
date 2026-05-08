@@ -154,6 +154,39 @@ app.get('/healthz', (_req, res) => {
 
 app.use(bearerAuthMiddleware);
 
+app.post('/search-tools', async (req, res) => {
+	const cid = (req as Request & { correlationId: string }).correlationId;
+	const query = typeof req.body?.query === 'string' ? req.body.query : '';
+	const maxResults = Math.min(
+		Math.max(parseInt(req.body?.max_results ?? '25', 10), 1),
+		100,
+	);
+
+	if (!query || query.trim().length === 0) {
+		res.status(400).json({ error: 'missing_query', detail: 'Request body must include a "query" string' });
+		return;
+	}
+
+	try {
+		const client = getComposioClient();
+		const tools = await client.searchTools(cid, query.trim(), maxResults);
+		res.status(200).json({
+			query: query.trim(),
+			results: tools.length,
+			tools: tools.map((t) => ({
+				slug: t.slug,
+				name: t.name,
+				description: t.description || t.human_description || '',
+				toolkit: t.toolkit?.slug ?? null,
+			})),
+		});
+	} catch (e) {
+		const msg = e instanceof Error ? e.message : String(e);
+		logLine('error', 'search_tools_failed', { correlationId: cid, query, error: msg });
+		res.status(500).json({ error: 'search_failed', detail: msg });
+	}
+});
+
 app.post('/mcp', async (req, res) => {
 	const cid = (req as Request & { correlationId: string }).correlationId;
 	const client = getComposioClient();
