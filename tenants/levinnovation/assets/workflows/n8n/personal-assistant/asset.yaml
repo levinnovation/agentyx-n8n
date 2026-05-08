@@ -1,0 +1,29 @@
+asset:
+  name: personal-assistant
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: general
+  capability: personal-assistant
+  
+  description: |
+    Conversational AI agent with Composio MCP tool access.
+    Uses Chat Trigger → AI Agent → OpenAI Chat Model + MCP Client Tool (Composio).
+    
+  inputs:
+    - user_message (via Chat Trigger)
+    
+  outputs:
+    - agent_response
+    - tool_execution_results
+    
+  dependencies:
+    - service: agx-demo-composio-mcp
+      endpoint: https://agx-demo-composio-mcp-production.up.railway.app/mcp
+      auth: Bearer MCP_AUTH_TOKEN
+    - service: openai-api
+      auth: OPENAI_API_KEY
+      
+  files:
+    - personal-assistant.json
+    - README.md
+    - .env.example

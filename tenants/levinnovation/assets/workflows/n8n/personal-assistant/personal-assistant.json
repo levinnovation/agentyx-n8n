@@ -1,0 +1,129 @@
+{
+  "name": "Personal Assistant (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4c00cc8b-75ac-eb54-6065-1692dc7f3e35",
+      "name": "Chat Trigger",
+      "type": "n8n-nodes-base.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        100
+      ],
+      "webhookId": "847ca0a56b5b48d9b7c31138513992a5"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a helpful Personal Assistant for the Levinnovation team.\n\nYou have access to Composio tools via MCP. Use these tools when the user asks you to:\n- Search for information\n- Send messages\n- Create documents\n- Access external services\n\nAlways be helpful, concise, and professional."
+        }
+      },
+      "id": "61acb131-0156-a0a2-933b-5196207253ed",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        520,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "59c11047-d21a-8e63-1505-26aa9395c94d",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        520,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_API_KEY_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://agx-demo-composio-mcp-production.up.railway.app/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "bearerAuth",
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "MCP_BEARER_AUTH_CREDENTIAL_ID",
+            "name": "MCP Bearer Auth"
+          }
+        },
+        "include": "all"
+      },
+      "id": "3f3b400e-0d8d-bbbc-89f9-9707068dbae8",
+      "name": "MCP Client Tool (Composio)",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        760,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client Tool (Composio)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "id": "c205cd4c-a957-4e6e-86a3-b40bb9563943",
+      "name": "personal-assistant",
+      "createdAt": "2026-05-07T00:00:00.000Z",
+      "updatedAt": "2026-05-07T00:00:00.000Z"
+    }
+  ]
+}

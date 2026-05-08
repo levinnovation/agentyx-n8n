@@ -1,0 +1,101 @@
+# Personal Assistant (Levinnovation)
+
+n8n workflow that deploys a conversational AI agent with Composio MCP tool access.
+
+## Nodes
+
+| Node | Type | Purpose |
+|------|------|---------|
+| Chat Trigger | `n8n-nodes-base.chatTrigger` | Accepts user messages via chat interface |
+| AI Agent | `@n8n/n8n-nodes-langchain.agent` | Main reasoning agent with system prompt |
+| OpenAI Chat Model | `@n8n/n8n-nodes-langchain.lmChatOpenAi` | LLM backend (GPT-4o / GPT-4o-mini) |
+| MCP Client Tool (Composio) | `@n8n/n8n-nodes-langchain.mcpClientTool` | Tool gateway to Composio integrations |
+
+## Architecture
+
+```
+User ──▶ Chat Trigger ──▶ AI Agent ◀── OpenAI Chat Model
+                              │
+                              ▼
+                    MCP Client Tool (Composio)
+                              │
+                              ▼
+                  https://agx-demo-composio-mcp-production.up.railway.app/mcp
+```
+
+## Setup
+
+### 1. Import Workflow
+
+In n8n:
+1. **Settings** → **Export/Import** → **Import from File**
+2. Select `personal-assistant.json`
+3. Save
+
+### 2. Configure Credentials
+
+#### OpenAI Chat Model
+1. Open the **OpenAI Chat Model** node
+2. Click **Credentials** → **Create New**
+3. Enter your OpenAI API key
+4. Save
+
+#### MCP Client Tool (Composio)
+1. Open the **MCP Client Tool (Composio)** node
+2. Click **Credentials** → **Create New** (HTTP Bearer Auth)
+3. Enter the Bearer token:
+   ```
+   dbf563c896989f102cb8d58e7e1a28ca891b73b0e46a1dc706584fa6a7746c72
+   ```
+4. Save
+
+### 3. Configure MCP Client Tool
+
+The node is pre-configured with:
+- **Endpoint**: `https://agx-demo-composio-mcp-production.up.railway.app/mcp`
+- **Server Transport**: `HTTP (Streamable)`
+- **Authentication**: `Bearer Auth`
+- **Tools to Include**: `All`
+
+Click **List Tools** to verify the connection and see available Composio tools.
+
+### 4. Test
+
+1. Open the workflow
+2. Click **Chat** (bottom-right corner)
+3. Send a message like: "What tools do you have access to?"
+4. The agent should respond and list available Composio tools
+
+## Environment Variables
+
+The workflow references these Railway-level variables (set on `agx-demo-composio-mcp`):
+
+| Variable | Value |
+|----------|-------|
+| `COMPOSIO_API_KEY` | `ak_SfPCPakYY4ZZadH4f0Gg` |
+| `COMPOSIO_ENTITY_ID` | `pg-test-d706a027-57a4-4c4f-bbbd-61d919b73f83` |
+| `MCP_AUTH_TOKEN` | `dbf563c896989f102cb8d58e7e1a28ca891b73b0e46a1dc706584fa6a7746c72` |
+| `COMPOSIO_API_BASE` | `https://backend.composio.dev/api/v3.1` |
+
+## Allowlists
+
+To restrict which Composio tools are available, set these on the Railway service:
+
+- `COMPOSIO_ALLOWED_TOOLKITS` — comma-separated toolkit slugs (e.g., `gmail,slack,notion`)
+- `COMPOSIO_ALLOWED_ACTIONS` — comma-separated tool slugs
+
+## Notes
+
+- The **Chat Trigger** creates a persistent chat session URL per workflow
+- The **AI Agent** system prompt instructs the agent to be helpful, concise, and professional
+- Temperature is set to `0.7` for balanced creativity and determinism
+- All executions are saved for debugging
+
+## Troubleshooting
+
+| Issue | Fix |
+|-------|-----|
+| 401 on MCP | Verify Bearer token in credentials matches Railway `MCP_AUTH_TOKEN` |
+| Empty tool list | Check `COMPOSIO_ALLOWED_*` variables; ensure OAuth connections in Composio dashboard |
+| OpenAI errors | Verify OpenAI API key has credits and correct permissions |
+| Chat not responding | Ensure workflow is **Active** (toggle in top-right) |
