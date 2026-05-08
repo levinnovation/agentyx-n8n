@@ -32,22 +32,23 @@
     },
     {
       "parameters": {
+        "model": "openai/gpt-4.1-mini",
         "options": {
           "temperature": 0.7
         }
       },
       "id": "59c11047-d21a-8e63-1505-26aa9395c94d",
-      "name": "OpenAI Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
         520,
         300
       ],
       "credentials": {
-        "openAiApi": {
-          "id": "OPENAI_API_KEY_CREDENTIAL_ID",
-          "name": "OpenAI account"
+        "openRouterApi": {
+          "id": "OPENROUTER_API_KEY_CREDENTIAL_ID",
+          "name": "OpenRouter account"
         }
       }
     },
@@ -86,7 +87,7 @@
         ]
       ]
     },
-    "OpenAI Chat Model": {
+    "OpenRouter Chat Model": {
       "ai_languageModel": [
         [
           {

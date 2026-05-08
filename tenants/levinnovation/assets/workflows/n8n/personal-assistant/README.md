@@ -8,13 +8,13 @@ n8n workflow that deploys a conversational AI agent with Composio MCP tool acces
 |------|------|---------|
 | Chat Trigger | `n8n-nodes-base.chatTrigger` | Accepts user messages via chat interface |
 | AI Agent | `@n8n/n8n-nodes-langchain.agent` | Main reasoning agent with system prompt |
-| OpenAI Chat Model | `@n8n/n8n-nodes-langchain.lmChatOpenAi` | LLM backend (GPT-4o / GPT-4o-mini) |
+| OpenRouter Chat Model | `@n8n/n8n-nodes-langchain.lmChatOpenRouter` | LLM backend (OpenRouter — GPT-4.1-mini) |
 | MCP Client Tool (Composio) | `@n8n/n8n-nodes-langchain.mcpClientTool` | Tool gateway to Composio integrations |
 
 ## Architecture
 
 ```
-User ──▶ Chat Trigger ──▶ AI Agent ◀── OpenAI Chat Model
+User ──▶ Chat Trigger ──▶ AI Agent ◀── OpenRouter Chat Model
                               │
                               ▼
                     MCP Client Tool (Composio)
@@ -34,10 +34,13 @@ In n8n:
 
 ### 2. Configure Credentials
 
-#### OpenAI Chat Model
-1. Open the **OpenAI Chat Model** node
-2. Click **Credentials** → **Create New**
-3. Enter your OpenAI API key
+#### OpenRouter Chat Model
+1. Open the **OpenRouter Chat Model** node
+2. Click **Credentials** → **Create New** (OpenRouter API)
+3. Enter your OpenRouter API key:
+   ```
+   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
+   ```
 4. Save
 
 #### MCP Client Tool (Composio)
@@ -97,5 +100,5 @@ To restrict which Composio tools are available, set these on the Railway service
 |-------|-----|
 | 401 on MCP | Verify Bearer token in credentials matches Railway `MCP_AUTH_TOKEN` |
 | Empty tool list | Check `COMPOSIO_ALLOWED_*` variables; ensure OAuth connections in Composio dashboard |
-| OpenAI errors | Verify OpenAI API key has credits and correct permissions |
+| OpenRouter errors | Verify OpenRouter API key is valid and has credits at https://openrouter.ai/settings/credits |
 | Chat not responding | Ensure workflow is **Active** (toggle in top-right) |
