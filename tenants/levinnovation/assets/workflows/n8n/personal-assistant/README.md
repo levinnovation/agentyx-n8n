@@ -58,9 +58,11 @@ The node is pre-configured with:
 - **Endpoint**: `https://agx-demo-composio-mcp-production.up.railway.app/mcp`
 - **Server Transport**: `HTTP (Streamable)`
 - **Authentication**: `Bearer Auth`
-- **Tools to Include**: `All`
+- **Tools to Include**: `Selected` *(you must pick specific tools — see below)*
 
-Click **List Tools** to verify the connection and see available Composio tools.
+Click **List Tools** to see available Composio tools, then select only the ones you need.
+
+> ⚠️ **Token Limit Warning**: Loading ALL tools (~1000+) consumes ~128k tokens and exceeds the model's context window. Always select a small subset (5–20 tools) relevant to your use case.
 
 ### 4. Test
 
@@ -100,5 +102,6 @@ To restrict which Composio tools are available, set these on the Railway service
 |-------|-----|
 | 401 on MCP | Verify Bearer token in credentials matches Railway `MCP_AUTH_TOKEN` |
 | Empty tool list | Check `COMPOSIO_ALLOWED_*` variables; ensure OAuth connections in Composio dashboard |
+| **Token limit exceeded** (`maximum context length is 128000 tokens`) | You loaded too many tools. Open MCP Client Tool node → change **Tools to Include** to `Selected` → pick only 5–20 tools |
 | OpenRouter errors | Verify OpenRouter API key is valid and has credits at https://openrouter.ai/settings/credits |
 | Chat not responding | Ensure workflow is **Active** (toggle in top-right) |
