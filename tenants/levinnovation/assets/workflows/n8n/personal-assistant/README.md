@@ -58,11 +58,11 @@ The node is pre-configured with:
 - **Endpoint**: `https://agx-demo-composio-mcp-production.up.railway.app/mcp`
 - **Server Transport**: `HTTP (Streamable)`
 - **Authentication**: `Bearer Auth`
-- **Tools to Include**: `Selected` *(you must pick specific tools — see below)*
+- **Tools to Include**: `All` *(safe — the server automatically curates tools)*
 
-Click **List Tools** to see available Composio tools, then select only the ones you need.
-
-> ⚠️ **Token Limit Warning**: Loading ALL tools (~1000+) consumes ~128k tokens and exceeds the model's context window. Always select a small subset (5–20 tools) relevant to your use case.
+> ✅ **Smart Default Protection**: The composio-mcp server automatically curates a diverse subset of tools (max 50) based on connected OAuth accounts, category utility, and description quality. You no longer need to manually select tools to avoid token overflow.
+>
+> If you want **full control**, set `COMPOSIO_ALLOWED_TOOLKITS` or `COMPOSIO_ALLOWED_ACTIONS` on the Railway service.
 
 ### 4. Test
 
@@ -81,6 +81,31 @@ The workflow references these Railway-level variables (set on `agx-demo-composio
 | `COMPOSIO_ENTITY_ID` | `pg-test-d706a027-57a4-4c4f-bbbd-61d919b73f83` |
 | `MCP_AUTH_TOKEN` | `dbf563c896989f102cb8d58e7e1a28ca891b73b0e46a1dc706584fa6a7746c72` |
 | `COMPOSIO_API_BASE` | `https://backend.composio.dev/api/v3.1` |
+
+## Advanced: Context-Aware Tool Search
+
+The composio-mcp server exposes a `/search-tools` endpoint for dynamic tool discovery:
+
+```bash
+curl -X POST https://agx-demo-composio-mcp-production.up.railway.app/search-tools \
+  -H "Authorization: Bearer dbf563c896989f102cb8d58e7e1a28ca891b73b0e46a1dc706584fa6a7746c72" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "send email via gmail", "max_results": 10}'
+```
+
+Response:
+```json
+{
+  "query": "send email via gmail",
+  "results": 10,
+  "tools": [
+    { "slug": "GMAIL_SEND_EMAIL", "name": "Send Email", "toolkit": "gmail" },
+    ...
+  ]
+}
+```
+
+Use this endpoint to find specific tools when building custom workflows.
 
 ## Allowlists
 
@@ -102,6 +127,6 @@ To restrict which Composio tools are available, set these on the Railway service
 |-------|-----|
 | 401 on MCP | Verify Bearer token in credentials matches Railway `MCP_AUTH_TOKEN` |
 | Empty tool list | Check `COMPOSIO_ALLOWED_*` variables; ensure OAuth connections in Composio dashboard |
-| **Token limit exceeded** (`maximum context length is 128000 tokens`) | You loaded too many tools. Open MCP Client Tool node → change **Tools to Include** to `Selected` → pick only 5–20 tools |
+| **Token limit exceeded** (`maximum context length is 128000 tokens`) | The server should prevent this automatically. If it happens, check `COMPOSIO_SMART_DEFAULT=true` is set on the Railway service, or manually set `COMPOSIO_ALLOWED_TOOLKITS` to restrict tools |
 | OpenRouter errors | Verify OpenRouter API key is valid and has credits at https://openrouter.ai/settings/credits |
 | Chat not responding | Ensure workflow is **Active** (toggle in top-right) |

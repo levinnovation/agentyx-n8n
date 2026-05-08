@@ -63,8 +63,7 @@
             "name": "MCP Bearer Auth"
           }
         },
-        "include": "selected",
-        "includeTools": []
+        "include": "all"
       },
       "id": "3f3b400e-0d8d-bbbc-89f9-9707068dbae8",
       "name": "MCP Client Tool (Composio)",
