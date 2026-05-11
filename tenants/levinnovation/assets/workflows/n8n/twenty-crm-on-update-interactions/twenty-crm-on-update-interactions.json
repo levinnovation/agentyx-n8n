@@ -1,0 +1,1058 @@
+{
+  "updatedAt": "2026-05-11T22:02:47.857Z",
+  "createdAt": "2026-05-11T22:02:47.857Z",
+  "id": "g44S4y2CKL2tWvQf",
+  "name": "Twenty CRM On-Update Interactions",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-feedback-webhook",
+              "leftValue": "={{ ($env.TWENTY_FEEDBACK_WEBHOOK_URL || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": false,
+        "options": {}
+      },
+      "id": "cs-core-feedback-enabled",
+      "name": "Has Twenty Feedback Webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3072,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "POST",
+        "url": "={{ $env.TWENTY_FEEDBACK_WEBHOOK_URL }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.TWENTY_WEBHOOK_SECRET || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { source: 'n8n-customer-service-core', ts: $now, channel: $json.channel, conversation_id: $json.conversation_id, user_id: $json.user_id, contact_name: $json.contact_name || '', phone: $json.phone || '', email: $json.email || '', lead_status: $json.lead_status || 'unknown', qualification_score: $json.qualification_score || 0, meeting_requested: $json.meeting_requested || false, calendar_action: $json.calendar_action || 'none', crm_fields: $json.crm_fields || {}, reply_text: $json.reply_text || '' } }}",
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-feedback-webhook",
+      "name": "Emit Twenty Feedback Webhook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3312,
+        528
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item = $input.first().json;\nconst g = $getWorkflowStaticData('global');\ng.cs_audit_log = g.cs_audit_log || [];\ng.cs_audit_log.push({\n  ts: new Date().toISOString(),\n  channel: item.channel,\n  conversation_id: item.conversation_id,\n  user_id: item.user_id,\n  contact_name: item.contact_name,\n  lead_status: item.lead_status,\n  qualification_score: item.qualification_score,\n  meeting_requested: item.meeting_requested,\n  calendar_action: item.calendar_action,\n  reply_preview: (item.reply_text || '').substring(0, 200)\n});\nif (g.cs_audit_log.length > 2000) g.cs_audit_log.splice(0, g.cs_audit_log.length - 2000);\nreturn [{ json: { ...item, audit_logged: true } }];",
+        "notice": ""
+      },
+      "id": "cs-core-audit",
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3072,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "name": "reply_text",
+              "value": "={{ $json.reply_text || $('Parse Agent Output').item.json.reply_text || 'Gracias por tu mensaje. Un asesor te contactara pronto.' }}",
+              "type": "string"
+            },
+            {
+              "name": "reply_attachments",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "name": "end_session",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ { lead_status: ($json.lead_status || $('Parse Agent Output').item.json.lead_status || 'unknown'), qualification_score: ($json.qualification_score || $('Parse Agent Output').item.json.qualification_score || 0), meeting_requested: ($json.meeting_requested || $('Parse Agent Output').item.json.meeting_requested || false), calendar_action: ($json.calendar_action || $('Parse Agent Output').item.json.calendar_action || 'none'), crm_fields: ($json.crm_fields || $('Parse Agent Output').item.json.crm_fields || {}), next_best_action: ($json.next_best_action || $('Parse Agent Output').item.json.next_best_action || '') } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "cs-core-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3312,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const raw = $input.first().json;\nconst source = $('Start').item.json. || {};\nconst sourceUserId = String(raw.user_id || source.user_id || '');\nlet text = raw.output || raw.text || raw.response || '';\nlet metadata = {};\nconst fenced = text.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\nif (fenced) {\n  try { metadata = JSON.parse(fenced[1]); text = text.replace(fenced[0], '').trim(); } catch (e) {}\n}\nif (!Object.keys(metadata).length) {\n  const first = text.indexOf('{');\n  const last = text.lastIndexOf('}');\n  if (first !== -1 && last > first) {\n    const candidate = text.slice(first, last + 1);\n    try { metadata = JSON.parse(candidate); text = (text.slice(0, first) + text.slice(last + 1)).trim(); } catch (e) {}\n  }\n}\nconst inboundMessage = String(source.enriched_message || source.message || raw.enriched_message || raw.message || '');\nconst emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/;\nconst textEmail = (String(raw.output || raw.text || '').match(emailRegex) || [null])[0];\nconst messageEmail = (inboundMessage.match(emailRegex) || [null])[0];\nconst metadataEmail = metadata?.crm_fields?.email || metadata?.email || null;\nconst fallbackEmail = sourceUserId ? (sourceUserId + '@placeholder.lev') : '';\nconst resolvedEmail = String(metadataEmail || textEmail || messageEmail || raw.email || source.email || fallbackEmail || '').toLowerCase().trim();\nconst resolvedCompany = metadata?.crm_fields?.company || source.company || raw.company || '';\nconst resolvedName = metadata?.crm_fields?.name || source.contact_name || raw.contact_name || '';\nconst resolvedPhone = metadata?.crm_fields?.phone || source.phone || raw.phone || '';\nconst crmFields = { ...(metadata.crm_fields || {}) };\nif (!crmFields.email && resolvedEmail) crmFields.email = resolvedEmail;\nif (!crmFields.company && resolvedCompany) crmFields.company = resolvedCompany;\nif (!crmFields.name && resolvedName) crmFields.name = resolvedName;\nif (!crmFields.phone && resolvedPhone) crmFields.phone = resolvedPhone;\nreturn [{ json: { ...source, ...raw, user_id: sourceUserId || raw.user_id || '', reply_text: text, email: resolvedEmail || source.email || raw.email || '', phone: resolvedPhone || source.phone || raw.phone || '', contact_name: resolvedName || source.contact_name || raw.contact_name || '', lead_status: metadata.lead_status || 'unknown', qualification_score: metadata.qualification_score || 0, meeting_requested: metadata.meeting_requested || false, crm_fields: crmFields, calendar_action: metadata.calendar_action || 'none', next_best_action: metadata.next_best_action || '' } }];",
+        "notice": ""
+      },
+      "id": "cs-core-parse-output",
+      "name": "Parse Agent Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2832,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "POST",
+        "url": "https://levinnovation.crm.agentyx.one/rest/opportunities",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const b = { name: ($json.opportunity_name || ('LEV-' + ($json.conversation_id || 'lead') + '-discovery')), stage: 'NEW' }; if ($json.person_id) b.pointOfContactId = $json.person_id; if ($json.company_id) b.companyId = $json.company_id; return b; })() }}",
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-opp-create",
+      "name": "Twenty Opportunity Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6192,
+        240
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const base = $('Set Company ID').item.json || {};\nconst search = $input.first().json || {};\nconst exists = Array.isArray(search?.data?.opportunities) && search.data.opportunities.length > 0;\nreturn [{ json: { ...base, opportunity_exists: exists } }];",
+        "notice": ""
+      },
+      "id": "cs-core-resolve-opp-context",
+      "name": "Resolve Opportunity Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5952,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.should_create_opportunity === true }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": false,
+        "options": {}
+      },
+      "id": "cs-core-should-create-opp",
+      "name": "Should Create Opportunity?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5472,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "={{ 'https://levinnovation.crm.agentyx.one/rest/opportunities?filter=' + encodeURIComponent('name[eq]:' + ($json.opportunity_name || '')) }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-opp-search",
+      "name": "Twenty Opportunity Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5712,
+        160
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.opportunity_exists === true }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": false,
+        "options": {}
+      },
+      "id": "cs-core-opp-exists",
+      "name": "Opportunity Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5952,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "POST",
+        "url": "https://levinnovation.crm.agentyx.one/rest/people",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { name: { firstName: ((($('Parse Agent Output').item.json.contact_name || 'Lead').split(' '))[0]), lastName: ((($('Parse Agent Output').item.json.contact_name || '').split(' ').slice(1).join(' ')) || 'Desconocido') }, emails: { primaryEmail: (($('Parse Agent Output').item.json.email || (($('Parse Agent Output').item.json.crm_fields && $('Parse Agent Output').item.json.crm_fields.email) || '')) || ($('Parse Agent Output').item.json.user_id ? ($('Parse Agent Output').item.json.user_id + '@placeholder.lev') : 'lead@placeholder.lev')) }, phones: { primaryPhoneNumber: ($('Parse Agent Output').item.json.phone || ''), primaryPhoneCountryCode: '+1' }, jobTitle: ((($('Parse Agent Output').item.json.crm_fields || {}).jobTitle) || ''), company: { name: ((($('Parse Agent Output').item.json.crm_fields || {}).company) || '') }, linkedinLink: { primaryLinkUrl: ((($('Parse Agent Output').item.json.crm_fields || {}).linkedinUrl) || '') } } }}",
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-twenty-create",
+      "name": "Twenty CRM Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3552,
+        128
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const current = $input.first().json || {};\nconst parsed = $('Parse Agent Output').item.json || {};\nconst personId = current?.data?.updatePerson?.id || current?.data?.createPerson?.id || current?.data?.people?.[0]?.id || null;\nconst companyName = String(((parsed.crm_fields || {}).company || '')).trim();\nconst leadStatus = String(parsed.lead_status || '').toLowerCase();\nconst qualified = Number(parsed.qualification_score || 0) >= 60 || ['qualified','meeting_scheduled'].includes(leadStatus) || Boolean(parsed.meeting_requested);\nconst convo = parsed.conversation_id || parsed.user_id || personId || 'lead';\nconst oppName = `LEV-${convo}-discovery`;\nreturn [{ json: { ...parsed, person_id: personId, company_name: companyName, should_create_opportunity: qualified, opportunity_name: oppName } }];",
+        "notice": ""
+      },
+      "id": "cs-core-resolve-crm-targets",
+      "name": "Resolve CRM Targets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3792,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.company_name || '').trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": false,
+        "options": {}
+      },
+      "id": "cs-core-has-company",
+      "name": "Has Company Name?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4032,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "POST",
+        "url": "https://levinnovation.crm.agentyx.one/rest/companies",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { name: ($json.company_name || '') } }}",
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-company-create",
+      "name": "Twenty Company Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4752,
+        128
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "={{ 'https://levinnovation.crm.agentyx.one/rest/people?filter=' + encodeURIComponent('emails.primaryEmail[eq]:' + (String($json.email || (($json.crm_fields || {}).email) || ($json.user_id ? ($json.user_id + '@placeholder.lev') : 'lead@placeholder.lev')).trim().toLowerCase())) }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-twenty-search",
+      "name": "Twenty CRM Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3072,
+        80
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-twenty-found",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ Array.isArray($json.data?.people) && $json.data.people.length > 0 }}",
+              "rightValue": "true"
+            }
+          ]
+        },
+        "looseTypeValidation": false,
+        "options": {}
+      },
+      "id": "cs-core-twenty-found",
+      "name": "Lead Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3312,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const item = $input.first().json || {};\nconst people = Array.isArray(item.data?.people) ? item.data.people : [];\nreturn [{ json: { ...item, data: { ...(item.data || {}), people } } }];",
+        "notice": ""
+      },
+      "id": "cs-core-filter-twenty-results",
+      "name": "Filter Twenty Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const base = $('Resolve CRM Targets').item.json || {};\nconst found = $input.first().json || {};\nconst companyId = found?.data?.companies?.[0]?.id || found?.data?.createCompany?.id || null;\nreturn [{ json: { ...base, company_id: companyId } }];",
+        "notice": ""
+      },
+      "id": "cs-core-set-company-id",
+      "name": "Set Company ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4992,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "PATCH",
+        "url": "={{ 'https://levinnovation.crm.agentyx.one/rest/people/' + ($json.person_id || '') }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { companyId: $json.company_id || null } }}",
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-link-person-company",
+      "name": "Link Person Company",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5232,
+        80
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "PATCH",
+        "url": "={{ 'https://levinnovation.crm.agentyx.one/rest/people/' + $json.data.people[0].id }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ { jobTitle: ((($('Parse Agent Output').item.json.crm_fields || {}).jobTitle) || ''), phones: { primaryPhoneNumber: ($('Parse Agent Output').item.json.phone || ''), primaryPhoneCountryCode: '+1' }, linkedinLink: { primaryLinkUrl: ((($('Parse Agent Output').item.json.crm_fields || {}).linkedinUrl) || '') } } }}",
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-twenty-update",
+      "name": "Twenty CRM Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3552,
+        48
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "curlImport": "",
+        "method": "GET",
+        "url": "={{ 'https://levinnovation.crm.agentyx.one/rest/companies?filter=' + encodeURIComponent('name[eq]:' + ($json.company_name || '')) }}",
+        "authentication": "none",
+        "provideSslCertificates": false,
+        "sendQuery": false,
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIzNDQ5ZjQ3Zi1iYTc2LTQxMjQtOTBkNC1lZDc3MzM4NzU5MWUiLCJ0eXBlIjoiQVBJX0tFWSIsIndvcmtzcGFjZUlkIjoiMzQ0OWY0N2YtYmE3Ni00MTI0LTkwZDQtZWQ3NzMzODc1OTFlIiwiaWF0IjoxNzc4NTMxOTEyLCJleHAiOjQ5MzIxMzE5MTEsImp0aSI6IjIyZDkxNmFiLTU0Y2EtNGRkNS1iYjA0LWM4NjQ1NDg1NjhkMCJ9.PUt_vegu6PPiI4lWVNrawFcN86ZaN73AXAjDqv7FwMs"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": false,
+        "options": {
+          "timeout": 15000
+        },
+        "infoMessage": ""
+      },
+      "id": "cs-core-company-search",
+      "name": "Twenty Company Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4272,
+        48
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ Array.isArray($json.data?.companies) && $json.data.companies.length > 0 }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "looseTypeValidation": false,
+        "options": {}
+      },
+      "id": "cs-core-company-exists",
+      "name": "Company Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4512,
+        48
+      ]
+    },
+    {
+      "id": "5d9af42f-ffbc-4323-b5fd-cb08713a4612",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        2624,
+        240
+      ],
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "",
+              "type": "any"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Parse Agent Output": {
+      "main": [
+        [
+          {
+            "node": "Twenty CRM Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Audit Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Twenty Feedback Webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty CRM Search": {
+      "main": [
+        [
+          {
+            "node": "Filter Twenty Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Twenty Results": {
+      "main": [
+        [
+          {
+            "node": "Lead Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Exists?": {
+      "main": [
+        [
+          {
+            "node": "Twenty CRM Update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twenty CRM Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit Log": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Twenty Feedback Webhook?": {
+      "main": [
+        [
+          {
+            "node": "Emit Twenty Feedback Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Emit Twenty Feedback Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty CRM Update": {
+      "main": [
+        [
+          {
+            "node": "Resolve CRM Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty CRM Create": {
+      "main": [
+        [
+          {
+            "node": "Resolve CRM Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve CRM Targets": {
+      "main": [
+        [
+          {
+            "node": "Has Company Name?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Company Name?": {
+      "main": [
+        [
+          {
+            "node": "Twenty Company Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Should Create Opportunity?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty Company Search": {
+      "main": [
+        [
+          {
+            "node": "Company Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company Exists?": {
+      "main": [
+        [
+          {
+            "node": "Set Company ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twenty Company Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty Company Create": {
+      "main": [
+        [
+          {
+            "node": "Set Company ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Company ID": {
+      "main": [
+        [
+          {
+            "node": "Link Person Company",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Should Create Opportunity?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link Person Company": {
+      "main": [
+        []
+      ]
+    },
+    "Should Create Opportunity?": {
+      "main": [
+        [
+          {
+            "node": "Twenty Opportunity Search",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty Opportunity Search": {
+      "main": [
+        [
+          {
+            "node": "Resolve Opportunity Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Opportunity Exists?": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Twenty Opportunity Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty Opportunity Create": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Opportunity Context": {
+      "main": [
+        [
+          {
+            "node": "Opportunity Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Parse Agent Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "24874862-0146-435d-9e58-8823bc37bc4e",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-05-11T22:02:47.857Z",
+      "createdAt": "2026-05-11T22:02:47.857Z",
+      "role": "workflow:owner",
+      "workflowId": "g44S4y2CKL2tWvQf",
+      "projectId": "iDMhOmEL1lMVw18w",
+      "project": {
+        "updatedAt": "2026-05-07T02:24:49.597Z",
+        "createdAt": "2026-05-07T00:57:54.637Z",
+        "id": "iDMhOmEL1lMVw18w",
+        "name": "Vinicio Flores <vflores@levinnovation.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
+}

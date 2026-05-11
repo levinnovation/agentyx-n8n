@@ -1,0 +1,28 @@
+asset:
+  name: chan-librechat-personal-assistant
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: general
+  capability: personal-assistant
+
+  description: |
+    LibreChat webhook adapter for LEV personal assistant.
+    Accepts tool-invocation payloads from n8n-mcp-bridge, calls personal-assistant-core,
+    and returns canonical JSON response.
+
+  inputs:
+    - librechat tool payload (message, conversation_id, user_id, metadata)
+
+  outputs:
+    - reply_text
+    - reply_attachments
+
+  dependencies:
+    - service: agx-demo-n8n-mcp-bridge
+      endpoint: https://levinnovation.n8n-mcp.agentyx.one/mcp
+      auth: Bearer N8N_MCP_AUTH_TOKEN
+
+  files:
+    - chan-librechat-personal-assistant.json
+    - README.md
+    - .env.example

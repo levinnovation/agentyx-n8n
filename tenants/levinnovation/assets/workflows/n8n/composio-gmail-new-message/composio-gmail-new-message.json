@@ -1,0 +1,125 @@
+{
+  "name": "Composio Trigger - Gmail New Message",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "composio/gmail_new_gmail_message",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "f3327ffd-b5d8-4b49-80b4-1f893fa2d211",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "composio-gmail-new-message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.headers[\"x-auth-proxy-secret\"] || $json.headers[\"X-Auth-Proxy-Secret\"] || \"\" }}",
+              "operation": "equal",
+              "value2": "={{ $env.N8N_AUTH_TRUSTED_PROXY_SECRET }}"
+            }
+          ]
+        }
+      },
+      "id": "48118de2-2ab6-47d6-90f6-2f507ec4ce0b",
+      "name": "Trusted Proxy Secret OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "trigger_slug",
+              "value": "={{ $json.metadata?.trigger_slug || $json.headers[\"x-composio-trigger-slug\"] }}",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $json.metadata?.user_id || $json.headers[\"x-composio-user-id\"] }}",
+              "type": "string"
+            },
+            {
+              "name": "trigger_id",
+              "value": "={{ $json.metadata?.trigger_id || $json.headers[\"x-composio-trigger-id\"] }}",
+              "type": "string"
+            },
+            {
+              "name": "message_subject",
+              "value": "={{ $json.data?.subject || $json.data?.payload?.headers?.find(h => h.name === \"Subject\")?.value || \"(no-subject)\" }}",
+              "type": "string"
+            },
+            {
+              "name": "raw",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9db85052-30d0-47d8-979d-5cdfe0696df1",
+      "name": "Normalize Trigger Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Trusted Proxy Secret OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trusted Proxy Secret OK?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Trigger Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Mexico_City"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

@@ -1,0 +1,8 @@
+name: gdrive-kb-sync-postgres
+type: workflow.n8n
+tenant: levinnovation
+domain: customer-service
+capability: lead-qualification-and-scheduling
+status: draft
+entrypoint: gdrive-kb-sync-postgres.json
+description: Poll Google Drive folder/subfolders and upsert vectors into Postgres pgvector tables.

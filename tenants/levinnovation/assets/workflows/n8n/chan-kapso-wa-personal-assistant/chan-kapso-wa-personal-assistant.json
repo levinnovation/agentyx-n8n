@@ -1,0 +1,265 @@
+{
+  "name": "Channel Adapter - Kapso WA Personal Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kapso/personal-assistant",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "0f385a8e-23ff-4c72-8d4f-bbc8a3734c7e",
+      "name": "Kapso Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        240
+      ],
+      "webhookId": "kapso-personal-assistant"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\nlet messageText = '';\nlet mediaUrl = null;\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Image received]';\n  mediaUrl = msg.image.link || null;\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Document received]';\n  mediaUrl = msg.document.link || null;\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Voice message received]';\n  mediaUrl = msg.voice.link || null;\n}\n\nconst phoneNumber = conv.phone_number ? '+' + conv.phone_number : (msg.from ? '+' + msg.from : '');\n\nreturn [{\n  json: {\n    core_workflow_id: '1USjs2JAP4tlHIcm',\n    channel: 'kapso-wa',\n    conversation_id: String(conv.id || msg.from || ''),\n    user_id: String(phoneNumber || ''),\n    message: messageText,\n    attachments: mediaUrl ? [{ type: msg.type || 'media', url: mediaUrl }] : [],\n    metadata: {\n      message_id: msg.id || '',\n      contact_name: conv.contact_name || ''\n    },\n    incoming_message_id: String(msg.id || ''),\n    phone_number: phoneNumber\n  }\n}];"
+      },
+      "id": "f63b2b5f-7f55-4fd7-b8f8-2f588f1af074",
+      "name": "Validate + Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst messageId = String(item.incoming_message_id || item.metadata?.message_id || '').trim();\nconst globalData = $getWorkflowStaticData('global');\nconst now = Date.now();\nconst ttlMs = 15 * 60 * 1000;\n\nconst seen = (globalData.seenKapsoMessageIds && typeof globalData.seenKapsoMessageIds === 'object')\n  ? globalData.seenKapsoMessageIds\n  : {};\n\nfor (const [key, ts] of Object.entries(seen)) {\n  if (typeof ts !== 'number' || now - ts > ttlMs) {\n    delete seen[key];\n  }\n}\n\nlet duplicateMessage = false;\nif (messageId) {\n  if (seen[messageId]) {\n    duplicateMessage = true;\n  } else {\n    seen[messageId] = now;\n  }\n}\n\nglobalData.seenKapsoMessageIds = seen;\n\nreturn [{\n  json: {\n    ...item,\n    duplicate_message: duplicateMessage,\n  },\n}];"
+      },
+      "id": "1e9f7029-9323-497b-8f06-4fcf7f2f789f",
+      "name": "Deduplicate Incoming",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "93ed34a1-b204-402f-bc89-c2586f7ca795",
+              "leftValue": "={{ $json.duplicate_message }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b37946db-73dc-4af2-bca8-12238739e721",
+      "name": "Is Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        860,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"duplicate\": true, \"message_id\": $json.incoming_message_id || '' } }}",
+        "options": {}
+      },
+      "id": "cb585e8c-2dc8-4a66-aa64-b618d5dcae88",
+      "name": "Respond Duplicate OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1100,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "1USjs2JAP4tlHIcm",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "91648e6f-9184-4c69-8eb7-1f7bb31f85a8",
+      "name": "Execute Personal Assistant Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1100,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kapso.ai/meta/whatsapp/v24.0/1169330222921278/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $('Validate + Normalize').item.json.user_id.replace('+',''), \"type\": \"text\", \"text\": { \"body\": $json.reply_text || '' } } }}",
+        "options": {}
+      },
+      "id": "7ba40f08-e696-4116-8838-68f25d1685b6",
+      "name": "Send Reply via Kapso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput",
+      "position": [
+        1340,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "QgENg20F5GeZ8lf4",
+          "name": "Kapso Header Auth LEV Personal Assistant"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"reply_sent\": true, \"reply_text\": $('Execute Personal Assistant Core').item.json.reply_text || '' } }}",
+        "options": {}
+      },
+      "id": "0ecfa68e-2641-4e64-b2b2-559bc95c4cac",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1580,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Kapso Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate + Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate + Normalize": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Incoming",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate Incoming": {
+      "main": [
+        [
+          {
+            "node": "Is Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Respond Duplicate OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Personal Assistant Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Personal Assistant Core": {
+      "main": [
+        [
+          {
+            "node": "Send Reply via Kapso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reply via Kapso": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "levinnovation"
+    },
+    {
+      "name": "kapso"
+    },
+    {
+      "name": "whatsapp"
+    },
+    {
+      "name": "personal-assistant"
+    }
+  ]
+}

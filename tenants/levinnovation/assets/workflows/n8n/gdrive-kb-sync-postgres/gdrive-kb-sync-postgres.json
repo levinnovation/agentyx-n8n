@@ -1,0 +1,435 @@
+{
+  "name": "KB Sync - Google Drive to Postgres (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/15 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "kb-sync-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "root_folder_id",
+              "value": "={{ $env.GDRIVE_ROOT_FOLDER_ID || '1natyxyUOlUN-qba-zTlBWB-Qqf_RaO1P' }}",
+              "type": "string"
+            },
+            {
+              "name": "drive_api_base",
+              "value": "https://www.googleapis.com/drive/v3",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "kb-sync-config",
+      "name": "Load Sync Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- 1) Verificar que pgvector este disponible\nSELECT * FROM pg_available_extensions WHERE name = 'vector';\n\n-- 2) Habilitar pgvector\nCREATE EXTENSION IF NOT EXISTS vector;\n\n-- 3) Crear tabla de chunks\nCREATE TABLE IF NOT EXISTS public.cs_knowledge_chunks (\n  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),\n  text text,\n  metadata jsonb DEFAULT '{}'::jsonb,\n  embedding vector(1536),\n  created_at timestamptz DEFAULT now()\n);\n\n-- 4) Indice HNSW para busqueda por similaridad coseno\nCREATE INDEX IF NOT EXISTS cs_knowledge_embedding_idx\n  ON public.cs_knowledge_chunks USING hnsw (embedding vector_cosine_ops);\n\n-- 5) Indices secundarios sobre metadata para filtros y deletes rapidos\nCREATE INDEX IF NOT EXISTS cs_knowledge_product_idx\n  ON public.cs_knowledge_chunks ((metadata->>'product'));\n\nCREATE INDEX IF NOT EXISTS cs_knowledge_source_idx\n  ON public.cs_knowledge_chunks ((metadata->>'source_file_id'));\n\n-- 6) Verificacion final\nSELECT\n  (SELECT extversion FROM pg_extension WHERE extname = 'vector') AS pgvector_version,\n  (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name = 'cs_knowledge_chunks') AS table_exists;",
+        "options": {}
+      },
+      "id": "kb-sync-setup-pgvector",
+      "name": "Run pgvector Setup",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        700,
+        120
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sFReUGjhi6Ox1tYR",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(id,name,mimeType,parents,modifiedTime,trashed,webViewLink,md5Checksum),nextPageToken&q=' + encodeURIComponent('trashed=false') }}",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.GDRIVE_ACCESS_TOKEN || '') }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "kb-sync-list-files",
+      "name": "List Drive Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Load Sync Config').item.json;\nconst rootFolderId = String(cfg.root_folder_id || '');\nconst files = Array.isArray($json.files) ? $json.files : [];\nconst byId = new Map(files.map((f) => [String(f.id), f]));\nconst g = $getWorkflowStaticData('global');\nconst lastSync = g.gdrive_last_sync_at || '1970-01-01T00:00:00.000Z';\n\nfunction hasRootAncestor(file, seen = new Set()) {\n  const id = String(file?.id || '');\n  if (!id || seen.has(id)) return false;\n  seen.add(id);\n  const parents = Array.isArray(file?.parents) ? file.parents : [];\n  if (parents.includes(rootFolderId)) return true;\n  for (const pid of parents) {\n    if (pid === rootFolderId) return true;\n    const p = byId.get(String(pid));\n    if (p && hasRootAncestor(p, seen)) return true;\n  }\n  return false;\n}\n\nconst allowedMime = new Set([\n  'text/plain',\n  'application/pdf',\n  'application/vnd.google-apps.document',\n  'application/vnd.google-apps.spreadsheet'\n]);\n\nconst changed = files\n  .filter((f) => !f.trashed)\n  .filter((f) => allowedMime.has(String(f.mimeType || '')))\n  .filter((f) => hasRootAncestor(f))\n  .filter((f) => String(f.modifiedTime || '') > lastSync)\n  .map((f) => ({\n    ...f,\n    root_folder_id: rootFolderId,\n    last_sync: lastSync\n  }));\n\nreturn changed.map((f) => ({ json: f }));"
+      },
+      "id": "kb-sync-filter-changes",
+      "name": "Filter Folder + Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "id": "kb-sync-batches",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1180,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const file = $input.first().json;\nlet downloadUrl = '';\nif (file.mimeType === 'application/vnd.google-apps.document') {\n  downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/export?mimeType=text/plain`;\n} else if (file.mimeType === 'application/vnd.google-apps.spreadsheet') {\n  downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}/export?mimeType=text/csv`;\n} else {\n  downloadUrl = `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`;\n}\nreturn [{ json: { ...file, download_url: downloadUrl } }];"
+      },
+      "id": "kb-sync-build-download-url",
+      "name": "Build Download URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.download_url }}",
+        "method": "GET",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.GDRIVE_ACCESS_TOKEN || '') }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "kb-sync-download-content",
+      "name": "Download File Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        260
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const file = $('Build Download URL').item.json;\nconst raw = $json;\nlet text = '';\nif (typeof raw === 'string') { text = raw; }\nelse if (raw && typeof raw === 'object') { text = JSON.stringify(raw); }\ntext = String(text || '').replace(/\\u0000/g, '').trim();\nif (!text) return [];\nconst normalized = text.substring(0, 12000);\nconst tokenCount = Math.ceil(normalized.length / 4);\nreturn [{ json: { file_id: file.id, file_name: file.name, mime_type: file.mimeType, modified_time: file.modifiedTime, web_view_link: file.webViewLink || '', checksum: file.md5Checksum || '', content_text: normalized, token_count: tokenCount, metadata: { source: 'google-drive', source_file_id: file.id, source_name: file.name, product: 'customer-service', root_folder_id: file.root_folder_id, last_sync: file.last_sync } } }];"
+      },
+      "id": "kb-sync-normalize-content",
+      "name": "Normalize Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/embeddings",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: ($env.KB_EMBEDDING_MODEL || 'text-embedding-3-small'), input: $json.content_text } }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "kb-sync-embed",
+      "name": "Generate Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2140,
+        260
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "WMhJiEo3MRwuLqwf",
+          "name": "OpenAI account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Normalize Content').item.json;\nconst emb = Array.isArray($json.data) && $json.data[0] ? ($json.data[0].embedding || []) : [];\nconst embLit = '[' + emb.join(',') + ']';\nreturn [{ json: { ...source, embedding_literal: embLit } }];"
+      },
+      "id": "kb-sync-prepare-sql",
+      "name": "Prepare SQL Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"DELETE FROM public.cs_knowledge_chunks WHERE metadata->>'source_file_id' = '\" + ($json.file_id || '').replace(/'/g, \"''\") + \"';\" }}"
+      },
+      "id": "kb-sync-delete-existing",
+      "name": "Delete Existing Chunk By Source",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2620,
+        260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sFReUGjhi6Ox1tYR",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ \"INSERT INTO public.cs_knowledge_chunks (text, metadata, embedding, created_at) VALUES ('\" + ($json.content_text || '').replace(/'/g, \"''\") + \"', '\" + JSON.stringify($json.metadata || {}).replace(/'/g, \"''\") + \"'::jsonb, '\" + ($json.embedding_literal || '[]') + \"'::vector, now());\" }}"
+      },
+      "id": "kb-sync-upsert-chunk",
+      "name": "Upsert Vector Chunk",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2860,
+        260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sFReUGjhi6Ox1tYR",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const g = $getWorkflowStaticData('global');\ng.gdrive_last_sync_at = new Date().toISOString();\nreturn [{ json: { ok: true, synced_at: g.gdrive_last_sync_at } }];"
+      },
+      "id": "kb-sync-mark-cursor",
+      "name": "Update Sync Cursor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load Sync Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Sync Config": {
+      "main": [
+        [
+          {
+            "node": "Run pgvector Setup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Drive Files": {
+      "main": [
+        [
+          {
+            "node": "Filter Folder + Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Folder + Changes": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Build Download URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Download URL": {
+      "main": [
+        [
+          {
+            "node": "Download File Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File Content": {
+      "main": [
+        [
+          {
+            "node": "Normalize Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Content": {
+      "main": [
+        [
+          {
+            "node": "Generate Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Embedding": {
+      "main": [
+        [
+          {
+            "node": "Prepare SQL Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare SQL Payload": {
+      "main": [
+        [
+          {
+            "node": "Delete Existing Chunk By Source",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Vector Chunk": {
+      "main": [
+        [
+          {
+            "node": "Update Sync Cursor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run pgvector Setup": {
+      "main": [
+        [
+          {
+            "node": "List Drive Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Existing Chunk By Source": {
+      "main": [
+        [
+          {
+            "node": "Upsert Vector Chunk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "active": true
+}

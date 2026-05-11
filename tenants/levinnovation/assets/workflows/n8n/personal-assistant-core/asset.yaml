@@ -1,0 +1,36 @@
+asset:
+  name: personal-assistant-core
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: general
+  capability: personal-assistant
+
+  description: |
+    Reusable core workflow for LEV personal assistant across Telegram, Kapso WhatsApp,
+    and LibreChat adapters. Receives canonical envelope input and returns canonical
+    response output.
+
+  inputs:
+    - channel
+    - conversation_id
+    - user_id
+    - message
+    - attachments
+    - metadata
+
+  outputs:
+    - reply_text
+    - reply_attachments
+    - end_session
+
+  dependencies:
+    - service: agx-demo-composio-mcp
+      endpoint: https://levinnovation.mcp.agentyx.one/mcp
+      auth: Bearer MCP_AUTH_TOKEN
+    - service: openrouter
+      auth: OPENROUTER_API_KEY
+
+  files:
+    - personal-assistant-core.json
+    - README.md
+    - .env.example

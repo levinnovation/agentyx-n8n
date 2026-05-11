@@ -30,7 +30,7 @@
         "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "CUSTOMER_SERVICE_CORE_ID",
+          "value": "n0mTwpONyCbbyn2E",
           "mode": "id"
         },
         "options": {}
@@ -39,7 +39,8 @@
       "name": "Execute Customer Service Core",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [1160, 180]
+      "position": [1160, 180],
+      "continueOnFail": true
     },
     {
       "parameters": {
@@ -47,7 +48,7 @@
         "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={ \"chat_id\": $('Validate + Normalize').item.json.metadata.chat_id, \"text\": $json.reply_text || 'Gracias por tu mensaje.', \"parse_mode\": \"Markdown\" }",
+        "jsonBody": "={{ { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"text\": String($json.reply_text || 'Gracias por tu mensaje.') } }}",
         "options": {}
       },
       "id": "cs-tg-send-reply",

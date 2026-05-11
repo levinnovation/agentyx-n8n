@@ -25,6 +25,28 @@ def _api_headers(api_key: str) -> dict[str, str]:
     }
 
 
+def _sanitize_workflow_payload(payload: dict) -> dict:
+    """Drop server-managed fields rejected by n8n API."""
+    read_only_fields = {
+        "id",
+        "active",
+        "versionId",
+        "createdAt",
+        "updatedAt",
+        "isArchived",
+        "meta",
+        "staticData",
+        "pinData",
+        "tags",
+    }
+    sanitized = {k: v for k, v in payload.items() if k not in read_only_fields}
+    settings = sanitized.get("settings")
+    if isinstance(settings, dict):
+        # n8n API rejects UI-only settings on update.
+        settings.pop("binaryMode", None)
+    return sanitized
+
+
 def list_workflows(client: httpx.Client, n8n_url: str, api_key: str) -> list[dict]:
     resp = client.get(
         urljoin(n8n_url, "/api/v1/workflows"),
@@ -44,8 +66,7 @@ def find_workflow_by_name(workflows: list[dict], name: str) -> str | None:
 
 
 def create_workflow(client: httpx.Client, n8n_url: str, api_key: str, payload: dict) -> dict:
-    # Remove id so n8n assigns a new one
-    payload = {k: v for k, v in payload.items() if k != "id"}
+    payload = _sanitize_workflow_payload(payload)
     resp = client.post(
         urljoin(n8n_url, "/api/v1/workflows"),
         headers=_api_headers(api_key),
@@ -57,14 +78,15 @@ def create_workflow(client: httpx.Client, n8n_url: str, api_key: str, payload: d
 
 
 def update_workflow(client: httpx.Client, n8n_url: str, api_key: str, workflow_id: str, payload: dict) -> dict:
-    payload = {**payload, "id": workflow_id}
+    payload = _sanitize_workflow_payload(payload)
     resp = client.put(
         urljoin(n8n_url, f"/api/v1/workflows/{workflow_id}"),
         headers=_api_headers(api_key),
         json=payload,
         timeout=30.0,
     )
-    resp.raise_for_status()
+    if resp.status_code >= 400:
+        raise RuntimeError(f"n8n update failed ({resp.status_code}): {resp.text}")
     return resp.json()
 
 

@@ -1,0 +1,29 @@
+asset:
+  name: chan-telegram-personal-assistant
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: general
+  capability: personal-assistant
+
+  description: |
+    Telegram channel adapter for the LEV personal assistant.
+    Receives Telegram webhook updates, normalizes to canonical envelope,
+    calls personal-assistant-core, and replies via Telegram Bot API.
+
+  inputs:
+    - telegram update webhook payload
+
+  outputs:
+    - telegram message reply
+    - webhook acknowledgment
+
+  dependencies:
+    - service: n8n-main
+      endpoint: https://levinnovation.n8n.agentyx.one
+    - service: telegram-bot-api
+      endpoint: https://api.telegram.org
+
+  files:
+    - chan-telegram-personal-assistant.json
+    - README.md
+    - .env.example

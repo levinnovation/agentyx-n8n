@@ -1,0 +1,8 @@
+name: kb-postgres-search
+type: workflow.n8n
+tenant: levinnovation
+domain: customer-service
+capability: lead-qualification-and-scheduling
+status: draft
+entrypoint: kb-postgres-search.json
+description: Exposes Postgres-backed knowledge snippets for runtime retrieval by customer service workflows.

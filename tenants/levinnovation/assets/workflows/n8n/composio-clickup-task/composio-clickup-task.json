@@ -1,0 +1,130 @@
+{
+  "name": "Composio Trigger - ClickUp Task",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "composio/clickup_new_task",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "fb58da59-6896-4fd3-aac6-932267a899f4",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "composio-clickup-new-task"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.headers[\"x-auth-proxy-secret\"] || $json.headers[\"X-Auth-Proxy-Secret\"] || \"\" }}",
+              "operation": "equal",
+              "value2": "={{ $env.N8N_AUTH_TRUSTED_PROXY_SECRET }}"
+            }
+          ]
+        }
+      },
+      "id": "90baabca-78b5-402f-a0a0-8f0170e2d20a",
+      "name": "Trusted Proxy Secret OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "trigger_slug",
+              "value": "={{ $json.metadata?.trigger_slug || $json.headers[\"x-composio-trigger-slug\"] }}",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $json.metadata?.user_id || $json.headers[\"x-composio-user-id\"] }}",
+              "type": "string"
+            },
+            {
+              "name": "trigger_id",
+              "value": "={{ $json.metadata?.trigger_id || $json.headers[\"x-composio-trigger-id\"] }}",
+              "type": "string"
+            },
+            {
+              "name": "task_name",
+              "value": "={{ $json.data?.name || $json.data?.task?.name || \"(no-task-name)\" }}",
+              "type": "string"
+            },
+            {
+              "name": "task_status",
+              "value": "={{ $json.data?.status?.status || $json.data?.task?.status?.status || \"\" }}",
+              "type": "string"
+            },
+            {
+              "name": "raw",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f6e4cf88-7ebf-4492-b66d-8fabd66dc56a",
+      "name": "Normalize Trigger Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        780,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Trusted Proxy Secret OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trusted Proxy Secret OK?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Trigger Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Mexico_City"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

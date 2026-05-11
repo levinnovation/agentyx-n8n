@@ -109,7 +109,7 @@ function sleep(ms: number) {
 	return new Promise((r) => setTimeout(r, ms));
 }
 
-async function fetchWithRetry(
+export async function fetchWithRetry(
 	url: string,
 	init: RequestInit,
 	correlationId: string,
@@ -169,7 +169,7 @@ async function fetchWithRetry(
 	throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
-function redactUrl(url: string): string {
+export function redactUrl(url: string): string {
 	try {
 		const u = new URL(url);
 		return `${u.origin}${u.pathname}`;
@@ -182,6 +182,15 @@ function normalizeToolkitSlug(value: ConnectedAccount | string | undefined | nul
 	if (!value) return '';
 	if (typeof value === 'string') return value.trim().toLowerCase();
 	return (value.toolkit?.slug ?? value.appName ?? '').trim().toLowerCase();
+}
+
+function blockedActionSlugs(): Set<string> {
+	return new Set(
+		(process.env.COMPOSIO_BLOCKED_ACTIONS ?? '')
+			.split(',')
+			.map((s) => s.trim().toUpperCase())
+			.filter(Boolean),
+	);
 }
 
 function isActiveStatus(status?: string): boolean {
@@ -749,12 +758,14 @@ export class ComposioClient {
 				.map((s) => s.trim())
 				.filter(Boolean) ?? [],
 		);
+		const blockedSlugs = blockedActionSlugs();
 
 		const merged = new Map<string, ComposioToolItem>();
 
 		const ingestItems = (items: ComposioToolItem[]) => {
 			for (const it of items) {
 				if (!it?.slug) continue;
+				if (blockedSlugs.has(it.slug.toUpperCase())) continue;
 				if (excludeDeprecated && it.is_deprecated) continue;
 				if (allowedSlugs.size > 0 && !allowedSlugs.has(it.slug)) continue;
 				if (!merged.has(it.slug)) merged.set(it.slug, it);
@@ -1099,6 +1110,9 @@ export class ComposioClient {
 		correlationId: string,
 		options?: ExecuteToolOptions,
 	): Promise<unknown> {
+		if (blockedActionSlugs().has(slug.trim().toUpperCase())) {
+			throw new Error(`Tool blocked by policy: ${slug}`);
+		}
 		const entityId = this.resolveEntityId(options?.entityId);
 		const requestedConnectedAccountId = options?.connectedAccountId?.trim();
 		let connectedAccountId: string | undefined;

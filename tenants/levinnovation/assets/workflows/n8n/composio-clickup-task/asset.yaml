@@ -1,0 +1,27 @@
+asset:
+  name: composio-clickup-task
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: sales-prospecting
+  capability: linkedin-lead-prospecting
+
+  description: |
+    Trigger ingress workflow for Composio ClickUp task events.
+    Validates trusted proxy header and normalizes task context fields.
+
+  inputs:
+    - composio.trigger.message webhook payload
+
+  outputs:
+    - webhook acknowledgment
+    - normalized clickup task context
+
+  dependencies:
+    - service: agx-demo-composio-mcp
+      endpoint: https://levinnovation.mcp.agentyx.one/webhooks/composio
+      auth: HMAC (webhook-signature)
+
+  files:
+    - composio-clickup-task.json
+    - README.md
+    - .env.example

@@ -1,0 +1,202 @@
+{
+  "name": "Channel Adapter - Twenty Webhook Customer Service",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "twenty/customer-service",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cs-twenty-webhook",
+      "name": "Twenty Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        260
+      ],
+      "webhookId": "twenty-customer-service"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst headers = input.headers || {};\nconst body = input.body || input;\nconst event = String(body.event || body.type || 'unknown.created');\nconst timestamp = String(headers['x-twenty-webhook-timestamp'] || headers['X-Twenty-Webhook-Timestamp'] || '');\nconst signature = String(headers['x-twenty-webhook-signature'] || headers['X-Twenty-Webhook-Signature'] || '');\nconst secret = String($env.TWENTY_INBOUND_WEBHOOK_SECRET || '');\nconst payloadString = JSON.stringify(body || {});\nlet signatureValid = true;\nlet stale = false;\nlet signatureReason = 'not_required';\n\nif (secret) {\n  const hasHeaders = Boolean(timestamp && signature);\n  signatureValid = hasHeaders;\n  signatureReason = hasHeaders ? 'header_present_hmac_check_delegated' : 'missing_signature_headers';\n}\n\nif (timestamp) {\n  const tsMs = Date.parse(timestamp);\n  if (!Number.isNaN(tsMs)) {\n    stale = Math.abs(Date.now() - tsMs) > 10 * 60 * 1000;\n  }\n}\n\nconst record = body.record || body.data || {};\nconst objectType = event.includes('.') ? event.split('.')[0] : (record.objectType || record.type || 'unknown');\nconst action = event.includes('.') ? event.split('.')[1] : 'updated';\nconst supportedWakeEvents = new Set([\n  'person.created','person.updated','person.deleted',\n  'company.created','company.updated','company.deleted',\n  'opportunity.created','opportunity.updated','opportunity.deleted',\n  'note.created','note.updated','note.deleted',\n  'task.created','task.updated','task.deleted',\n  'message.created','message.updated','message.deleted',\n  'activity.created','activity.updated','activity.deleted'\n]);\nconst isProspectingObject = ['prospectsignal','sequenceenrollment','enrichmentjob','researchsnapshot'].includes(String(objectType).toLowerCase());\nconst highValueFieldHints = ['owner','status','stage','lead','score','nextStep','closeDate','amount','companyId','personId'];\nconst changedFields = Array.isArray(body.changedFields) ? body.changedFields : (Array.isArray(record.changedFields) ? record.changedFields : []);\nconst highValueChange = changedFields.some((f) => highValueFieldHints.some((hint) => String(f).toLowerCase().includes(hint.toLowerCase())));\n\nconst eventId = String(body.id || body.eventId || record.id || `${event}:${timestamp}`);\nconst dedupeKey = `${event}:${eventId}:${timestamp}`;\nconst g = $getWorkflowStaticData('global');\ng.twentyInboundSeen = g.twentyInboundSeen || {};\nconst now = Date.now();\nfor (const [k, v] of Object.entries(g.twentyInboundSeen)) {\n  if (typeof v === 'number' && now - v > 24 * 60 * 60 * 1000) delete g.twentyInboundSeen[k];\n}\nconst duplicate = Boolean(g.twentyInboundSeen[dedupeKey]);\nif (!duplicate) g.twentyInboundSeen[dedupeKey] = now;\n\nconst firstName = record?.name?.firstName || record?.firstName || '';\nconst lastName = record?.name?.lastName || record?.lastName || '';\nconst contactName = `${firstName} ${lastName}`.trim() || record?.name || '';\nconst email = record?.emails?.primaryEmail || record?.email || record?.primaryEmail || '';\nconst phone = record?.phones?.primaryPhoneNumber || record?.phone || record?.mobile || '';\nconst company = record?.company?.name || record?.company || record?.companyName || '';\nconst notes = record?.notes || record?.description || '';\n\nconst shouldWakeByEvent = supportedWakeEvents.has(event);\nconst shouldWake = signatureValid && !stale && !duplicate && (shouldWakeByEvent || isProspectingObject || highValueChange);\nconst syncDirection = 'twenty_to_n8n';\n\nreturn [{\n  json: {\n    channel: 'twenty-webhook',\n    conversation_id: String(record?.id || body?.id || `twenty:${Date.now()}`),\n    user_id: String(email || phone || record?.id || ''),\n    message: `Evento Twenty (${event}). Contacto: ${contactName || 'sin nombre'}. Empresa: ${company || 'sin empresa'}. Notas: ${notes || 'sin notas'}`,\n    attachments: [],\n    metadata: {\n      twenty_event: event,\n      twenty_record_id: record?.id || null,\n      contact_name: contactName,\n      email,\n      phone,\n      company,\n      changed_fields: changedFields,\n      source_system: 'twenty',\n      source_event_id: eventId,\n      correlation_id: String(body.correlationId || body.traceId || eventId),\n      idempotency_key: dedupeKey,\n      actor_type: String(body.actorType || record.actorType || 'unknown'),\n      sync_direction: syncDirection,\n      sync_status: shouldWake ? 'sync.requested' : (duplicate ? 'sync.skipped_no_change' : 'agent.needs_human_review'),\n      last_sync_error: signatureValid ? '' : signatureReason,\n      wake_agent: shouldWake,\n      duplicate,\n      stale,\n      signature_valid: signatureValid,\n      signature_reason: signatureReason,\n      raw_payload: body\n    }\n  }\n}];"
+      },
+      "id": "cs-twenty-normalize",
+      "name": "Normalize Twenty Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "n0mTwpONyCbbyn2E",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "cs-twenty-execute-core",
+      "name": "Execute Customer Service Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        940,
+        180
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, channel: 'twenty-webhook', reply_text: $json.reply_text || '', metadata: $json.metadata || {} } }}",
+        "options": {}
+      },
+      "id": "cs-twenty-respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1180,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-wake",
+              "leftValue": "={{ ($json.metadata || {}).wake_agent === true }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cs-twenty-should-wake",
+      "name": "Should Wake Agent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "reply_text",
+              "value": "={{ '' }}",
+              "type": "string"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ $json.metadata || {} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cs-twenty-skipped-ack",
+      "name": "Prepare Skipped Ack",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Twenty Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Twenty Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Twenty Event": {
+      "main": [
+        [
+          {
+            "node": "Should Wake Agent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Wake Agent?": {
+      "main": [
+        [
+          {
+            "node": "Execute Customer Service Core",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Skipped Ack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Customer Service Core": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Skipped Ack": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  }
+}

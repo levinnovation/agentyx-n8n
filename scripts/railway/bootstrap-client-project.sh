@@ -51,6 +51,7 @@ fi
 PROJECT_NAME="agentyx-${CLIENT_SLUG}-prod"
 ORG="levinnovation"
 DOMAIN_ROOT="agentyx.one"
+N8N_RUNTIME_IMAGE="${N8N_RUNTIME_IMAGE:-ghcr.io/levinnovation/agentyx-n8n:latest}"
 
 # ─── GraphQL helper ──────────────────────────────────────────
 graphql() {
@@ -137,14 +138,24 @@ connect_repo() {
     echo "  [OK] $repo ($branch)"
 }
 
+set_image_source() {
+    local svc_id="$1"
+    local image="$2"
+    local query="{\"query\":\"mutation { serviceInstanceUpdate(serviceId: \\\"$svc_id\\\", environmentId: \\\"$ENV_ID\\\", input: {source: {image: \\\"$image\\\"}}) }\"}"
+    graphql "$query" >/dev/null
+    echo "  [OK] image source: $image"
+}
+
 connect_repo "$AUTH_SVC"     "$ORG/agentyx-auth-service"     "main"
 connect_repo "$PORTAL_SVC"   "$ORG/agentyx-client-portal"    "agentyx/main"
-connect_repo "$N8N_MAIN_SVC" "$ORG/agentyx-n8n"              "master"
-connect_repo "$N8N_WORKER_SVC" "$ORG/agentyx-n8n"            "master"
-connect_repo "$N8N_WEBHOOK_SVC" "$ORG/agentyx-n8n"           "master"
 connect_repo "$FLOWISE_SVC"  "$ORG/agentyx-flowise"          "agentyx/main"
 connect_repo "$PAPERCLIP_SVC" "$ORG/agentyx-paperclip"       "agentyx/main"
 connect_repo "$LIBRECHAT_SVC" "$ORG/agentyx-librechat"       "agentyx/main"
+
+# Keep all n8n runtime roles on the exact same image source.
+set_image_source "$N8N_MAIN_SVC" "$N8N_RUNTIME_IMAGE"
+set_image_source "$N8N_WORKER_SVC" "$N8N_RUNTIME_IMAGE"
+set_image_source "$N8N_WEBHOOK_SVC" "$N8N_RUNTIME_IMAGE"
 
 # RAG API uses official image, not a repo
 RAG_QUERY="{\"query\":\"mutation { serviceInstanceUpdate(serviceId: \\\"$RAG_SVC\\\", environmentId: \\\"$ENV_ID\\\", input: {source: {image: \\\"registry.librechat.ai/danny-avila/librechat-rag-api-dev-lite:latest\\\"}}) }\"}"

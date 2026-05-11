@@ -1,0 +1,27 @@
+asset:
+  name: composio-gmail-new-message
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: sales-prospecting
+  capability: linkedin-lead-prospecting
+
+  description: |
+    Trigger ingress workflow for Composio Gmail "new message" events.
+    Validates trusted proxy header and normalizes payload for downstream processing.
+
+  inputs:
+    - composio.trigger.message webhook payload
+
+  outputs:
+    - webhook acknowledgment
+    - normalized trigger context
+
+  dependencies:
+    - service: agx-demo-composio-mcp
+      endpoint: https://levinnovation.mcp.agentyx.one/webhooks/composio
+      auth: HMAC (webhook-signature)
+
+  files:
+    - composio-gmail-new-message.json
+    - README.md
+    - .env.example

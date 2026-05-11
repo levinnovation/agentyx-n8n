@@ -30,7 +30,7 @@
         "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "CUSTOMER_SERVICE_CORE_ID",
+          "value": "n0mTwpONyCbbyn2E",
           "mode": "id"
         },
         "options": {}
@@ -44,7 +44,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.KAPSO_BASE_URL || 'https://api.kapso.ai' }}/meta/whatsapp/v24.0/{{ $env.KAPSO_PHONE_NUMBER_ID || '1169330222921278' }}/messages",
+        "url": "={{ $env.KAPSO_BASE_URL || 'https://api.kapso.ai' }}/meta/whatsapp/v24.0/{{ (((String(($('Validate + Normalize').item.json.metadata.phone_number_id || $env.KAPSO_PHONE_NUMBER_ID || '1169330222921278')).match(/\\d+/g) || []).join('')) || '1169330222921278') }}/messages",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -55,7 +55,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $('Validate + Normalize').item.json.user_id.replace('+',''), \"type\": \"text\", \"text\": { \"body\": $json.reply_text || '' } } }}",
+        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": ((String($('Validate + Normalize').item.json.user_id || '').match(/\\d+/g) || []).join('')), \"type\": \"text\", \"text\": { \"body\": $json.reply_text || '' } } }}",
         "options": {}
       },
       "id": "cs-kapso-send-reply",

@@ -13,6 +13,8 @@ Operational runbook for Railway deployments using:
 
 - `EXECUTIONS_MODE=queue` on all n8n roles.
 - Shared `N8N_ENCRYPTION_KEY` on all n8n roles.
+- Runtime parity invariant: `n8n-main`, `n8n-worker`, and `n8n-webhook` must use the same n8n runtime source/version.
+  - Canonical image policy: `ghcr.io/levinnovation/agentyx-n8n:latest` on all three.
 - Shared Postgres (`DB_POSTGRESDB_*`) and schema `n8n`.
 - Shared Redis queue vars:
   - `QUEUE_BULL_REDIS_HOST`,
@@ -40,6 +42,31 @@ Operational runbook for Railway deployments using:
 - Keep `n8n-main` single replica in Community Edition.
 
 ## Maintenance procedures
+
+### Validate runtime parity
+
+Run before/after any deploy that touches n8n:
+
+```bash
+python3 scripts/railway/check-n8n-runtime-parity.py --enforce-image
+```
+
+This command fails if any queue role drifts away from the shared runtime.
+
+### One-command remediation (demo stack)
+
+If parity drifts in `client-demo-agentyx`, re-apply the same n8n image to all queue roles:
+
+```bash
+N8N_RUNTIME_IMAGE=ghcr.io/levinnovation/agentyx-n8n:latest \
+bash scripts/railway/replicate-reference-to-scratch.sh
+```
+
+Then validate again:
+
+```bash
+python3 scripts/railway/check-n8n-runtime-parity.py --enforce-image
+```
 
 ### Rotate `N8N_ENCRYPTION_KEY`
 
@@ -85,3 +112,4 @@ Check:
 1. Trigger webhook-based workflow (`personal-assistant` chat trigger).
 2. Trigger schedule/manual workflow (`agente-prospectador-ai`).
 3. Redeploy `n8n-main` while webhooks are active and confirm webhook success continuity.
+4. Execute a workflow that uses MCP Client Tool / LangGraph-related nodes and verify it succeeds from queue execution path (worker) and webhook path.

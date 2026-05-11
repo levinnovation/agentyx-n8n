@@ -1,0 +1,27 @@
+asset:
+  name: composio-googlecalendar-event
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: sales-prospecting
+  capability: linkedin-lead-prospecting
+
+  description: |
+    Trigger ingress workflow for Composio Google Calendar events.
+    Validates trusted proxy header and normalizes event title/start fields.
+
+  inputs:
+    - composio.trigger.message webhook payload
+
+  outputs:
+    - webhook acknowledgment
+    - normalized calendar event context
+
+  dependencies:
+    - service: agx-demo-composio-mcp
+      endpoint: https://levinnovation.mcp.agentyx.one/webhooks/composio
+      auth: HMAC (webhook-signature)
+
+  files:
+    - composio-googlecalendar-event.json
+    - README.md
+    - .env.example

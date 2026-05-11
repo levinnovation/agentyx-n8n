@@ -1,0 +1,31 @@
+asset:
+  name: twenty-crm-on-update-interactions
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Subworkflow that parses AI output and executes Twenty CRM writebacks,
+    including people upsert, company linking/creation, opportunity creation,
+    feedback webhook emission, and response envelope building.
+
+  inputs:
+    - channel
+    - conversation_id
+    - user_id
+    - message
+    - enriched_message
+    - metadata
+    - output
+
+  outputs:
+    - reply_text
+    - reply_attachments
+    - end_session
+    - metadata (lead_status, qualification_score, crm_fields, calendar_action)
+
+  files:
+    - twenty-crm-on-update-interactions.json
+    - README.md
+    - asset.yaml

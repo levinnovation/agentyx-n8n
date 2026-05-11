@@ -1,0 +1,14 @@
+version: 1.2.2
+
+mcpServers:
+  composio:
+    type: streamable-http
+    url: ${COMPOSIO_MCP_URL}
+    headers:
+      Authorization: Bearer ${MCP_AUTH_TOKEN}
+      x-entity-id: ${COMPOSIO_ENTITY_ID}
+  n8n:
+    type: streamable-http
+    url: ${N8N_MCP_URL}
+    headers:
+      Authorization: Bearer ${N8N_MCP_AUTH_TOKEN}

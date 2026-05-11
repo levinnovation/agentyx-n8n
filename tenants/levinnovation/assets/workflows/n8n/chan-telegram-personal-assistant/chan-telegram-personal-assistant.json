@@ -1,0 +1,124 @@
+{
+  "name": "Channel Adapter - Telegram Personal Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram/personal-assistant",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "04f1176a-756a-4f66-ae45-3e63e0924971",
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        260
+      ],
+      "webhookId": "telegram-personal-assistant"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst msg = body.message || {};\nconst from = msg.from || {};\nconst chat = msg.chat || {};\nconst text = msg.text || msg.caption || '';\n\nreturn [{\n  json: {\n    core_workflow_id: '1USjs2JAP4tlHIcm',\n    channel: 'telegram',\n    conversation_id: String(chat.id || ''),\n    user_id: String(from.id || ''),\n    message: text,\n    attachments: [],\n    metadata: {\n      update_id: body.update_id || null,\n      message_id: msg.message_id || null,\n      username: from.username || null,\n      first_name: from.first_name || null\n    },\n    chat_id: chat.id || null\n  }\n}];"
+      },
+      "id": "cffa3f6f-85ca-41e5-b878-e6d7bff88926",
+      "name": "Validate + Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "1USjs2JAP4tlHIcm",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "0d95f6f6-a0ce-4584-a327-f3f5d67af9c3",
+      "name": "Execute Personal Assistant Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1160,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"reply_text\": $json.reply_text || \"\", \"note\": \"Outbound Telegram send is disabled until TELEGRAM_BOT_TOKEN is configured in n8n node settings.\" } }}",
+        "options": {}
+      },
+      "id": "7930f553-6edb-40f6-a4ff-cde8e562f26f",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1160,
+        180
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate + Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate + Normalize": {
+      "main": [
+        [
+          {
+            "node": "Execute Personal Assistant Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Personal Assistant Core": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "levinnovation"
+    },
+    {
+      "name": "telegram"
+    },
+    {
+      "name": "personal-assistant"
+    }
+  ]
+}

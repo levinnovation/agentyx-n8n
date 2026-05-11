@@ -1,0 +1,30 @@
+asset:
+  name: chan-kapso-wa-personal-assistant
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: general
+  capability: personal-assistant
+
+  description: |
+    Kapso WhatsApp channel adapter for LEV personal assistant.
+    Receives Kapso inbound webhook events for +1 (201) 534-7251,
+    normalizes payload, calls personal-assistant-core, and sends outbound reply.
+
+  inputs:
+    - kapso inbound webhook payload
+
+  outputs:
+    - kapso outbound whatsapp reply
+    - webhook acknowledgment
+
+  dependencies:
+    - service: kapso
+      endpoint: ${KAPSO_BASE_URL}
+      auth: x-api-key
+    - service: n8n-main
+      endpoint: https://levinnovation.n8n.agentyx.one
+
+  files:
+    - chan-kapso-wa-personal-assistant.json
+    - README.md
+    - .env.example

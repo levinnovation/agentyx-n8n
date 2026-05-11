@@ -37,8 +37,12 @@ graphql() {
 }
 
 # Service images (space-separated: name|image)
+N8N_RUNTIME_IMAGE="${N8N_RUNTIME_IMAGE:-ghcr.io/levinnovation/agentyx-n8n:latest}"
+
 SERVICE_IMAGES=(
-    "agx-demo-n8n|n8nio/n8n:latest"
+    "agx-demo-n8n|${N8N_RUNTIME_IMAGE}"
+    "agx-demo-n8n-worker|${N8N_RUNTIME_IMAGE}"
+    "agx-demo-n8n-webhook|${N8N_RUNTIME_IMAGE}"
     "agx-demo-flowise|flowiseai/flowise:2.2.7"
     "agx-demo-meilisearch|getmeili/meilisearch:v1.9"
     "agx-demo-gateway-2|nginx:alpine"

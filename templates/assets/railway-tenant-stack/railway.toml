@@ -45,6 +45,7 @@ REDIS_PASSWORD = "${{secret(48)}}"
 # and pushed to GHCR. Railway pulls the pre-built image.
 # See .github/workflows/build-image.yml in the fork repo.
 [n8n-main]
+# Runtime parity invariant: main/worker/webhook must use the same n8n image.
 image = "ghcr.io/levinnovation/agentyx-n8n:latest"
 startCommand = "n8n start"
 
@@ -71,6 +72,7 @@ N8N_AUTH_TRUSTED_PROXY_SECRET = "${{TRUSTED_PROXY_SECRET}}"
 
 # ─── n8n workers ─────────────────────────────────────────────
 [n8n-worker]
+# Runtime parity invariant: main/worker/webhook must use the same n8n image.
 image = "ghcr.io/levinnovation/agentyx-n8n:latest"
 startCommand = "n8n worker"
 
@@ -96,6 +98,7 @@ N8N_AUTH_TRUSTED_PROXY_SECRET = "${{TRUSTED_PROXY_SECRET}}"
 
 # ─── n8n webhook processors ──────────────────────────────────
 [n8n-webhook]
+# Runtime parity invariant: main/worker/webhook must use the same n8n image.
 image = "ghcr.io/levinnovation/agentyx-n8n:latest"
 startCommand = "n8n webhook"
 

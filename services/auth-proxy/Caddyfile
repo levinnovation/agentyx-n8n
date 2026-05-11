@@ -34,7 +34,7 @@ http://demo.n8n.agentyx.one {
   handle {
     forward_auth agx-demo-better-auth.railway.internal:3000 {
       uri /api/auth/forward-auth
-      copy_headers X-Auth-User X-Auth-Email
+      copy_headers X-Auth-Email
     }
     reverse_proxy agx-demo-n8n.railway.internal:5678 {
       header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__

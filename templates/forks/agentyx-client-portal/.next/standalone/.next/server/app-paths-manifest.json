@@ -1,0 +1,20 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(auth)/forgot-password/page": "app/(auth)/forgot-password/page.js",
+  "/(auth)/reset-password/page": "app/(auth)/reset-password/page.js",
+  "/(auth)/sign-in/page": "app/(auth)/sign-in/page.js",
+  "/(auth)/sign-up/page": "app/(auth)/sign-up/page.js",
+  "/api/admin/approve-user/route": "app/api/admin/approve-user/route.js",
+  "/api/admin/pending-users/route": "app/api/admin/pending-users/route.js",
+  "/api/admin/reject-user/route": "app/api/admin/reject-user/route.js",
+  "/dashboard/admin/page": "app/dashboard/admin/page.js",
+  "/(auth)/verify-email/page": "app/(auth)/verify-email/page.js",
+  "/api/agent/[...path]/route": "app/api/agent/[...path]/route.js",
+  "/dashboard/conversations/page": "app/dashboard/conversations/page.js",
+  "/dashboard/agents/page": "app/dashboard/agents/page.js",
+  "/onboarding/pending/page": "app/onboarding/pending/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/dashboard/observability/page": "app/dashboard/observability/page.js"
+}

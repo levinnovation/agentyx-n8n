@@ -1,0 +1,13 @@
+asset:
+  name: n8n-mcp-bridge
+  type: railway-service
+  tenant: template
+  domain: platform
+  capability: mcp-bridge
+
+  description: |
+    Exposes selected n8n workflows as MCP tools over streamable HTTP.
+
+  files:
+    - README.md
+    - .env.example
