@@ -1,0 +1,17 @@
+id: crm-management
+name: CRM Management
+tenant: levinnovation
+domain: sales
+purpose: >
+  Host and operate the Twenty open-source CRM for LEV Innovation,
+  providing contact management, deal tracking, sales pipeline visibility,
+  and team collaboration on customer relationships.
+assets:
+  - twenty-crm
+status: scaffolded
+sla:
+  response_time_ms: 120000
+  availability: "99.0%"
+dependencies:
+  - tenant-postgres
+  - tenant-redis

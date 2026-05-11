@@ -12,6 +12,8 @@ builder = "DOCKERFILE"
 BETTER_AUTH_INTERNAL_URL = "http://better-auth.railway.internal:3000"
 N8N_INTERNAL_URL = "http://n8n-main.railway.internal:5678"
 N8N_WEBHOOK_INTERNAL_URL = "http://n8n-webhook.railway.internal:5678"
+LIBRECHAT_INTERNAL_URL = "http://librechat.railway.internal:3080"
+LIBRECHAT_PUBLIC_HOST = ""
 
 [redis]
 image = "redis:7-alpine"
@@ -85,3 +87,58 @@ QUEUE_BULL_REDIS_PORT = "6379"
 QUEUE_BULL_REDIS_PASSWORD = "${{redis.REDIS_PASSWORD}}"
 QUEUE_BULL_REDIS_DB = "0"
 WEBHOOK_URL = "${{RAILWAY_PUBLIC_DOMAIN}}"
+
+# ─── Twenty CRM ────────────────────────────────────────────────
+# Self-hosted open-source CRM (https://github.com/twentyhq/twenty)
+# Uses existing Postgres + Redis. Storage via Railway Bucket.
+
+[twenty-crm-server]
+image = "twentycrm/twenty:v0.50.0"
+startCommand = ""
+
+[twenty-crm-server.variables]
+NODE_PORT = "3000"
+NODE_ENV = "production"
+SERVER_URL = "https://levinnovation.crm.agentyx.one"
+APP_SECRET = "${{secret(32)}}"
+PG_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=twenty_crm"
+REDIS_URL = "redis://:${{redis.REDIS_PASSWORD}}@${{redis.RAILWAY_PRIVATE_DOMAIN}}:6379"
+STORAGE_TYPE = "S_3"
+STORAGE_S3_REGION = "us-east-1"
+STORAGE_S3_NAME = "${{twenty-crm-bucket.BUCKET_NAME}}"
+STORAGE_S3_ENDPOINT = "${{twenty-crm-bucket.BUCKET_ENDPOINT}}"
+STORAGE_S3_ACCESS_KEY_ID = "${{twenty-crm-bucket.BUCKET_ACCESS_KEY_ID}}"
+STORAGE_S3_SECRET_ACCESS_KEY = "${{twenty-crm-bucket.BUCKET_SECRET_ACCESS_KEY}}"
+IS_MULTIWORKSPACE_ENABLED = "false"
+IS_WORKSPACE_CREATION_LIMITED_TO_SERVER_ADMINS = "true"
+IS_CONFIG_VARIABLES_IN_DB_ENABLED = "true"
+AUTH_PASSWORD_ENABLED = "true"
+TRUST_PROXY = "loopback, linklocal, uniquelocal"
+
+[twenty-crm-worker]
+image = "twentycrm/twenty:v0.50.0"
+startCommand = "yarn worker:prod"
+
+[twenty-crm-worker.variables]
+NODE_PORT = "3000"
+NODE_ENV = "production"
+SERVER_URL = "https://levinnovation.crm.agentyx.one"
+APP_SECRET = "${{secret(32)}}"
+PG_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=twenty_crm"
+REDIS_URL = "redis://:${{redis.REDIS_PASSWORD}}@${{redis.RAILWAY_PRIVATE_DOMAIN}}:6379"
+STORAGE_TYPE = "S_3"
+STORAGE_S3_REGION = "us-east-1"
+STORAGE_S3_NAME = "${{twenty-crm-bucket.BUCKET_NAME}}"
+STORAGE_S3_ENDPOINT = "${{twenty-crm-bucket.BUCKET_ENDPOINT}}"
+STORAGE_S3_ACCESS_KEY_ID = "${{twenty-crm-bucket.BUCKET_ACCESS_KEY_ID}}"
+STORAGE_S3_SECRET_ACCESS_KEY = "${{twenty-crm-bucket.BUCKET_SECRET_ACCESS_KEY}}"
+DISABLE_DB_MIGRATIONS = "true"
+DISABLE_CRON_JOBS_REGISTRATION = "true"
+IS_MULTIWORKSPACE_ENABLED = "false"
+TRUST_PROXY = "loopback, linklocal, uniquelocal"
+
+# ─── Twenty CRM Bucket ─────────────────────────────────────────
+# Railway S3-compatible object storage. Credentials auto-injected.
+[twenty-crm-bucket]
+# Bucket services are provisioned via Railway UI / API.
+# This stanza documents the dependency for variable references above.

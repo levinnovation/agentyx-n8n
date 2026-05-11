@@ -1,0 +1,19 @@
+id: twenty-crm
+name: Twenty CRM
+type: deployment
+tenant: levinnovation
+domain: sales
+capability: crm-management
+status: scaffolded
+version: "0.50.0"
+description: |
+  Self-hosted Twenty CRM (open-source alternative to Salesforce) deployed on
+  Railway for LEV Innovation. Runs server + worker containers backed by
+  existing tenant Postgres and Redis.
+owner: "ops@levinnovation.com"
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

@@ -1,0 +1,11 @@
+id: sales
+name: Sales
+tenant: levinnovation
+description: |
+  Bounded context for customer relationship management, sales pipeline tracking,
+  lead nurturing, and deal management for LEV Innovation.
+capabilities:
+  - crm-management
+data_residency: "us-east-1"
+compliance:
+  - gdpr
