@@ -1,6 +1,5 @@
 import { betterAuth } from "better-auth";
-import { organization } from "better-auth/plugins";
-import { oauthProvider } from "@better-auth/oauth-provider";
+import { organization, jwt, oidcProvider } from "better-auth/plugins";
 import Fastify, { FastifyRequest } from "fastify";
 import { Pool } from "pg";
 import { randomUUID } from "crypto";
@@ -10,6 +9,11 @@ import { resolveTenantFromHost } from "./tenant";
 
 const pool = new Pool({
   connectionString: config.databaseUrl,
+});
+pool.on("connect", (client) => {
+  client.query("SET search_path = better_auth, public").catch((err) => {
+    console.error("[better-auth] Failed to set search_path:", err);
+  });
 });
 
 const auth = betterAuth({
@@ -73,8 +77,8 @@ const auth = betterAuth({
         });
       },
     } as any),
-    oauthProvider({
-      loginPage: `${config.betterAuthUrl}/sign-in`,
+    jwt(),
+    oidcProvider({
       consentPage: `${config.betterAuthUrl}/consent`,
       allowDynamicClientRegistration: true,
       scopes: ["openid", "profile", "email"],
@@ -488,7 +492,8 @@ app.all("/*", async (req, reply) => {
   }
 
   // Build web-standard Request from Fastify request
-  const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  const proto = (req.headers["x-forwarded-proto"] as string) || "http";
+  const url = new URL(req.url, `${proto}://${req.headers.host || "localhost"}`);
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
     if (value !== undefined) {
