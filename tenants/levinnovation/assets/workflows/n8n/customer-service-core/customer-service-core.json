@@ -593,6 +593,33 @@
         3184,
         432
       ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8Oh4JqvoXW7kL9rK",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/8Oh4JqvoXW7kL9rK"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "cs-core-toolworkflow-twenty-write",
+      "name": "Twenty CRM Write Actions (Workflow Tool)",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3408,
+        432
+      ]
     }
   ],
   "connections": {
@@ -882,6 +909,17 @@
       ]
     },
     "Twenty CRM Read Context (Workflow Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty CRM Write Actions (Workflow Tool)": {
       "ai_tool": [
         [
           {

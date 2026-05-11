@@ -1,0 +1,16 @@
+asset:
+  name: twenty-crm-write-actions
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Write-oriented Twenty CRM workflow exposed as an AI tool.
+    Supports upsert/update operations for People, Company, and Opportunity,
+    with normalized inputs from conversational context.
+
+  files:
+    - twenty-crm-write-actions.json
+    - asset.yaml
+    - README.md

@@ -1,0 +1,214 @@
+{
+  "name": "Twenty CRM Write Actions (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "twenty-write-start",
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json || {};\nconst operation = String(raw.operation || raw.op || 'upsert_person').toLowerCase().trim();\nconst msg = String(raw.enriched_message || raw.message || '');\nconst userId = String(raw.user_id || raw.conversation_id || '').trim();\nconst emailRegex = /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/;\nconst msgEmail = (msg.match(emailRegex) || [null])[0];\nconst email = String(raw.email || (raw.metadata || {}).email || msgEmail || (userId ? `${userId}@placeholder.lev` : 'lead@placeholder.lev')).toLowerCase().trim();\nconst companyMatch = msg.match(/(?:mi\\s+empresa\\s+es|empresa\\s*[:=]?\\s*)([^,\\n]{2,80})/i);\nlet companyName = String((raw.crm_fields || {}).company || raw.company || (companyMatch ? companyMatch[1] : '')).trim();\ncompanyName = companyName.replace(/\\b(y\\s+quiero|quiero|presupuesto|budget|agendame|agenda|demo|licencia|enterprise|por\\s+favor)\\b.*$/i, '').trim();\nconst fullName = String(raw.contact_name || (raw.crm_fields || {}).name || 'Lead Desconocido').trim();\nconst firstName = fullName.split(' ')[0] || 'Lead';\nconst lastName = fullName.split(' ').slice(1).join(' ') || 'Desconocido';\nconst personId = String(raw.person_id || '').trim();\nconst companyId = String(raw.company_id || '').trim();\nconst opportunityId = String(raw.opportunity_id || '').trim();\nconst opportunityName = String(raw.opportunity_name || `LEV-${raw.conversation_id || userId || 'lead'}-${(companyName || 'discovery').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}`).trim();\nlet method = 'GET';\nlet url = '';\nlet body = {};\nif (operation === 'upsert_company') {\n  if (companyId) {\n    method = 'PATCH';\n    url = `https://levinnovation.crm.agentyx.one/rest/companies/${companyId}`;\n    body = { name: companyName || undefined };\n  } else {\n    method = 'POST';\n    url = 'https://levinnovation.crm.agentyx.one/rest/companies';\n    body = { name: companyName || 'Unknown Company' };\n  }\n} else if (operation === 'upsert_opportunity') {\n  if (opportunityId) {\n    method = 'PATCH';\n    url = `https://levinnovation.crm.agentyx.one/rest/opportunities/${opportunityId}`;\n    body = { name: opportunityName, stage: raw.stage || 'NEW' };\n  } else {\n    method = 'POST';\n    url = 'https://levinnovation.crm.agentyx.one/rest/opportunities';\n    body = { name: opportunityName, stage: raw.stage || 'NEW' };\n    if (personId) body.pointOfContactId = personId;\n    if (companyId) body.companyId = companyId;\n  }\n} else {\n  if (personId) {\n    method = 'PATCH';\n    url = `https://levinnovation.crm.agentyx.one/rest/people/${personId}`;\n    body = {\n      jobTitle: ((raw.crm_fields || {}).jobTitle || ''),\n      phones: { primaryPhoneNumber: (raw.phone || ''), primaryPhoneCountryCode: '+1' },\n      linkedinLink: { primaryLinkUrl: ((raw.crm_fields || {}).linkedinUrl || '') }\n    };\n    if (companyId) body.companyId = companyId;\n  } else {\n    method = 'POST';\n    url = 'https://levinnovation.crm.agentyx.one/rest/people';\n    body = {\n      name: { firstName, lastName },\n      emails: { primaryEmail: email },\n      phones: { primaryPhoneNumber: (raw.phone || ''), primaryPhoneCountryCode: '+1' },\n      jobTitle: ((raw.crm_fields || {}).jobTitle || '')\n    };\n    if (companyName) body.company = { name: companyName };\n  }\n}\nreturn [{ json: { ...raw, operation, method, url, body, normalized: { email, companyName, firstName, lastName } } }];"
+      },
+      "id": "twenty-write-normalize",
+      "name": "Normalize Write Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.method === 'GET' }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "twenty-write-is-get",
+      "name": "Is GET?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.TWENTY_API_KEY || $env.TWENTY_ACCESS_TOKEN || '') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "twenty-write-exec-get",
+      "name": "Execute Twenty GET",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        160
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.TWENTY_API_KEY || $env.TWENTY_ACCESS_TOKEN || '') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body || {} }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "twenty-write-exec-write",
+      "name": "Execute Twenty WRITE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        360
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Normalize Write Input').item.json || {};\nconst out = $input.first().json || {};\nconst data = out.data || out || {};\nconst person = data.updatePerson || data.createPerson || (Array.isArray(data.people) ? data.people[0] : null) || null;\nconst company = data.updateCompany || data.createCompany || (Array.isArray(data.companies) ? data.companies[0] : null) || null;\nconst opportunity = data.updateOpportunity || data.createOpportunity || (Array.isArray(data.opportunities) ? data.opportunities[0] : null) || null;\nconst ok = !(out.error) && !(out.statusCode && Number(out.statusCode) >= 400);\nconst text = ok\n  ? `Twenty write OK (${base.operation}). person=${person?.id || '-'} company=${company?.id || '-'} opportunity=${opportunity?.id || '-'}`\n  : `Twenty write failed (${base.operation}).`;\nreturn [{ json: { ok, operation: base.operation, person, company, opportunity, raw: out, text } }];"
+      },
+      "id": "twenty-write-format",
+      "name": "Build Write Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Normalize Write Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Write Input": {
+      "main": [
+        [
+          {
+            "node": "Is GET?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is GET?": {
+      "main": [
+        [
+          {
+            "node": "Execute Twenty GET",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Twenty WRITE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Twenty GET": {
+      "main": [
+        [
+          {
+            "node": "Build Write Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Twenty WRITE": {
+      "main": [
+        [
+          {
+            "node": "Build Write Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  }
+}
