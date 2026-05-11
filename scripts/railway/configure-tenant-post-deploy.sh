@@ -137,6 +137,7 @@ fi
 set_var "$AUTH_PROXY_SVC" "FLOWISE_PUBLIC_HOST" "${TENANT}.flowise.${DOMAIN_ROOT}"
 set_var "$AUTH_PROXY_SVC" "PAPERCLIP_PUBLIC_HOST" "${TENANT}.paperclip.${DOMAIN_ROOT}"
 set_var "$AUTH_PROXY_SVC" "LIBRECHAT_PUBLIC_HOST" "${TENANT}.chat.${DOMAIN_ROOT}"
+set_var "$AUTH_PROXY_SVC" "LIBRECHAT_INTERNAL_URL" "http://${LIBRECHAT_SVC}.railway.internal:3080"
 set_var "$AUTH_PROXY_SVC" "TRUSTED_PROXY_SECRET" "$TRUSTED_PROXY_SECRET"
 
 # ─── 3. Configure redis ───────────────────────────────────────

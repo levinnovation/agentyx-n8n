@@ -67,9 +67,10 @@ http://__PAPERCLIP_PUBLIC_HOST__ {
 http://__LIBRECHAT_PUBLIC_HOST__ {
   forward_auth __BETTER_AUTH_INTERNAL_URL__ {
     uri /api/auth/forward-auth
-    copy_headers X-Auth-User X-Auth-Email
+    copy_headers X-Auth-User X-Auth-Email X-Auth-User-Role
   }
   reverse_proxy __LIBRECHAT_INTERNAL_URL__ {
+    header_up X-Auth-User-Role {http.request.header.X-Auth-User-Role}
     header_up X-Auth-Proxy-Secret __TRUSTED_PROXY_SECRET__
   }
 }

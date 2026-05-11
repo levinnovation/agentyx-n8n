@@ -6,6 +6,7 @@ const schema = z.object({
   BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET is required"),
   BETTER_AUTH_URL: z.string().url("BETTER_AUTH_URL must be a valid URL"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  BETTER_AUTH_COOKIE_DOMAIN: z.string().optional(),
   BETTER_AUTH_TRUSTED_ORIGINS: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
@@ -13,6 +14,11 @@ const schema = z.object({
   OIDC_ISSUER: z.string().optional(),
   OIDC_JWKS_PRIVATE_KEY: z.string().optional(),
   INTERNAL_API_KEY: z.string().optional(),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -30,6 +36,7 @@ export const config = {
   betterAuthSecret: parsed.data.BETTER_AUTH_SECRET,
   betterAuthUrl: parsed.data.BETTER_AUTH_URL,
   databaseUrl: parsed.data.DATABASE_URL,
+  cookieDomain: parsed.data.BETTER_AUTH_COOKIE_DOMAIN?.trim() || "",
   trustedOrigins: parsed.data.BETTER_AUTH_TRUSTED_ORIGINS?.split(",").map((o) => o.trim()).filter(Boolean) || [],
   googleClientId: parsed.data.GOOGLE_OAUTH_CLIENT_ID || "",
   googleClientSecret: parsed.data.GOOGLE_OAUTH_CLIENT_SECRET || "",
@@ -37,4 +44,9 @@ export const config = {
   oidcIssuer: parsed.data.OIDC_ISSUER || parsed.data.BETTER_AUTH_URL,
   oidcJwksPrivateKey: parsed.data.OIDC_JWKS_PRIVATE_KEY || "",
   internalApiKey: parsed.data.INTERNAL_API_KEY || "",
+  smtpHost: parsed.data.SMTP_HOST || "",
+  smtpPort: parseInt(parsed.data.SMTP_PORT || "587", 10),
+  smtpUser: parsed.data.SMTP_USER || "",
+  smtpPass: parsed.data.SMTP_PASS || "",
+  smtpFrom: parsed.data.SMTP_FROM || "",
 };
