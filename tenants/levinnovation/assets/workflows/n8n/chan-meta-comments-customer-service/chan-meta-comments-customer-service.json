@@ -1,0 +1,97 @@
+{
+  "name": "Channel Adapter - Meta Comments Customer Service",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "composio/meta-comments-customer-service",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cs-meta-webhook",
+      "name": "Composio Meta Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 260],
+      "webhookId": "composio-meta-comments-customer-service"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst payload = body.payload || body;\n\nconst commentText = payload.message || payload.comment_text || payload.text || '';\nconst commentId = payload.comment_id || payload.id || '';\nconst postId = payload.post_id || payload.object_id || '';\nconst pageId = payload.page_id || payload.recipient_id || '';\nconst senderName = payload.sender_name || payload.from?.name || 'Usuario';\nconst senderId = payload.sender_id || payload.from?.id || '';\nconst platform = payload.platform || (payload.object === 'instagram' ? 'instagram' : 'facebook');\n\nreturn [{\n  json: {\n    core_workflow_id: 'CUSTOMER_SERVICE_CORE_ID',\n    channel: 'meta-comment',\n    conversation_id: String(pageId + ':' + postId + ':' + commentId),\n    user_id: String(senderId || ''),\n    message: commentText,\n    attachments: [],\n    metadata: {\n      comment_id: commentId,\n      post_id: postId,\n      page_id: pageId,\n      platform: platform,\n      sender_name: senderName,\n      sender_id: senderId\n    }\n  }\n}];"
+      },
+      "id": "cs-meta-normalize",
+      "name": "Normalize Comment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "CUSTOMER_SERVICE_CORE_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "cs-meta-execute-core",
+      "name": "Execute Customer Service Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1160, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst meta = item.metadata || {};\n\n// Check if Meta toolkit is connected in Composio\nconst hasMetaToolkit = false; // TODO: set to true once Meta Business Suite toolkit is connected\n\nif (!hasMetaToolkit) {\n  return [{\n    json: {\n      ...item,\n      reply_sent: false,\n      note: 'Meta toolkit not connected in Composio yet. Reply logged for manual action.'\n    }\n  }];\n}\n\n// When connected, use Composio Meta tools to reply to comment\n// This would be an HTTP call to the Composio MCP or a direct Meta Graph API call\nreturn [{\n  json: {\n    ...item,\n    reply_sent: true,\n    note: 'Auto-reply would be sent via Composio Meta tools.'\n  }\n}];"
+      },
+      "id": "cs-meta-reply",
+      "name": "Reply via Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1400, 180]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"reply_text\": $json.reply_text || '', \"channel\": \"meta-comment\", \"platform\": $json.metadata.platform, \"note\": $json.note || '' } }}",
+        "options": {}
+      },
+      "id": "cs-meta-respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [1640, 180]
+    }
+  ],
+  "connections": {
+    "Composio Meta Webhook": {
+      "main": [[{ "node": "Normalize Comment", "type": "main", "index": 0 }]]
+    },
+    "Normalize Comment": {
+      "main": [[{ "node": "Execute Customer Service Core", "type": "main", "index": 0 }]]
+    },
+    "Execute Customer Service Core": {
+      "main": [[{ "node": "Reply via Meta", "type": "main", "index": 0 }]]
+    },
+    "Reply via Meta": {
+      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "levinnovation" },
+    { "name": "meta" },
+    { "name": "facebook" },
+    { "name": "instagram" },
+    { "name": "customer-service" }
+  ]
+}

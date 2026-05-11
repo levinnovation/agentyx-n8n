@@ -1,0 +1,31 @@
+asset:
+  name: chan-telegram-customer-service
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Telegram channel adapter for LEV customer service.
+    Receives Telegram webhook updates, normalizes to canonical envelope,
+    calls customer-service-core, and replies via Telegram Bot API.
+    Supports text, photo, document, and voice messages.
+
+  inputs:
+    - telegram update webhook payload
+
+  outputs:
+    - telegram message reply
+    - webhook acknowledgment
+
+  dependencies:
+    - service: n8n-main
+      endpoint: https://levinnovation.n8n.agentyx.one
+    - service: telegram-bot-api
+      endpoint: https://api.telegram.org
+
+  files:
+    - chan-telegram-customer-service.json
+    - README.md
+    - asset.yaml
+    - .env.example

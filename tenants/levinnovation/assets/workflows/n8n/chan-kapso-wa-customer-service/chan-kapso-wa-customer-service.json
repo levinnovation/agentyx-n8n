@@ -1,0 +1,115 @@
+{
+  "name": "Channel Adapter - Kapso WA Customer Service",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kapso/customer-service",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cs-kapso-webhook",
+      "name": "Kapso Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 240],
+      "webhookId": "kapso-customer-service"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\nlet messageText = '';\nlet attachments = [];\n\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Imagen recibida]';\n  attachments.push({ type: 'image', url: msg.image.link || '', mime_type: msg.image.mime_type || 'image/jpeg' });\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Documento recibido]';\n  attachments.push({ type: 'document', url: msg.document.link || '', mime_type: msg.document.mime_type || 'application/pdf' });\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Mensaje de voz recibido]';\n  attachments.push({ type: 'voice', url: msg.voice.link || '', mime_type: msg.voice.mime_type || 'audio/ogg' });\n} else if (msg.type === 'audio' && msg.audio) {\n  messageText = '[Audio recibido]';\n  attachments.push({ type: 'audio', url: msg.audio.link || '', mime_type: msg.audio.mime_type || 'audio/mpeg' });\n}\n\nconst phoneNumber = conv.phone_number ? '+' + conv.phone_number : (msg.from ? '+' + msg.from : '');\n\nreturn [{\n  json: {\n    core_workflow_id: 'CUSTOMER_SERVICE_CORE_ID',\n    channel: 'kapso-wa',\n    conversation_id: String(conv.id || msg.from || ''),\n    user_id: String(phoneNumber || ''),\n    message: messageText,\n    attachments: attachments,\n    metadata: {\n      message_id: msg.id || '',\n      contact_name: conv.contact_name || '',\n      phone: phoneNumber,\n      phone_number_id: conv.phone_number_id || ''\n    }\n  }\n}];"
+      },
+      "id": "cs-kapso-normalize",
+      "name": "Validate + Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 240]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "CUSTOMER_SERVICE_CORE_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "cs-kapso-execute-core",
+      "name": "Execute Customer Service Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [940, 140]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.KAPSO_BASE_URL || 'https://api.kapso.ai' }}/meta/whatsapp/v24.0/{{ $env.KAPSO_PHONE_NUMBER_ID || '1169330222921278' }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $('Validate + Normalize').item.json.user_id.replace('+',''), \"type\": \"text\", \"text\": { \"body\": $json.reply_text || '' } } }}",
+        "options": {}
+      },
+      "id": "cs-kapso-send-reply",
+      "name": "Send Reply via Kapso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 160],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "QgENg20F5GeZ8lf4",
+          "name": "Kapso Header Auth LEV Personal Assistant"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"reply_sent\": true, \"reply_text\": $('Execute Customer Service Core').item.json.reply_text || '' } }}",
+        "options": {}
+      },
+      "id": "cs-kapso-respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [1420, 160]
+    }
+  ],
+  "connections": {
+    "Kapso Webhook": {
+      "main": [[{ "node": "Validate + Normalize", "type": "main", "index": 0 }]]
+    },
+    "Validate + Normalize": {
+      "main": [[{ "node": "Execute Customer Service Core", "type": "main", "index": 0 }]]
+    },
+    "Execute Customer Service Core": {
+      "main": [[{ "node": "Send Reply via Kapso", "type": "main", "index": 0 }]]
+    },
+    "Send Reply via Kapso": {
+      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "levinnovation" },
+    { "name": "kapso" },
+    { "name": "whatsapp" },
+    { "name": "customer-service" }
+  ]
+}

@@ -1,0 +1,20 @@
+id: lead-qualification-and-scheduling
+name: Lead Qualification and Scheduling
+domain: customer-service
+tenant: levinnovation
+description: |
+  AI customer service agent that ingests inbound messages from WhatsApp,
+  Telegram, and Meta comments; prequalifies leads using BANT criteria;
+  answers questions from a knowledge base; schedules meetings via Google
+  Calendar (Composio); and updates Twenty CRM with structured lead data.
+assets:
+  - customer-service-core
+  - chan-kapso-wa-customer-service
+  - chan-telegram-customer-service
+  - chan-meta-comments-customer-service
+  - customer-service-agent
+  - customer-service-knowledge
+owner: "ops@levinnovation.com"
+sla:
+  response_time_ms: 15000
+  availability: "99.5%"

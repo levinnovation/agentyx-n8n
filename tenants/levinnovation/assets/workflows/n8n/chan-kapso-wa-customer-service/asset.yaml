@@ -1,0 +1,32 @@
+asset:
+  name: chan-kapso-wa-customer-service
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Kapso WhatsApp channel adapter for LEV customer service.
+    Receives Kapso inbound webhook events for +1 (201) 534-7251,
+    normalizes payload, calls customer-service-core, and sends outbound reply.
+    Supports text, image, document, voice, and audio messages.
+
+  inputs:
+    - kapso inbound webhook payload
+
+  outputs:
+    - kapso outbound whatsapp reply
+    - webhook acknowledgment
+
+  dependencies:
+    - service: kapso
+      endpoint: ${KAPSO_BASE_URL}
+      auth: x-api-key
+    - service: n8n-main
+      endpoint: https://levinnovation.n8n.agentyx.one
+
+  files:
+    - chan-kapso-wa-customer-service.json
+    - README.md
+    - asset.yaml
+    - .env.example

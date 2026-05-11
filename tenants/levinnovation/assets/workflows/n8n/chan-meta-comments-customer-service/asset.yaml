@@ -1,0 +1,32 @@
+asset:
+  name: chan-meta-comments-customer-service
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Meta Facebook/Instagram comment auto-reply adapter for LEV customer service.
+    Receives Composio trigger webhooks for new comments, normalizes to
+    canonical envelope, calls customer-service-core, and replies via Composio
+    Meta tools when the Meta Business Suite toolkit is connected.
+
+  inputs:
+    - composio trigger webhook payload for Meta comments
+
+  outputs:
+    - comment reply (when Meta toolkit is active)
+    - webhook acknowledgment
+
+  dependencies:
+    - service: n8n-main
+      endpoint: https://levinnovation.n8n.agentyx.one
+    - service: agx-demo-composio-mcp
+      endpoint: https://levinnovation.mcp.agentyx.one
+      auth: Bearer MCP_AUTH_TOKEN
+
+  files:
+    - chan-meta-comments-customer-service.json
+    - README.md
+    - asset.yaml
+    - .env.example

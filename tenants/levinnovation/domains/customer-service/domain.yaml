@@ -1,0 +1,12 @@
+id: customer-service
+name: Customer Service
+tenant: levinnovation
+description: |
+  Bounded context for inbound customer engagement, lead prequalification,
+  meeting scheduling, and CRM enrichment across WhatsApp, Telegram, and
+  Meta social channels for LEV Innovation.
+capabilities:
+  - lead-qualification-and-scheduling
+data_residency: "us-east-1"
+compliance:
+  - gdpr

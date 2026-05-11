@@ -1,0 +1,545 @@
+{
+  "name": "Customer Service Core (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "cs-core-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [220, 240]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "channel", "value": "={{ $json.channel || 'unknown' }}", "type": "string" },
+            { "name": "conversation_id", "value": "={{ $json.conversation_id || $json.user_id || 'session:default' }}", "type": "string" },
+            { "name": "user_id", "value": "={{ $json.user_id || '' }}", "type": "string" },
+            { "name": "message", "value": "={{ $json.message || '' }}", "type": "string" },
+            { "name": "attachments", "value": "={{ Array.isArray($json.attachments) ? $json.attachments : [] }}", "type": "array" },
+            { "name": "metadata", "value": "={{ $json.metadata || {} }}", "type": "object" },
+            { "name": "contact_name", "value": "={{ ($json.metadata || {}).contact_name || '' }}", "type": "string" },
+            { "name": "phone", "value": "={{ ($json.metadata || {}).phone || '' }}", "type": "string" },
+            { "name": "email", "value": "={{ ($json.metadata || {}).email || '' }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cs-core-normalize",
+      "name": "Normalize Envelope",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 240]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.conversation_id }}",
+        "contextWindowLength": 10
+      },
+      "id": "cs-core-redis-memory",
+      "name": "Redis Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [680, 520],
+      "credentials": {
+        "redis": {
+          "id": "wB8HnSv0fvtxXtSl",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst attachments = item.attachments || [];\nconst hasAudio = attachments.some(a => ['audio','voice','audio/ogg','audio/mpeg'].includes(a.type || a.mime_type));\nconst hasImage = attachments.some(a => ['image','image/jpeg','image/png','image/jpg'].includes(a.type || a.mime_type));\nconst hasDocument = attachments.some(a => ['document','application/pdf','text/plain','application/msword'].includes(a.type || a.mime_type));\nconst audioAttachment = hasAudio ? attachments.find(a => ['audio','voice','audio/ogg','audio/mpeg'].includes(a.type || a.mime_type)) : null;\nconst imageAttachment = hasImage ? attachments.find(a => ['image','image/jpeg','image/png','image/jpg'].includes(a.type || a.mime_type)) : null;\nconst docAttachment = hasDocument ? attachments.find(a => ['document','application/pdf','text/plain','application/msword'].includes(a.type || a.mime_type)) : null;\nreturn [{\n  json: {\n    ...item,\n    _attachment_type: hasAudio ? 'audio' : (hasImage ? 'image' : (hasDocument ? 'document' : 'none')),\n    _audio_url: audioAttachment ? (audioAttachment.url || audioAttachment.link || '') : '',\n    _image_url: imageAttachment ? (imageAttachment.url || imageAttachment.link || '') : '',\n    _doc_url: docAttachment ? (docAttachment.url || docAttachment.link || '') : '',\n    _doc_mime: docAttachment ? (docAttachment.mime_type || docAttachment.type || 'application/octet-stream') : ''\n  }\n}];"
+      },
+      "id": "cs-core-router",
+      "name": "Attachment Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 240]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            { "value": "audio", "output": 0 },
+            { "value": "image", "output": 1 },
+            { "value": "document", "output": 2 },
+            { "value": "none", "output": 3 }
+          ]
+        },
+        "options": {},
+        "dataType": "string",
+        "value1": "={{ $json._attachment_type }}",
+        "fallbackOutput": 3
+      },
+      "id": "cs-core-switch",
+      "name": "Switch Attachment Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2.2,
+      "position": [900, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json._audio_url }}",
+        "options": {
+          "response": { "response": { "responseFormat": "file" } },
+          "timeout": 30000
+        }
+      },
+      "id": "cs-core-download-audio",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 40],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "method": "POST",
+        "options": { "timeout": 60000 },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "multipartFormData",
+        "authentication": "predefinedCredentialType",
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $credentials.apiKey }}" }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            { "name": "model", "value": "whisper-1" },
+            { "name": "language", "value": "es" },
+            { "name": "response_format", "value": "json" }
+          ]
+        },
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "cs-core-transcribe",
+      "name": "Transcribe Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1380, 40],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst transcribed = item.text || '';\nreturn [{ json: { ...item, transcribed_text: transcribed, message: (item.message || '') + ' [Audio transcrito]: ' + transcribed } }];"
+      },
+      "id": "cs-core-parse-audio",
+      "name": "Parse Audio Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1620, 40]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nreturn [{ json: { ...item, image_context: item._image_url ? ('El usuario envio una imagen: ' + item._image_url) : '' } }];"
+      },
+      "id": "cs-core-process-image",
+      "name": "Process Image",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json._doc_url }}",
+        "options": {
+          "response": { "response": { "responseFormat": "file" } },
+          "timeout": 30000
+        }
+      },
+      "id": "cs-core-download-doc",
+      "name": "Download Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 440],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst binary = $input.first().binary?.data;\nlet docText = '';\nif (binary && binary.data) {\n  try {\n    docText = Buffer.from(binary.data, 'base64').toString('utf-8').substring(0, 8000);\n  } catch (e) {\n    docText = '[No se pudo extraer texto del documento]';\n  }\n} else {\n  docText = '[Documento sin contenido accesible]';\n}\nreturn [{ json: { ...item, document_text: docText, message: (item.message || '') + ' [Documento]: ' + docText.substring(0, 500) } }];"
+      },
+      "id": "cs-core-extract-doc",
+      "name": "Extract Document Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 440]
+    },
+    {
+      "parameters": {},
+      "id": "cs-core-no-attach",
+      "name": "No Attachment",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1140, 640]
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "cs-core-merge",
+      "name": "Merge Branches",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [1860, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = '/Users/vinicioflores/agentyx-vertical-assets/tenants/levinnovation/assets/data/customer-service-knowledge.md';\nlet text = '';\ntry {\n  text = fs.readFileSync(path, 'utf-8');\n} catch (e) {\n  text = 'LEV Innovation ayuda a organizaciones a implementar automatizacion practica con IA.';\n}\nconst chunks = [];\nconst chunkSize = 2000;\nfor (let i = 0; i < text.length; i += chunkSize) {\n  chunks.push(text.substring(i, i + chunkSize));\n}\nreturn chunks.map((c, i) => ({ json: { chunk_id: i, text: c, source: 'customer-service-knowledge.md' } }));"
+      },
+      "id": "cs-core-load-kb",
+      "name": "Load Knowledge Base",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 520]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": "cs_kb"
+      },
+      "id": "cs-core-vector-upsert",
+      "name": "Vector Store Upsert",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1,
+      "position": [2100, 520]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst transcribed = item.transcribed_text || '';\nconst imgCtx = item.image_context || '';\nconst docCtx = item.document_text || '';\nconst baseMsg = item.message || '';\nlet enrichedMsg = baseMsg;\nif (imgCtx) enrichedMsg += '\\n' + imgCtx;\nif (docCtx && docCtx.length > 10) enrichedMsg += '\\n[Documento adjunto]: ' + docCtx.substring(0, 1000);\nreturn [{ json: { ...item, enriched_message: enrichedMsg } }];"
+      },
+      "id": "cs-core-build-prompt",
+      "name": "Build Agent Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2100, 240]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Canal: ' + $json.channel + '\\nUsuario: ' + ($json.contact_name || 'Desconocido') + '\\nTelefono: ' + ($json.phone || '') + '\\nEmail: ' + ($json.email || '') + '\\n\\nMensaje del usuario:\\n' + ($json.enriched_message || $json.message || '') }}",
+        "options": {
+          "systemMessage": "={{ $env.CUSTOMER_SERVICE_SYSTEM_PROMPT || 'Eres el Agente de Atencion al Cliente de LEV Innovation. Precalifica leads (BANT), responde preguntas desde la base de conocimientos, y agenda reuniones via Google Calendar.' }}",
+          "maxIterations": 5
+        }
+      },
+      "id": "cs-core-ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [2340, 240]
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.5-flash",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 4096
+        }
+      },
+      "id": "cs-core-openrouter",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [2340, 520],
+      "credentials": {
+        "openRouterApi": {
+          "id": "UdJibBBHHZIbd9jP",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://levinnovation.mcp.agentyx.one/mcp",
+        "serverTransport": "httpStreamable",
+        "authentication": "multipleHeadersAuth",
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "MCP_BEARER_AUTH_CREDENTIAL_ID",
+            "name": "MCP Bearer Auth"
+          }
+        },
+        "include": "all",
+        "headers": {
+          "values": [
+            { "name": "x-entity-id", "value": "levinnovation-user-id" },
+            { "name": "x-user-prompt", "value": "={{ $json.enriched_message || $json.message }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cs-core-mcp",
+      "name": "MCP Client Tool",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [2580, 480],
+      "credentials": {
+        "httpMultipleHeadersAuth": {
+          "id": "9udywSKQmBfbGfkw",
+          "name": "Multiple Headers Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve",
+        "memoryKey": "cs_kb",
+        "topK": 3
+      },
+      "id": "cs-core-retriever",
+      "name": "Vector Store Retriever",
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [2580, 680]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nlet text = raw.output || raw.text || raw.response || '';\nlet metadata = {};\nconst jsonMatch = text.match(/```json\\s*([\\s\\S]*?)\\s*```/);\nif (jsonMatch) {\n  try {\n    metadata = JSON.parse(jsonMatch[1]);\n    text = text.replace(jsonMatch[0], '').trim();\n  } catch (e) {}\n}\nreturn [{ json: { ...raw, reply_text: text, lead_status: metadata.lead_status || 'unknown', qualification_score: metadata.qualification_score || 0, meeting_requested: metadata.meeting_requested || false, crm_fields: metadata.crm_fields || {}, calendar_action: metadata.calendar_action || 'none', next_best_action: metadata.next_best_action || '' } }];"
+      },
+      "id": "cs-core-parse-output",
+      "name": "Parse Agent Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2580, 240]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.TWENTY_BASE_URL || 'https://twenty-levinnovation.railway.app' }}/rest/people",
+        "method": "GET",
+        "options": { "timeout": 15000 },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.TWENTY_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "queryParameters": {
+          "parameters": [
+            { "name": "filter", "value": "=email[eq]{{ $json.email || $json.user_id }}" }
+          ]
+        }
+      },
+      "id": "cs-core-twenty-search",
+      "name": "Twenty CRM Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2820, 80],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "version": 2, "caseSensitive": true, "typeValidation": "strict" },
+          "combinator": "and",
+          "conditions": [
+            { "id": "cond-twenty-found", "operator": { "type": "boolean", "operation": "true", "singleValue": true }, "leftValue": "={{ Array.isArray($json.data?.people) && $json.data.people.length > 0 }}", "rightValue": "true" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cs-core-twenty-found",
+      "name": "Lead Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [3060, 80]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.TWENTY_BASE_URL || 'https://twenty-levinnovation.railway.app' }}/rest/people/{{ $json.data.people[0].id }}",
+        "method": "PATCH",
+        "options": { "timeout": 15000 },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.TWENTY_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"jobTitle\":\"{{ $json.crm_fields.jobTitle || '' }}\",\"linkedinUrl\":\"{{ $json.crm_fields.linkedinUrl || '' }}\",\"company\":\"{{ $json.crm_fields.company || '' }}\"}"
+      },
+      "id": "cs-core-twenty-update",
+      "name": "Twenty CRM Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3300, 40],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.TWENTY_BASE_URL || 'https://twenty-levinnovation.railway.app' }}/rest/people",
+        "method": "POST",
+        "options": { "timeout": 15000 },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.TWENTY_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"name\":{\"firstName\":\"{{ ($json.contact_name || 'Lead').split(' ')[0] }}\",\"lastName\":\"{{ ($json.contact_name || '').split(' ').slice(1).join(' ') || 'Desconocido' }}\"},\"email\":\"{{ $json.email || $json.user_id + '@placeholder.lev' }}\",\"phone\":\"{{ $json.phone || '' }}\",\"jobTitle\":\"{{ $json.crm_fields.jobTitle || '' }}\",\"company\":\"{{ $json.crm_fields.company || '' }}\",\"linkedinUrl\":\"{{ $json.crm_fields.linkedinUrl || '' }}\"}"
+      },
+      "id": "cs-core-twenty-create",
+      "name": "Twenty CRM Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3300, 120],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst g = $getWorkflowStaticData('global');\ng.cs_audit_log = g.cs_audit_log || [];\ng.cs_audit_log.push({\n  ts: new Date().toISOString(),\n  channel: item.channel,\n  conversation_id: item.conversation_id,\n  user_id: item.user_id,\n  contact_name: item.contact_name,\n  lead_status: item.lead_status,\n  qualification_score: item.qualification_score,\n  meeting_requested: item.meeting_requested,\n  calendar_action: item.calendar_action,\n  reply_preview: (item.reply_text || '').substring(0, 200)\n});\nif (g.cs_audit_log.length > 2000) g.cs_audit_log.splice(0, g.cs_audit_log.length - 2000);\nreturn [{ json: { ...item, audit_logged: true } }];"
+      },
+      "id": "cs-core-audit",
+      "name": "Audit Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2820, 320]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "name": "reply_text", "value": "={{ $json.reply_text || 'Gracias por tu mensaje. Un asesor te contactara pronto.' }}", "type": "string" },
+            { "name": "reply_attachments", "value": "={{ [] }}", "type": "array" },
+            { "name": "end_session", "value": "={{ false }}", "type": "boolean" },
+            { "name": "metadata", "value": "={{ { lead_status: $json.lead_status, qualification_score: $json.qualification_score, meeting_requested: $json.meeting_requested, calendar_action: $json.calendar_action, crm_fields: $json.crm_fields, next_best_action: $json.next_best_action } }}", "type": "object" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cs-core-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [3060, 320]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [[{ "node": "Normalize Envelope", "type": "main", "index": 0 }]]
+    },
+    "Normalize Envelope": {
+      "main": [
+        [{ "node": "Attachment Router", "type": "main", "index": 0 }],
+        [{ "node": "Redis Chat Memory", "type": "main", "index": 0 }]
+      ]
+    },
+    "Attachment Router": {
+      "main": [[{ "node": "Switch Attachment Type", "type": "main", "index": 0 }]]
+    },
+    "Switch Attachment Type": {
+      "main": [
+        [{ "node": "Download Audio", "type": "main", "index": 0 }],
+        [{ "node": "Process Image", "type": "main", "index": 0 }],
+        [{ "node": "Download Document", "type": "main", "index": 0 }],
+        [{ "node": "No Attachment", "type": "main", "index": 0 }]
+      ]
+    },
+    "Download Audio": {
+      "main": [[{ "node": "Transcribe Audio", "type": "main", "index": 0 }]]
+    },
+    "Transcribe Audio": {
+      "main": [[{ "node": "Parse Audio Output", "type": "main", "index": 0 }]]
+    },
+    "Parse Audio Output": {
+      "main": [[{ "node": "Merge Branches", "type": "main", "index": 0 }]]
+    },
+    "Process Image": {
+      "main": [[{ "node": "Merge Branches", "type": "main", "index": 0 }]]
+    },
+    "Download Document": {
+      "main": [[{ "node": "Extract Document Text", "type": "main", "index": 0 }]]
+    },
+    "Extract Document Text": {
+      "main": [[{ "node": "Merge Branches", "type": "main", "index": 0 }]]
+    },
+    "No Attachment": {
+      "main": [[{ "node": "Merge Branches", "type": "main", "index": 0 }]]
+    },
+    "Merge Branches": {
+      "main": [
+        [{ "node": "Build Agent Prompt", "type": "main", "index": 0 }],
+        [{ "node": "Load Knowledge Base", "type": "main", "index": 0 }]
+      ]
+    },
+    "Load Knowledge Base": {
+      "main": [[{ "node": "Vector Store Upsert", "type": "main", "index": 0 }]]
+    },
+    "Build Agent Prompt": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "AI Agent": {
+      "main": [[{ "node": "Parse Agent Output", "type": "main", "index": 0 }]]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "MCP Client Tool": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Vector Store Retriever": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Redis Chat Memory": {
+      "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "Parse Agent Output": {
+      "main": [
+        [{ "node": "Twenty CRM Search", "type": "main", "index": 0 }],
+        [{ "node": "Audit Log", "type": "main", "index": 0 }]
+      ]
+    },
+    "Twenty CRM Search": {
+      "main": [[{ "node": "Lead Exists?", "type": "main", "index": 0 }]]
+    },
+    "Lead Exists?": {
+      "main": [
+        [{ "node": "Twenty CRM Update", "type": "main", "index": 0 }],
+        [{ "node": "Twenty CRM Create", "type": "main", "index": 0 }]
+      ]
+    },
+    "Audit Log": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
+    },
+    "Twenty CRM Update": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
+    },
+    "Twenty CRM Create": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "levinnovation" },
+    { "name": "customer-service" },
+    { "name": "core" }
+  ]
+}

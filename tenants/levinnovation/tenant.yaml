@@ -12,8 +12,10 @@ default_locale: "es-CR"
 default_timezone: "America/Costa_Rica"
 primary_domains:
   - sales-prospecting
+  - customer-service
 domains:
   - sales-prospecting
+  - customer-service
 tags:
   - internal
   - ai-product

@@ -1,0 +1,101 @@
+{
+  "name": "Channel Adapter - Telegram Customer Service",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram/customer-service",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cs-tg-webhook",
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 260],
+      "webhookId": "telegram-customer-service"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst msg = body.message || {};\nconst from = msg.from || {};\nconst chat = msg.chat || {};\nconst text = msg.text || msg.caption || '';\nlet attachments = [];\n\nif (msg.photo && msg.photo.length > 0) {\n  const largest = msg.photo[msg.photo.length - 1];\n  attachments.push({ type: 'image', url: 'https://api.telegram.org/file/bot' + ($env.TELEGRAM_BOT_TOKEN || '') + '/' + largest.file_id, mime_type: 'image/jpeg' });\n}\nif (msg.document) {\n  attachments.push({ type: 'document', url: msg.document.file_id, mime_type: msg.document.mime_type || 'application/octet-stream' });\n}\nif (msg.voice) {\n  attachments.push({ type: 'voice', url: msg.voice.file_id, mime_type: msg.voice.mime_type || 'audio/ogg' });\n}\n\nreturn [{\n  json: {\n    core_workflow_id: 'CUSTOMER_SERVICE_CORE_ID',\n    channel: 'telegram',\n    conversation_id: String(chat.id || ''),\n    user_id: String(from.id || ''),\n    message: text,\n    attachments: attachments,\n    metadata: {\n      update_id: body.update_id || null,\n      message_id: msg.message_id || null,\n      username: from.username || null,\n      first_name: from.first_name || null,\n      chat_id: chat.id || null\n    }\n  }\n}];"
+      },
+      "id": "cs-tg-normalize",
+      "name": "Validate + Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "CUSTOMER_SERVICE_CORE_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "cs-tg-execute-core",
+      "name": "Execute Customer Service Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [1160, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"chat_id\": $('Validate + Normalize').item.json.metadata.chat_id, \"text\": $json.reply_text || 'Gracias por tu mensaje.', \"parse_mode\": \"Markdown\" }",
+        "options": {}
+      },
+      "id": "cs-tg-send-reply",
+      "name": "Send Reply via Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1400, 180],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"reply_text\": $json.reply_text || '', \"channel\": \"telegram\" } }}",
+        "options": {}
+      },
+      "id": "cs-tg-respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [1640, 180]
+    }
+  ],
+  "connections": {
+    "Telegram Webhook": {
+      "main": [[{ "node": "Validate + Normalize", "type": "main", "index": 0 }]]
+    },
+    "Validate + Normalize": {
+      "main": [[{ "node": "Execute Customer Service Core", "type": "main", "index": 0 }]]
+    },
+    "Execute Customer Service Core": {
+      "main": [[{ "node": "Send Reply via Telegram", "type": "main", "index": 0 }]]
+    },
+    "Send Reply via Telegram": {
+      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "levinnovation" },
+    { "name": "telegram" },
+    { "name": "customer-service" }
+  ]
+}
