@@ -566,6 +566,33 @@
         2960,
         432
       ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "maE5ocLX7FrTwK7o",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/maE5ocLX7FrTwK7o"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "cs-core-toolworkflow-twenty-read",
+      "name": "Twenty CRM Read Context (Workflow Tool)",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3184,
+        432
+      ]
     }
   ],
   "connections": {
@@ -844,6 +871,17 @@
       ]
     },
     "Twenty CRM Native Tool (Workflow)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty CRM Read Context (Workflow Tool)": {
       "ai_tool": [
         [
           {

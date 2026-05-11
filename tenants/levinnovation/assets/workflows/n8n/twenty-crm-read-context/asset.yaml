@@ -1,0 +1,15 @@
+asset:
+  name: twenty-crm-read-context
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Read-only Twenty CRM snapshot workflow exposed as AI tool.
+    Returns person/company/opportunity context for deterministic CRM-aware answers.
+
+  files:
+    - twenty-crm-read-context.json
+    - asset.yaml
+    - README.md
