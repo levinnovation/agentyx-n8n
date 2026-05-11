@@ -46,15 +46,30 @@ Deployed Twenty open-source CRM (v0.50.0) on the existing `client-levinnovation-
 
 1. Scaffolded domain/capability/asset files
 2. Updated `railway.toml` with service definitions
-3. Created Railway bucket service
+3. Created Railway bucket service `twenty-crm-bucket`
 4. Created `twenty-crm-server` and `twenty-crm-worker` services
 5. Set environment variables referencing Postgres, Redis, and Bucket
-6. Added custom domain `levinnovation.crm.agentyx.one`
+6. Generated Railway public domain for server
 7. Deployed both services
+
+## Fixes Applied
+
+- **STORAGE_TYPE**: Changed from `S_3` to `s3` (Twenty validates lowercase only)
+- **PORT**: Added `PORT=3000` so Railway proxy routes correctly
+- **DISABLE_DB_MIGRATIONS**: Set to `true` after initial successful migration to avoid entrypoint `touch` failure on `/app/docker-data/db_status`
+- **Worker start command**: Railway CLI does not support custom `startCommand` for image-based services; worker runs default server CMD
+
+## URLs
+
+| Endpoint | URL | Status |
+|----------|-----|--------|
+| Health | `https://twenty-crm-server-production-622c.up.railway.app/healthz` | ✅ 200 |
+| UI | `https://twenty-crm-server-production-622c.up.railway.app` | ✅ Live |
+| Custom domain | `https://levinnovation.crm.agentyx.one` | ⚠️ Pending manual DNS |
 
 ## Follow-up
 
-- [ ] Configure DNS CNAME for `levinnovation.crm.agentyx.one`
-- [ ] Verify health check at `/healthz`
+- [ ] Add DNS CNAME `levinnovation.crm.agentyx.one` → Railway target
+- [ ] Add custom domain in Railway dashboard (CLI auth expired)
 - [ ] Complete initial admin signup
 - [ ] Evaluate Google OAuth integration
