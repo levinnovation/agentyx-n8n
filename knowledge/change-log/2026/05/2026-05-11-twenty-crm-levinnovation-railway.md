@@ -35,7 +35,26 @@ Deployed Twenty open-source CRM (v0.50.0) on the existing `client-levinnovation-
 | Database | Existing Postgres (`twenty_crm` schema) |
 | Cache | Existing Redis |
 | Storage | Railway Bucket (S3-compatible) |
-| Public URL | `https://levinnovation.crm.agentyx.one` |
+| Railway URL | `https://twenty-crm-server-production-622c.up.railway.app` |
+| Custom domain | `https://levinnovation.crm.agentyx.one` (⚠️ pending fix) |
+
+## Fixes Applied During Deployment
+
+| Issue | Cause | Fix |
+|-------|-------|-----|
+| `STORAGE_TYPE` validation error | Twenty only accepts lowercase `s3`, not `S_3` | Changed to `s3` |
+| 502 on Railway URL | Railway proxy didn't know which port to route to | Added `PORT=3000` |
+| Entrypoint crash loop | `touch /app/docker-data/db_status` fails (dir doesn't exist in image) | Set `DISABLE_DB_MIGRATIONS=true` after initial migration |
+| "Unable to Reach Back-end" | Frontend loaded from Railway URL but API calls went to broken custom domain | Temporarily set `SERVER_URL` to Railway URL |
+| Custom domain 502 | Railway edge routing not synced for `levinnovation.crm.agentyx.one` | Requires remove/re-add in Railway dashboard |
+
+## URLs
+
+| Endpoint | URL | Status |
+|----------|-----|--------|
+| Health | `https://twenty-crm-server-production-622c.up.railway.app/healthz` | ✅ 200 |
+| UI | `https://twenty-crm-server-production-622c.up.railway.app` | ✅ Live |
+| Custom domain | `https://levinnovation.crm.agentyx.one` | ⚠️ 502 — Railway edge issue |
 
 ## Auth
 
@@ -52,24 +71,10 @@ Deployed Twenty open-source CRM (v0.50.0) on the existing `client-levinnovation-
 6. Generated Railway public domain for server
 7. Deployed both services
 
-## Fixes Applied
-
-- **STORAGE_TYPE**: Changed from `S_3` to `s3` (Twenty validates lowercase only)
-- **PORT**: Added `PORT=3000` so Railway proxy routes correctly
-- **DISABLE_DB_MIGRATIONS**: Set to `true` after initial successful migration to avoid entrypoint `touch` failure on `/app/docker-data/db_status`
-- **Worker start command**: Railway CLI does not support custom `startCommand` for image-based services; worker runs default server CMD
-
-## URLs
-
-| Endpoint | URL | Status |
-|----------|-----|--------|
-| Health | `https://twenty-crm-server-production-622c.up.railway.app/healthz` | ✅ 200 |
-| UI | `https://twenty-crm-server-production-622c.up.railway.app` | ✅ Live |
-| Custom domain | `https://levinnovation.crm.agentyx.one` | ⚠️ Pending manual DNS |
-
 ## Follow-up
 
-- [ ] Add DNS CNAME `levinnovation.crm.agentyx.one` → Railway target
-- [ ] Add custom domain in Railway dashboard (CLI auth expired)
+- [x] Fix private URL (Railway URL now works)
+- [ ] Fix custom domain `levinnovation.crm.agentyx.one` (remove/re-add in Railway dashboard)
+- [ ] Switch `SERVER_URL` back to custom domain once it works
 - [ ] Complete initial admin signup
 - [ ] Evaluate Google OAuth integration

@@ -100,16 +100,20 @@ startCommand = ""
 PORT = "3000"
 NODE_PORT = "3000"
 NODE_ENV = "production"
-SERVER_URL = "https://levinnovation.crm.agentyx.one"
+# NOTE: Temporarily using Railway URL until custom domain is fixed.
+# Once levinnovation.crm.agentyx.one works, switch back to it.
+SERVER_URL = "https://twenty-crm-server-production-622c.up.railway.app"
 APP_SECRET = "${{secret(32)}}"
 PG_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=twenty_crm"
 REDIS_URL = "redis://:${{redis.REDIS_PASSWORD}}@${{redis.RAILWAY_PRIVATE_DOMAIN}}:6379"
+# NOTE: Must be lowercase "s3" — Twenty validates against enum "s3, local"
 STORAGE_TYPE = "s3"
 STORAGE_S3_REGION = "us-east-1"
 STORAGE_S3_NAME = "${{twenty-crm-bucket.BUCKET_NAME}}"
 STORAGE_S3_ENDPOINT = "${{twenty-crm-bucket.BUCKET_ENDPOINT}}"
 STORAGE_S3_ACCESS_KEY_ID = "${{twenty-crm-bucket.BUCKET_ACCESS_KEY_ID}}"
 STORAGE_S3_SECRET_ACCESS_KEY = "${{twenty-crm-bucket.BUCKET_SECRET_ACCESS_KEY}}"
+# Migrations run once on first deploy; disable afterwards to avoid entrypoint crash
 DISABLE_DB_MIGRATIONS = "true"
 DISABLE_CRON_JOBS_REGISTRATION = "false"
 IS_MULTIWORKSPACE_ENABLED = "false"
@@ -121,7 +125,7 @@ TRUST_PROXY = "loopback, linklocal, uniquelocal"
 [twenty-crm-worker]
 image = "twentycrm/twenty:v0.50.0"
 # NOTE: Railway CLI does not support custom startCommand for image-based
-# services. The worker currently runs the default CMD (full server).
+# services. The worker currently runs the default CMD (full server process).
 # Background jobs are still processed by the server process.
 startCommand = ""
 
@@ -129,7 +133,7 @@ startCommand = ""
 PORT = "3000"
 NODE_PORT = "3000"
 NODE_ENV = "production"
-SERVER_URL = "https://levinnovation.crm.agentyx.one"
+SERVER_URL = "https://twenty-crm-server-production-622c.up.railway.app"
 APP_SECRET = "${{secret(32)}}"
 PG_DATABASE_URL = "${{Postgres.DATABASE_URL}}?schema=twenty_crm"
 REDIS_URL = "redis://:${{redis.REDIS_PASSWORD}}@${{redis.RAILWAY_PRIVATE_DOMAIN}}:6379"
