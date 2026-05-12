@@ -39,7 +39,10 @@ asset:
       auth: Bearer TWENTY_API_KEY
     - service: openai
       auth: OPENAI_API_KEY
-      note: Used for audio transcription (Whisper)
+      note: Audio transcription (Whisper) + text embeddings (text-embedding-3-small)
+    - service: postgres
+      auth: Postgres account credential
+      note: pgvector store for agent retrieve-as-tool (cs_knowledge_chunks)
     - service: customer-service-kb-search
       endpoint: ${KB_SEARCH_WEBHOOK_URL}
       auth: N8N_AUTH_TRUSTED_PROXY_SECRET
