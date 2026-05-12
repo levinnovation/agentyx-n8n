@@ -44,18 +44,28 @@
     },
     {
       "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nlet text = String(item.reply_text || 'Gracias por tu mensaje.').trim();\n\n// Remove accidental wrapper braces from serialized responses.\nif (text.startsWith('{') && text.endsWith('}')) {\n  const inner = text.slice(1, -1).trim();\n  if (inner.length > 0) text = inner;\n}\n\n// Normalize WhatsApp-style list markers to Telegram-friendly bullets.\ntext = text\n  .replace(/^\\s*\\*\\s{2,}/gm, '• ')\n  .replace(/^\\s*\\*\\s+/gm, '• ')\n  .replace(/\\n{3,}/g, '\\n\\n');\n\n// Escape HTML special chars, then re-enable simple bold markdown.\nconst escaped = text\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\n\nconst htmlText = escaped.replace(/\\*\\*(.+?)\\*\\*/g, '<b>$1</b>');\nconst finalText = htmlText.length > 4096 ? `${htmlText.slice(0, 4080)}...` : htmlText;\n\nreturn [{\n  json: {\n    ...item,\n    telegram_text: finalText,\n    telegram_parse_mode: 'HTML'\n  }\n}];"
+      },
+      "id": "cs-tg-format-reply",
+      "name": "Format Reply for Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1280, 180]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"text\": String($json.reply_text || 'Gracias por tu mensaje.') } }}",
+        "jsonBody": "={{ { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"text\": String($json.telegram_text || $json.reply_text || 'Gracias por tu mensaje.'), \"parse_mode\": String($json.telegram_parse_mode || 'HTML'), \"disable_web_page_preview\": true } }}",
         "options": {}
       },
       "id": "cs-tg-send-reply",
       "name": "Send Reply via Telegram",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1400, 180],
+      "position": [1480, 180],
       "continueOnFail": true
     },
     {
@@ -68,7 +78,7 @@
       "name": "Respond OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.3,
-      "position": [1640, 180]
+      "position": [1720, 180]
     }
   ],
   "connections": {
@@ -79,6 +89,9 @@
       "main": [[{ "node": "Execute Customer Service Core", "type": "main", "index": 0 }]]
     },
     "Execute Customer Service Core": {
+      "main": [[{ "node": "Format Reply for Telegram", "type": "main", "index": 0 }]]
+    },
+    "Format Reply for Telegram": {
       "main": [[{ "node": "Send Reply via Telegram", "type": "main", "index": 0 }]]
     },
     "Send Reply via Telegram": {
