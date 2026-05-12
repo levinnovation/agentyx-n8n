@@ -107,21 +107,12 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "name": "documents",
-              "value": "=[{source_id:'agentyx.md',title:'Agentyx',url:'https://agentyx.app',mime:'text/markdown',raw_text:'Agentyx es la plataforma de automatizacion inteligente y agentes de IA de LEV Innovation. Permite a las empresas disenar, desplegar y operar agentes conversacionales conectados a sus sistemas de negocio. Rol: plataforma de orquestacion de agentes de IA. Sitio web: https://agentyx.app'},{source_id:'contax.md',title:'Contax',url:'https://contax.dev',mime:'text/markdown',raw_text:'Contax es la solucion de comunicacion omnicanal de LEV Innovation. Integra WhatsApp, Telegram, correo electronico y redes sociales en una unica bandeja unificada con IA. Rol: plataforma de comunicacion omnicanal. Sitio web: https://contax.dev'},{source_id:'acumatica.md',title:'Acumatica',url:'https://www.acumatica.com/',mime:'text/markdown',raw_text:'Acumatica es el ERP en la nube que LEV Innovation implementa y personaliza para clientes en LATAM. Cubre finanzas, inventario, CRM, manufactura y comercio electronico. Rol: ERP en la nube (implementacion y soporte). Sitio web: https://www.acumatica.com/'},{source_id:'oosto-metropolis.md',title:'Oosto + Metropolis',url:'https://oosto.com',mime:'text/markdown',raw_text:'Oosto (antes AnyVision) ofrece reconocimiento facial y analisis de video impulsado por IA para seguridad fisica y operaciones. Metropolis es la plataforma de computacion en el edge para vision por computadora en estacionamientos, movilidad y retail. Rol: vision por computadora, reconocimiento facial y analisis de video. Sitios web: https://oosto.com y https://metropolis.io/'},{source_id:'legalink.md',title:'Legalink',url:'https://legalink.co/',mime:'text/markdown',raw_text:'Legalink es la plataforma de gestion documental y firma electronica de LEV Innovation. Permite a bufetes y departamentos legales automatizar contratos, diligencias y flujos de aprobacion con validez juridica. Rol: gestion documental y firma electronica. Sitio web: https://legalink.co/'}]",
-              "type": "array"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "return [\n  { json: { documents: [{source_id:'agentyx.md',title:'Agentyx',url:'https://agentyx.app',mime:'text/markdown',raw_text:'Agentyx es la plataforma de automatizacion inteligente y agentes de IA de LEV Innovation. Permite a las empresas disenar, desplegar y operar agentes conversacionales conectados a sus sistemas de negocio. Rol: plataforma de orquestacion de agentes de IA. Sitio web: https://agentyx.app'}] } },\n  { json: { documents: [{source_id:'contax.md',title:'Contax',url:'https://contax.dev',mime:'text/markdown',raw_text:'Contax es la solucion de comunicacion omnicanal de LEV Innovation. Integra WhatsApp, Telegram, correo electronico y redes sociales en una unica bandeja unificada con IA. Rol: plataforma de comunicacion omnicanal. Sitio web: https://contax.dev'}] } },\n  { json: { documents: [{source_id:'acumatica.md',title:'Acumatica',url:'https://www.acumatica.com/',mime:'text/markdown',raw_text:'Acumatica es el ERP en la nube que LEV Innovation implementa y personaliza para clientes en LATAM. Cubre finanzas, inventario, CRM, manufactura y comercio electronico. Rol: ERP en la nube (implementacion y soporte). Sitio web: https://www.acumatica.com/'}] } },\n  { json: { documents: [{source_id:'oosto-metropolis.md',title:'Oosto + Metropolis',url:'https://oosto.com',mime:'text/markdown',raw_text:'Oosto (antes AnyVision) ofrece reconocimiento facial y analisis de video impulsado por IA para seguridad fisica y operaciones. Metropolis es la plataforma de computacion en el edge para vision por computadora en estacionamientos, movilidad y retail. Rol: vision por computadora, reconocimiento facial y analisis de video. Sitios web: https://oosto.com y https://metropolis.io/'}] } },\n  { json: { documents: [{source_id:'legalink.md',title:'Legalink',url:'https://legalink.co/',mime:'text/markdown',raw_text:'Legalink es la plataforma de gestion documental y firma electronica de LEV Innovation. Permite a bufetes y departamentos legales automatizar contratos, diligencias y flujos de aprobacion con validez juridica. Rol: gestion documental y firma electronica. Sitio web: https://legalink.co/'}] } }\n];"
       },
       "id": "kb-sync-simple-static",
       "name": "Static Catalog",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         940,
         360
