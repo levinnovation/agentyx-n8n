@@ -18,8 +18,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        220,
-        120
+        224,
+        240
       ]
     },
     {
@@ -29,8 +29,8 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        220,
-        360
+        224,
+        480
       ]
     },
     {
@@ -40,8 +40,8 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        460,
-        240
+        464,
+        368
       ]
     },
     {
@@ -62,36 +62,40 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        700,
-        240
+        704,
+        368
       ]
     },
     {
       "parameters": {
-        "url": "={{ 'https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(id,name,mimeType,parents,modifiedTime,trashed,webViewLink,md5Checksum),nextPageToken&q=' + encodeURIComponent('trashed = false') }}",
-        "method": "GET",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleDriveOAuth2Api",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
+        "resource": "fileFolder",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.root_folder_id }}",
+            "mode": "id"
+          }
         },
         "options": {
-          "timeout": 30000
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "parents",
+            "modifiedTime",
+            "trashed",
+            "webViewLink"
+          ]
         }
       },
       "id": "list",
       "name": "List Drive Files",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
       "position": [
-        940,
-        240
+        944,
+        368
       ],
       "credentials": {
         "googleDriveOAuth2Api": {
@@ -102,71 +106,41 @@
     },
     {
       "parameters": {
-        "jsCode": "const resp = $input.first().json || {};\nconst files = Array.isArray(resp.files) ? resp.files : [];\n\n// Filter to non-folder files only\nconst docFiles = files.filter(f => f.mimeType !== 'application/vnd.google-apps.folder');\n\nreturn [{ json: { files: docFiles, count: docFiles.length } }];"
+        "jsCode": "const items = $input.all().map(i => i.json);\nconst allowed = ['text/plain','application/pdf','application/vnd.google-apps.document','application/vnd.google-apps.spreadsheet','text/markdown'];\nconst folderMimes = ['application/vnd.google-apps.folder','application/vnd.google-apps.shortcut'];\nconst extToMime = {\n  'txt': 'text/plain',\n  'md': 'text/plain',\n  'pdf': 'application/pdf'\n};\nreturn items\n  .filter(f => !folderMimes.includes(f.mimeType))\n  .filter(f => f.trashed !== true)\n  .filter(f => {\n    if (allowed.includes(f.mimeType)) return true;\n    const name = String(f.name || '').toLowerCase();\n    const ext = name.split('.').pop();\n    if (extToMime[ext]) return true;\n    if (name.includes('context') || name.includes('acumatica') || name.includes('contax') || name.includes('costo') || name.includes('shareable')) return true;\n    return false;\n  })\n  .map(f => {\n    const name = String(f.name || '').toLowerCase();\n    const ext = name.split('.').pop();\n    let mime = f.mimeType || extToMime[ext] || 'application/vnd.google-apps.document';\n    return {\n      json: {\n        source: 'google-drive',\n        source_id: f.id,\n        title: f.name,\n        url: f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`,\n        mime: mime,\n        modified_time: f.modifiedTime || new Date().toISOString()\n      }\n    };\n  });"
       },
       "id": "filter",
       "name": "Filter Files",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1180,
-        240
+        1184,
+        368
       ]
     },
     {
       "parameters": {
-        "jsCode": "const files = ($input.first().json || {}).files || [];\n\nreturn files.map(f => {\n  let url = '';\n  if (f.mimeType === 'application/vnd.google-apps.document') {\n    url = `https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`;\n  } else if (f.mimeType === 'application/vnd.google-apps.spreadsheet') {\n    url = `https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/csv`;\n  } else {\n    url = `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`;\n  }\n  return {\n    json: {\n      source: 'google-drive',\n      source_id: f.id,\n      title: f.name,\n      url: f.webViewLink || '',\n      mime: f.mimeType,\n      download_url: url,\n      modified_time: f.modifiedTime || ''\n    }\n  };\n});"
-      },
-      "id": "map",
-      "name": "Map Files",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1420,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "batchSize": 1
-      },
-      "id": "split",
-      "name": "Split In Batches",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        1660,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "url": "={{ $json.download_url }}",
-        "method": "GET",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleDriveOAuth2Api",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.source_id }}",
+          "mode": "id"
         },
         "options": {
-          "timeout": 60000
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/markdown"
+            }
+          }
         }
       },
       "id": "dl",
       "name": "Download File",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
       "position": [
-        1900,
-        240
+        1664,
+        368
       ],
-      "continueOnFail": true,
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "v7kCbCgLS3aXRqtp",
@@ -176,42 +150,43 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst raw = $input.first().binary?.data;\nlet text = '';\nif (typeof raw === 'string') text = raw;\nelse if (raw && raw.data) text = Buffer.from(raw.data, 'base64').toString('utf-8');\nelse if (typeof $json === 'string') text = $json;\nelse text = JSON.stringify($json||{});\ntext = String(text||'').replace(/\\u0000/g,'').trim();\nreturn [{json:{...item,raw_text:text}}];"
+        "jsCode": "const all = $input.all();\nreturn all.map(item => {\n  const json = item.json;\n  let text = '';\n\n  // 1. Binary download (regular files OR Google Doc export stored as binary)\n  if (item.binary) {\n    const binObj = item.binary.data;\n    if (binObj && binObj.data) {\n      try {\n        text = Buffer.from(binObj.data, 'base64').toString('utf-8');\n      } catch (e) {\n        text = String(binObj.data || '');\n      }\n    }\n  }\n\n  // 2. Fallback: if item.json itself is a string (text export)\n  if (!text && typeof item.json === 'string') {\n    text = item.json;\n  }\n\n  // 3. Fallback: extract string values from json object\n  if (!text && json && typeof json === 'object') {\n    const vals = Object.values(json).filter(v => typeof v === 'string');\n    text = vals.join('\\n');\n  }\n\n  text = text.replace(/\\u0000/g, '').trim();\n  return { json: { ...json, raw_text: text } };\n});"
       },
       "id": "extract",
       "name": "Extract Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2140,
-        240
+        2144,
+        368
       ]
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst text = String(item.raw_text||'').trim().replace(/\\s+/g,' ');\nconst hash = require('crypto').createHash('sha256').update(text).digest('hex');\nreturn [{json:{...item,raw_text:text,content_hash:hash}}];"
+        "jsCode": "const all = $input.all();\nreturn all.map(item => {\n  const json = item.json;\n  const text = String(json.raw_text || '').trim().replace(/\\s+/g, ' ');\n  let h = 0x811c9dc5;\n  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193); }\n  const hash = (h >>> 0).toString(16).padStart(8, '0');\n  return { json: { ...json, raw_text: text, content_hash: hash } };\n});"
       },
       "id": "hash",
       "name": "Hash",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2380,
-        240
+        2384,
+        368
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "={{ \"SELECT content_hash FROM public.cs_documents WHERE source = 'google-drive' AND source_id = '\" + ($json.source_id||'').replace(/'/g,\"''\") + \"';\" }}"
+        "query": "{{ \"SELECT content_hash FROM public.cs_documents WHERE source = 'google-drive' AND source_id = '\" + ($json.source_id || '').replace(/'/g, \"''\") + \"';\" }}",
+        "options": {}
       },
       "id": "check",
       "name": "Check Hash",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2620,
-        240
+        2624,
+        368
       ],
       "credentials": {
         "postgres": {
@@ -224,9 +199,10 @@
       "parameters": {
         "conditions": {
           "options": {
-            "version": 2,
             "caseSensitive": true,
-            "typeValidation": "strict"
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
           },
           "combinator": "and",
           "conditions": [
@@ -237,7 +213,7 @@
                 "operation": "true",
                 "singleValue": true
               },
-              "leftValue": "={{ $json.content_hash === $('Hash').item.json.content_hash }}",
+              "leftValue": "={{ $json.content_hash !== $('Hash').item.json.content_hash }}",
               "rightValue": "true"
             }
           ]
@@ -249,22 +225,23 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2860,
-        240
+        2864,
+        368
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "={{ \"INSERT INTO public.cs_documents (source,source_id,product,title,url,mime,raw_text,content_hash,version,updated_at) VALUES ('google-drive', '\" + ($json.source_id||'').replace(/'/g,\"''\") + \"', 'General', '\" + ($json.title||'').replace(/'/g,\"''\") + \"', '\" + ($json.url||'').replace(/'/g,\"''\") + \"', '\" + ($json.mime||'').replace(/'/g,\"''\") + \"', '\" + ($json.raw_text||'').replace(/'/g,\"''\").slice(0,60000) + \"', '\" + ($json.content_hash||'').replace(/'/g,\"''\") + \"', 1, now()) ON CONFLICT (source,source_id) DO UPDATE SET title=EXCLUDED.title, url=EXCLUDED.url, mime=EXCLUDED.mime, raw_text=EXCLUDED.raw_text, content_hash=EXCLUDED.content_hash, version=cs_documents.version+1, updated_at=now() RETURNING id;\" }}"
+        "query": "{{ \"INSERT INTO public.cs_documents (source,source_id,product,title,url,mime,raw_text,content_hash,version,updated_at) VALUES ('google-drive', '\" + ($json.source_id || '').replace(/'/g, \"''\") + \"', 'General', '\" + ($json.title || '').replace(/'/g, \"''\") + \"', '\" + ($json.url || '').replace(/'/g, \"''\") + \"', '\" + ($json.mime || '').replace(/'/g, \"''\") + \"', '\" + ($json.raw_text || '').replace(/'/g, \"''\").slice(0, 60000) + \"', '\" + ($json.content_hash || '').replace(/'/g, \"''\") + \"', 1, now()) ON CONFLICT (source, source_id) DO UPDATE SET title = EXCLUDED.title, url = EXCLUDED.url, mime = EXCLUDED.mime, raw_text = EXCLUDED.raw_text, content_hash = EXCLUDED.content_hash, version = cs_documents.version + 1, updated_at = now() RETURNING id;\" }}",
+        "options": {}
       },
       "id": "upsert",
       "name": "Upsert Doc",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3100,
-        120
+        3104,
+        128
       ],
       "credentials": {
         "postgres": {
@@ -275,29 +252,17 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $('Hash').item.json;\nconst res = $input.first().json;\nreturn [{json:{...item,doc_id:res.id}}];"
-      },
-      "id": "cap",
-      "name": "Capture Doc ID",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        3340,
-        120
-      ]
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "={{ \"DELETE FROM public.cs_knowledge_chunks WHERE doc_id = '\" + ($json.doc_id||'').replace(/'/g,\"''\") + \"';\" }}"
+        "query": "{{ \"DELETE FROM public.cs_knowledge_chunks WHERE doc_id = '\" + ($json.doc_id || '').replace(/'/g, \"''\") + \"';\" }}",
+        "options": {}
       },
       "id": "del",
       "name": "Delete Chunks",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3580,
-        120
+        3584,
+        128
       ],
       "credentials": {
         "postgres": {
@@ -308,15 +273,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nfunction chunkText(text, size=1200, overlap=150) {\n  const chunks = [];\n  for (let i = 0; i < text.length; i += size - overlap) {\n    chunks.push(text.slice(i, i + size));\n  }\n  return chunks.filter(c => c.trim().length > 20);\n}\nconst chunks = chunkText(item.raw_text || '', 1200, 150);\nreturn chunks.map((c, idx) => ({\n  json: { ...item, chunk_text: c, chunk_index: idx }\n}));"
+        "jsCode": "const all = $input.all();\nlet out = [];\nfor (const item of all) {\n  const json = item.json;\n  const text = String(json.raw_text || '');\n  const size = 1200, overlap = 150;\n  const chunks = [];\n  for (let i = 0; i < text.length; i += size - overlap) {\n    chunks.push(text.slice(i, i + size));\n  }\n  const valid = chunks.filter(c => c.trim().length > 20);\n  valid.forEach((c, idx) => {\n    out.push({ json: { ...json, chunk_text: c, chunk_index: idx } });\n  });\n}\nreturn out;"
       },
       "id": "chunk",
       "name": "Chunk",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3820,
-        120
+        3824,
+        128
       ]
     },
     {
@@ -346,8 +311,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4060,
-        120
+        4064,
+        128
       ],
       "credentials": {
         "openAiApi": {
@@ -358,29 +323,30 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst emb = ($json.data || [])[0]?.embedding || [];\nconst embLit = '[' + emb.join(',') + ']';\nreturn [{ json: { ...item, embedding: embLit } }];"
+        "jsCode": "const all = $input.all();\nreturn all.map(item => {\n  const json = item.json;\n  const emb = (item.json.data || [])[0]?.embedding || [];\n  const embLit = '[' + emb.join(',') + ']';\n  return { json: { ...json, embedding: embLit } };\n});"
       },
       "id": "prep",
       "name": "Prepare Insert",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4300,
-        120
+        4304,
+        128
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "={{ \"INSERT INTO public.cs_knowledge_chunks (text, metadata, embedding, doc_id, chunk_index) VALUES ('\" + ($json.chunk_text||'').replace(/'/g,\"''\").slice(0,8000) + \"', '\" + JSON.stringify({doc_id: $json.doc_id, product: 'General', source: 'google-drive', source_id: $json.source_id, url: $json.url, chunk_index: $json.chunk_index}).replace(/'/g,\"''\") + \"'::jsonb, '\" + ($json.embedding||'[]') + \"'::vector, '\" + ($json.doc_id||'').replace(/'/g,\"''\") + \"', \" + ($json.chunk_index||0) + \");\" }}"
+        "query": "{{ \"INSERT INTO public.cs_knowledge_chunks (text, metadata, embedding, doc_id, chunk_index) VALUES ('\" + ($json.chunk_text || '').replace(/'/g, \"''\").slice(0, 8000) + \"', '\" + JSON.stringify({doc_id: $json.doc_id, product: 'General', source: 'google-drive', source_id: $json.source_id, url: $json.url, chunk_index: $json.chunk_index}).replace(/'/g, \"''\") + \"'::jsonb, '\" + ($json.embedding || '[]') + \"'::vector, '\" + ($json.doc_id || '').replace(/'/g, \"''\") + \"', \" + ($json.chunk_index || 0) + \");\" }}",
+        "options": {}
       },
       "id": "insert",
       "name": "Insert Chunk",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4540,
-        120
+        4544,
+        128
       ],
       "credentials": {
         "postgres": {
@@ -396,8 +362,8 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        4780,
-        120
+        4784,
+        128
       ]
     }
   ],
@@ -461,40 +427,7 @@
       "main": [
         [
           {
-            "node": "Map Files",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Map Files": {
-      "main": [
-        [
-          {
-            "node": "Split In Batches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split In Batches": {
-      "main": [
-        [
-          {
             "node": "Download File",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Download File": {
-      "main": [
-        [
-          {
-            "node": "Extract Text",
             "type": "main",
             "index": 0
           }
@@ -551,6 +484,11 @@
         [
           {
             "node": "Capture Doc ID",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Delete Chunks",
             "type": "main",
             "index": 0
           }
@@ -622,6 +560,17 @@
           }
         ]
       ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -630,6 +579,7 @@
     "saveDataSuccessExecution": "all",
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
-    "timezone": "America/Costa_Rica"
+    "timezone": "America/Costa_Rica",
+    "binaryMode": "separate"
   }
 }
