@@ -13,7 +13,7 @@
           ]
         }
       },
-      "id": "kb-sync-v2-schedule",
+      "id": "kb-sync-simple-schedule",
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -24,7 +24,7 @@
     },
     {
       "parameters": {},
-      "id": "kb-sync-v2-manual",
+      "id": "kb-sync-simple-manual",
       "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -35,7 +35,7 @@
     },
     {
       "parameters": {},
-      "id": "kb-sync-v2-merge-triggers",
+      "id": "kb-sync-simple-merge-triggers",
       "name": "Merge Triggers",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
@@ -62,7 +62,7 @@
         },
         "options": {}
       },
-      "id": "kb-sync-v2-config",
+      "id": "kb-sync-simple-config",
       "name": "Load Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -90,7 +90,7 @@
           "timeout": 30000
         }
       },
-      "id": "kb-sync-v2-list-drive",
+      "id": "kb-sync-simple-list-drive",
       "name": "List Drive Files",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -107,55 +107,29 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://api.github.com/repos/levinnovation/agentyx-vertical-assets/contents/tenants/levinnovation/assets/data/product-catalog/static-catalog.json?ref=' + ($env.GITHUB_BRANCH || 'main') }}",
-        "method": "GET",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "assignments": {
+          "assignments": [
             {
-              "name": "Accept",
-              "value": "application/vnd.github.v3+json"
-            },
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.GITHUB_API_TOKEN || '') }}"
-            },
-            {
-              "name": "X-GitHub-Api-Version",
-              "value": "2022-11-28"
+              "name": "documents",
+              "value": "=[{source_id:'agentyx.md',title:'Agentyx',url:'https://agentyx.app',mime:'text/markdown',raw_text:'Agentyx es la plataforma de automatizacion inteligente y agentes de IA de LEV Innovation. Permite a las empresas disenar, desplegar y operar agentes conversacionales conectados a sus sistemas de negocio. Rol: plataforma de orquestacion de agentes de IA. Sitio web: https://agentyx.app'},{source_id:'contax.md',title:'Contax',url:'https://contax.dev',mime:'text/markdown',raw_text:'Contax es la solucion de comunicacion omnicanal de LEV Innovation. Integra WhatsApp, Telegram, correo electronico y redes sociales en una unica bandeja unificada con IA. Rol: plataforma de comunicacion omnicanal. Sitio web: https://contax.dev'},{source_id:'acumatica.md',title:'Acumatica',url:'https://www.acumatica.com/',mime:'text/markdown',raw_text:'Acumatica es el ERP en la nube que LEV Innovation implementa y personaliza para clientes en LATAM. Cubre finanzas, inventario, CRM, manufactura y comercio electronico. Rol: ERP en la nube (implementacion y soporte). Sitio web: https://www.acumatica.com/'},{source_id:'oosto-metropolis.md',title:'Oosto + Metropolis',url:'https://oosto.com',mime:'text/markdown',raw_text:'Oosto (antes AnyVision) ofrece reconocimiento facial y analisis de video impulsado por IA para seguridad fisica y operaciones. Metropolis es la plataforma de computacion en el edge para vision por computadora en estacionamientos, movilidad y retail. Rol: vision por computadora, reconocimiento facial y analisis de video. Sitios web: https://oosto.com y https://metropolis.io/'},{source_id:'legalink.md',title:'Legalink',url:'https://legalink.co/',mime:'text/markdown',raw_text:'Legalink es la plataforma de gestion documental y firma electronica de LEV Innovation. Permite a bufetes y departamentos legales automatizar contratos, diligencias y flujos de aprobacion con validez juridica. Rol: gestion documental y firma electronica. Sitio web: https://legalink.co/'}]",
+              "type": "array"
             }
           ]
         },
-        "options": {
-          "timeout": 15000
-        }
+        "options": {}
       },
-      "id": "kb-sync-v2-fetch-static",
-      "name": "Fetch Static Catalog",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "kb-sync-simple-static",
+      "name": "Static Catalog",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         940,
-        360
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "const resp = $input.first().json || {};\nif (resp.content && typeof resp.content === 'string') {\n  try {\n    const decoded = Buffer.from(resp.content, 'base64').toString('utf-8');\n    const parsed = JSON.parse(decoded);\n    return [{ json: parsed }];\n  } catch (e) {\n    return [{ json: { documents: [] } }];\n  }\n}\nreturn [{ json: { documents: [] } }];"
-      },
-      "id": "kb-sync-v2-parse-static",
-      "name": "Parse Static Catalog",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1180,
         360
       ]
     },
     {
       "parameters": {},
-      "id": "kb-sync-v2-merge-sources",
+      "id": "kb-sync-simple-merge-sources",
       "name": "Merge Drive + Static",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
@@ -166,27 +140,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const all = $input.all().map(i => i.json);\nlet driveFiles = [];\nlet staticDocs = [];\nfor (const item of all) {\n  if (Array.isArray(item.files)) driveFiles = item.files;\n  if (Array.isArray(item.documents)) staticDocs = item.documents;\n}\n\nconst allowed = new Set(['text/plain','application/pdf','application/vnd.google-apps.document','application/vnd.google-apps.spreadsheet','text/markdown']);\nconst driveItems = driveFiles\n  .filter(f => !f.trashed)\n  .filter(f => allowed.has(String(f.mimeType || '')))\n  .map(f => {\n    let url='';\n    if (f.mimeType==='application/vnd.google-apps.document') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`;\n    else if (f.mimeType==='application/vnd.google-apps.spreadsheet') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/csv`;\n    else url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`;\n    return {source:'google-drive',source_id:f.id,title:f.name,url:f.webViewLink||'',mime:f.mimeType,download_url:url,modified_time:f.modifiedTime||'',raw_text:''};\n  });\n\nconst staticItems = staticDocs.map(d => ({\n  source: 'static',\n  source_id: d.source_id,\n  title: d.title,\n  url: d.url || '',\n  mime: d.mime,\n  modified_time: '',\n  raw_text: d.raw_text\n}));\n\nreturn [...driveItems, ...staticItems].map(i => ({ json: i }));"
+        "jsCode": "const all = $input.all().map(i => i.json);\nlet driveFiles = [];\nlet staticDocs = [];\nfor (const item of all) {\n  if (Array.isArray(item.files)) driveFiles = item.files;\n  if (Array.isArray(item.documents)) staticDocs = item.documents;\n}\nconst allowed = new Set(['text/plain','application/pdf','application/vnd.google-apps.document','application/vnd.google-apps.spreadsheet','text/markdown']);\nconst driveItems = driveFiles\n  .filter(f => !f.trashed)\n  .filter(f => allowed.has(String(f.mimeType || '')))\n  .map(f => {\n    let url='';\n    if (f.mimeType==='application/vnd.google-apps.document') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`;\n    else if (f.mimeType==='application/vnd.google-apps.spreadsheet') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/csv`;\n    else url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`;\n    return {source:'google-drive',source_id:f.id,title:f.name,url:f.webViewLink||'',mime:f.mimeType,download_url:url,modified_time:f.modifiedTime||'',raw_text:''};\n  });\nconst staticItems = staticDocs.map(d => ({\n  source: 'static',\n  source_id: d.source_id,\n  title: d.title,\n  url: d.url || '',\n  mime: d.mime,\n  modified_time: '',\n  raw_text: d.raw_text\n}));\nreturn [...driveItems, ...staticItems].map(i => ({ json: i }));"
       },
-      "id": "kb-sync-v2-build-list",
+      "id": "kb-sync-simple-build-list",
       "name": "Build Source List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1420,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "batchSize": 1
-      },
-      "id": "kb-sync-v2-split",
-      "name": "Split In Batches",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        1660,
         240
       ]
     },
@@ -204,12 +165,12 @@
         },
         "fallbackOutput": 1
       },
-      "id": "kb-sync-v2-switch-source",
+      "id": "kb-sync-simple-switch",
       "name": "Switch Source Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 2,
       "position": [
-        1900,
+        1660,
         240
       ]
     },
@@ -232,12 +193,12 @@
           "timeout": 60000
         }
       },
-      "id": "kb-sync-v2-download",
+      "id": "kb-sync-simple-download",
       "name": "Download Drive File",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2140,
+        1900,
         120
       ],
       "continueOnFail": true,
@@ -250,36 +211,36 @@
     },
     {
       "parameters": {
-        "jsCode": "const file = $input.first().json;\nconst binary = $input.first().binary?.data;\nlet text = '';\nif (typeof binary === 'string') {\n  text = binary;\n} else if (binary && binary.data) {\n  text = Buffer.from(binary.data, 'base64').toString('utf-8');\n} else if (typeof $json === 'string') {\n  text = $json;\n} else {\n  text = JSON.stringify($json || {});\n}\ntext = String(text || '').replace(/\\u0000/g, '').trim();\nreturn [{ json: { ...file, raw_text: text } }];"
+        "jsCode": "const file = $input.first().json;\nconst raw = $input.first().binary?.data;\nlet text = '';\nif (typeof raw === 'string') text = raw;\nelse if (raw && raw.data) text = Buffer.from(raw.data, 'base64').toString('utf-8');\nelse if (typeof $json === 'string') text = $json;\nelse text = JSON.stringify($json||{});\ntext = String(text||'').replace(/\\u0000/g,'').trim();\nreturn [{json:{...file,raw_text:text}}];"
       },
-      "id": "kb-sync-v2-extract-drive",
+      "id": "kb-sync-simple-extract",
       "name": "Extract Drive Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2380,
+        2140,
         120
       ]
     },
     {
       "parameters": {},
-      "id": "kb-sync-v2-pass-static",
+      "id": "kb-sync-simple-pass-static",
       "name": "Pass Static Text",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        2140,
+        1900,
         360
       ]
     },
     {
       "parameters": {},
-      "id": "kb-sync-v2-merge-branches",
+      "id": "kb-sync-simple-merge-branches",
       "name": "Merge Branches",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        2620,
+        2380,
         240
       ]
     },
@@ -287,12 +248,12 @@
       "parameters": {
         "jsCode": "const item = $input.first().json;\nconst text = String(item.raw_text||'').trim().replace(/\\s+/g,' ');\nlet h=0x811c9dc5;\nfor (let i=0;i<text.length;i++){ h^=text.charCodeAt(i); h=Math.imul(h,0x01000193); }\nconst hash = (h>>>0).toString(16).padStart(8,'0');\nreturn [{json:{...item,raw_text:text,content_hash:hash}}];"
       },
-      "id": "kb-sync-v2-hash",
+      "id": "kb-sync-simple-hash",
       "name": "Normalize + Hash",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2860,
+        2620,
         240
       ]
     },
@@ -301,12 +262,12 @@
         "operation": "executeQuery",
         "query": "={{ \"SELECT content_hash FROM public.cs_documents WHERE source = '\" + ($json.source||'').replace(/'/g,\"''\") + \"' AND source_id = '\" + ($json.source_id||'').replace(/'/g,\"''\") + \"';\" }}"
       },
-      "id": "kb-sync-v2-check-hash",
+      "id": "kb-sync-simple-check-hash",
       "name": "Check Hash",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3100,
+        2860,
         240
       ],
       "credentials": {
@@ -320,12 +281,12 @@
       "parameters": {
         "jsCode": "const item = $('Normalize + Hash').item.json;\nconst rows = $input.all().map(i=>i.json);\nconst existing = rows[0]?.content_hash || '';\nif (existing && existing===item.content_hash) return [];\nreturn [{json:item}];"
       },
-      "id": "kb-sync-v2-filter",
+      "id": "kb-sync-simple-filter",
       "name": "Filter Unchanged",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3340,
+        3100,
         240
       ]
     },
@@ -334,12 +295,12 @@
         "operation": "executeQuery",
         "query": "={{ \"INSERT INTO public.cs_documents (source,source_id,product,title,url,mime,raw_text,content_hash,version,updated_at) VALUES ('\" + ($json.source||'').replace(/'/g,\"''\") + \"', '\" + ($json.source_id||'').replace(/'/g,\"''\") + \"', '\" + ($json.product||'General').replace(/'/g,\"''\") + \"', '\" + ($json.title||'').replace(/'/g,\"''\") + \"', '\" + ($json.url||'').replace(/'/g,\"''\") + \"', '\" + ($json.mime||'').replace(/'/g,\"''\") + \"', '\" + ($json.raw_text||'').replace(/'/g,\"''\").slice(0,60000) + \"', '\" + ($json.content_hash||'').replace(/'/g,\"''\") + \"', 1, now()) ON CONFLICT (source,source_id) DO UPDATE SET product=EXCLUDED.product, title=EXCLUDED.title, url=EXCLUDED.url, mime=EXCLUDED.mime, raw_text=EXCLUDED.raw_text, content_hash=EXCLUDED.content_hash, version=cs_documents.version+1, updated_at=now() RETURNING id;\" }}"
       },
-      "id": "kb-sync-v2-upsert-doc",
+      "id": "kb-sync-simple-upsert-doc",
       "name": "Upsert cs_documents",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3580,
+        3340,
         240
       ],
       "credentials": {
@@ -353,12 +314,12 @@
       "parameters": {
         "jsCode": "const item = $('Filter Unchanged').item.json;\nconst res = $input.first().json;\nreturn [{json:{...item,doc_id:res.id}}];"
       },
-      "id": "kb-sync-v2-capture-id",
+      "id": "kb-sync-simple-capture-id",
       "name": "Capture Doc ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3820,
+        3580,
         240
       ]
     },
@@ -367,12 +328,12 @@
         "operation": "executeQuery",
         "query": "={{ \"DELETE FROM public.cs_knowledge_chunks WHERE doc_id = '\" + ($json.doc_id||'').replace(/'/g,\"''\") + \"';\" }}"
       },
-      "id": "kb-sync-v2-delete-chunks",
+      "id": "kb-sync-simple-delete-chunks",
       "name": "Delete Chunks by Doc",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4060,
+        3820,
         240
       ],
       "credentials": {
@@ -386,25 +347,12 @@
       "parameters": {
         "jsCode": "const item = $input.first().json;\nfunction chunkText(text,chunkSize=1200,overlap=150){\n  const seps=['\\n\\n','\\n','. ','? ','! ','; ',', ',' '];\n  const chunks=[];\n  function split(t,level){\n    if (t.length<=chunkSize){ chunks.push(t); return; }\n    const sep=seps[level]||'';\n    if (!sep){ for(let i=0;i<t.length;i+=chunkSize-overlap) chunks.push(t.slice(i,i+chunkSize)); return; }\n    const parts=t.split(sep); let cur='';\n    for (const part of parts){\n      const cand=cur?cur+sep+part:part;\n      if (cand.length<=chunkSize) cur=cand;\n      else { if(cur) split(cur,level+1); cur=part; }\n    }\n    if(cur) split(cur,level+1);\n  }\n  split(text,0);\n  return chunks.filter(c=>c.trim().length>20);\n}\nconst chunks=chunkText(item.raw_text||'',1200,150);\nreturn chunks.map((c,idx)=>({json:{...item,chunk_text:c,chunk_index:idx,chunk_type:'text'}}));"
       },
-      "id": "kb-sync-v2-chunk",
+      "id": "kb-sync-simple-chunk",
       "name": "Recursive Chunk",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4300,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const items=$input.all().map(i=>i.json);\nconst size=10; const batches=[];\nfor(let i=0;i<items.length;i+=size){\n  const batch=items.slice(i,i+size);\n  const lines=batch.map((b,idx)=>`${idx+1}. ${b.chunk_text}`);\n  const prompt=`Clasifica cada texto en EXACTAMENTE UNA categoria: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink, Pricing, CaseStudy, FAQ, General.\\nResponde SOLO con JSON: {\"tags\":[\"Cat1\",\"Cat2\",...]}\\n\\n${lines.join('\\n')}`;\n  batches.push({batch,prompt});\n}\nreturn batches.map(b=>({json:b}));"
-      },
-      "id": "kb-sync-v2-tag-batches",
-      "name": "Build Tag Batches",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        4540,
+        4060,
         240
       ]
     },
@@ -427,43 +375,31 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { model: 'google/gemini-2.5-flash', messages: [{role:'system',content:'Eres un clasificador de contenido. Responde solo con JSON.'},{role:'user',content:$json.prompt}], temperature: 0.1 } }}",
+        "jsonBody": "={{ { model: 'google/gemini-2.5-flash', messages: [{role:'system',content:'Eres un clasificador de contenido. Responde solo con JSON.'},{role:'user',content:\"Clasifica este texto en EXACTAMENTE UNA categoria: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink, Pricing, CaseStudy, FAQ, General.\\nResponde SOLO con JSON: {\\\"tag\\\":\\\"Categoria\\\"}\\n\\nTexto: \" + $json.chunk_text}], temperature: 0.1 } }}",
         "options": {
           "timeout": 30000
         }
       },
-      "id": "kb-sync-v2-tag",
-      "name": "LLM Tag Batch",
+      "id": "kb-sync-simple-tag",
+      "name": "LLM Tag Chunk",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        4780,
+        4300,
         240
-      ]
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "const batch=$json.batch||[];\nconst content=$json.choices?.[0]?.message?.content||'';\nlet tags=[];\ntry{ const m=content.match(/\\{.*\\}/s); if(m) tags=JSON.parse(m[0]).tags||[]; }catch(e){}\nif(!tags.length) tags=batch.map(()=>'General');\nreturn batch.map((item,idx)=>({json:{...item,product:tags[idx]||'General'}}));"
+        "jsCode": "const item = $input.first().json;\nconst content = $json.choices?.[0]?.message?.content || '';\nlet tag = 'General';\ntry {\n  const m = content.match(/\\{.*\\}/s);\n  if (m) tag = JSON.parse(m[0]).tag || 'General';\n} catch (e) {}\nreturn [{ json: { ...item, product: tag } }];"
       },
-      "id": "kb-sync-v2-dist-tags",
-      "name": "Distribute Tags",
+      "id": "kb-sync-simple-dist-tag",
+      "name": "Distribute Tag",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5020,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const items=$input.all().map(i=>i.json);\nconst size=96; const batches=[];\nfor(let i=0;i<items.length;i+=size){\n  const batch=items.slice(i,i+size);\n  batches.push({batch,texts:batch.map(b=>b.chunk_text)});\n}\nreturn batches.map(b=>({json:b}));"
-      },
-      "id": "kb-sync-v2-embed-batches",
-      "name": "Build Embed Batches",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        5260,
+        4540,
         240
       ]
     },
@@ -484,17 +420,17 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { model: ($env.KB_EMBEDDING_MODEL || 'text-embedding-3-small'), input: $json.texts } }}",
+        "jsonBody": "={{ { model: ($env.KB_EMBEDDING_MODEL || 'text-embedding-3-small'), input: $json.chunk_text } }}",
         "options": {
           "timeout": 60000
         }
       },
-      "id": "kb-sync-v2-embed",
-      "name": "Embed Batch",
+      "id": "kb-sync-simple-embed",
+      "name": "Embed Chunk",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        5500,
+        4780,
         240
       ],
       "credentials": {
@@ -506,41 +442,28 @@
     },
     {
       "parameters": {
-        "jsCode": "const batch=$json.batch||[];\nconst embeddings=($json.data||[]).map(d=>d.embedding);\nreturn batch.map((item,idx)=>({json:{...item,embedding:embeddings[idx]||[]}}));"
+        "jsCode": "const item = $input.first().json;\nconst emb = Array.isArray($json.data) && $json.data[0] ? ($json.data[0].embedding || []) : [];\nconst embLit = '[' + emb.join(',') + ']';\nreturn [{ json: { ...item, embedding_literal: embLit, embedding: emb } }];"
       },
-      "id": "kb-sync-v2-dist-embed",
-      "name": "Distribute Embeddings",
+      "id": "kb-sync-simple-prep-insert",
+      "name": "Prepare Insert",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5740,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const items=$input.all().map(i=>i.json);\nif(!items.length) return [{json:{sql:'SELECT 1;',count:0}}];\nconst vals=items.map(item=>{\n  const emb='['+(item.embedding||[]).join(',')+']';\n  const meta=JSON.stringify({doc_id:item.doc_id,product:item.product,source:item.source,source_id:item.source_id,url:item.url,chunk_index:item.chunk_index}).replace(/'/g,\"''\");\n  return `('${item.chunk_text.replace(/'/g,\"''\").slice(0,8000)}','${meta}'::jsonb,'${emb}'::vector,'${item.doc_id}',${item.chunk_index})`;\n}).join(', ');\nconst sql=`INSERT INTO public.cs_knowledge_chunks (text,metadata,embedding,doc_id,chunk_index) VALUES ${vals};`;\nreturn [{json:{sql,count:items.length}}];"
-      },
-      "id": "kb-sync-v2-aggregate",
-      "name": "Aggregate All Chunks",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        5980,
+        5020,
         240
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "={{ $json.sql }}"
+        "query": "={{ \"INSERT INTO public.cs_knowledge_chunks (text,metadata,embedding,doc_id,chunk_index) VALUES ('\" + ($json.chunk_text||'').replace(/'/g,\"''\").slice(0,8000) + \"', '\" + JSON.stringify({doc_id:$json.doc_id,product:$json.product,source:$json.source,source_id:$json.source_id,url:$json.url,chunk_index:$json.chunk_index}).replace(/'/g,\"''\") + \"'::jsonb, '\" + ($json.embedding_literal||'[]') + \"'::vector, '\" + ($json.doc_id||'').replace(/'/g,\"''\") + \"', \" + ($json.chunk_index||0) + \");\" }}"
       },
-      "id": "kb-sync-v2-insert",
-      "name": "Bulk Insert Chunks",
+      "id": "kb-sync-simple-insert",
+      "name": "Insert Chunk",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        6220,
+        5260,
         240
       ],
       "credentials": {
@@ -552,12 +475,12 @@
     },
     {
       "parameters": {},
-      "id": "kb-sync-v2-noop",
+      "id": "kb-sync-simple-noop",
       "name": "NoOp End",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        6460,
+        5500,
         240
       ]
     },
@@ -565,12 +488,12 @@
       "parameters": {
         "jsCode": "const g=$getWorkflowStaticData('global');\ng.last_sync_at=new Date().toISOString();\nreturn [{json:{ok:true,synced_at:g.last_sync_at}}];"
       },
-      "id": "kb-sync-v2-cursor",
+      "id": "kb-sync-simple-cursor",
       "name": "Update Sync Cursor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6700,
+        5740,
         240
       ]
     }
@@ -618,7 +541,7 @@
             "index": 0
           },
           {
-            "node": "Fetch Static Catalog",
+            "node": "Static Catalog",
             "type": "main",
             "index": 0
           }
@@ -636,11 +559,11 @@
         ]
       ]
     },
-    "Fetch Static Catalog": {
+    "Static Catalog": {
       "main": [
         [
           {
-            "node": "Parse Static Catalog",
+            "node": "Merge Drive + Static",
             "type": "main",
             "index": 0
           }
@@ -659,17 +582,6 @@
       ]
     },
     "Build Source List": {
-      "main": [
-        [
-          {
-            "node": "Split In Batches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Split In Batches": {
       "main": [
         [
           {
@@ -812,91 +724,58 @@
       "main": [
         [
           {
-            "node": "Build Tag Batches",
+            "node": "LLM Tag Chunk",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Tag Batches": {
+    "LLM Tag Chunk": {
       "main": [
         [
           {
-            "node": "LLM Tag Batch",
+            "node": "Distribute Tag",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "LLM Tag Batch": {
+    "Distribute Tag": {
       "main": [
         [
           {
-            "node": "Distribute Tags",
+            "node": "Embed Chunk",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Distribute Tags": {
+    "Embed Chunk": {
       "main": [
         [
           {
-            "node": "Build Embed Batches",
+            "node": "Prepare Insert",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build Embed Batches": {
+    "Prepare Insert": {
       "main": [
         [
           {
-            "node": "Embed Batch",
+            "node": "Insert Chunk",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Embed Batch": {
-      "main": [
-        [
-          {
-            "node": "Distribute Embeddings",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Distribute Embeddings": {
-      "main": [
-        [
-          {
-            "node": "Aggregate All Chunks",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate All Chunks": {
-      "main": [
-        [
-          {
-            "node": "Bulk Insert Chunks",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Bulk Insert Chunks": {
+    "Insert Chunk": {
       "main": [
         [
           {
@@ -912,17 +791,6 @@
         [
           {
             "node": "Update Sync Cursor",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Static Catalog": {
-      "main": [
-        [
-          {
-            "node": "Merge Drive + Static",
             "type": "main",
             "index": 0
           }
