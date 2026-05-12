@@ -314,7 +314,7 @@
     },
     {
       "parameters": {
-        "model": "google/gemini-2.5-flash",
+        "model": "openai/gpt-4o-mini",
         "options": {
           "maxTokens": 4096,
           "temperature": 0.3
@@ -827,17 +827,6 @@
         ]
       ]
     },
-    "MCP Client Tool": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Redis Chat Memory": {
       "ai_memory": [
         [
@@ -1300,7 +1289,7 @@
       },
       {
         "parameters": {
-          "model": "google/gemini-2.5-flash",
+          "model": "openai/gpt-4o-mini",
           "options": {
             "maxTokens": 4096,
             "temperature": 0.3
