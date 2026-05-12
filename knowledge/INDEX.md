@@ -111,6 +111,7 @@
 - [decisions/0027-composio-triggers-via-mcp-bridge.md](decisions/0027-composio-triggers-via-mcp-bridge.md)
 - [decisions/0028-multichannel-personal-assistant-and-n8n-as-librechat-mcp.md](decisions/0028-multichannel-personal-assistant-and-n8n-as-librechat-mcp.md)
 - [decisions/0029-customer-service-rag-rebuild.md](decisions/0029-customer-service-rag-rebuild.md)
+- [decisions/0030-portal-document-ingestion.md](decisions/0030-portal-document-ingestion.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
