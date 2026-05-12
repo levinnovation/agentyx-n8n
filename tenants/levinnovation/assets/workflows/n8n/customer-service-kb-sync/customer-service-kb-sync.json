@@ -69,25 +69,11 @@
     {
       "parameters": {
         "resource": "fileFolder",
+        "operation": "search",
+        "queryString": "='{{ $json.root_folder_id }}' in parents and trashed=false",
         "returnAll": true,
-        "filter": {
-          "folderId": {
-            "__rl": true,
-            "value": "={{ $json.root_folder_id }}",
-            "mode": "id"
-          }
-        },
-        "options": {
-          "fields": [
-            "id",
-            "name",
-            "mimeType",
-            "parents",
-            "modifiedTime",
-            "trashed",
-            "webViewLink"
-          ]
-        }
+        "filter": {},
+        "options": {}
       },
       "id": "list",
       "name": "List Drive Files",
