@@ -73,7 +73,7 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(id,name,mimeType,parents,modifiedTime,trashed,webViewLink,md5Checksum),nextPageToken&q=' + encodeURIComponent(\"'\" + $('Load Config').item.json.root_folder_id + \"' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'\") }}",
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(id,name,mimeType,parents,modifiedTime,trashed,webViewLink,md5Checksum),nextPageToken&q=' + encodeURIComponent('trashed = false') }}",
         "method": "GET",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleDriveOAuth2Api",
