@@ -1,0 +1,34 @@
+asset:
+  name: customer-service-kb-search
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Hybrid retrieval webhook v2 for the customer-service KB.
+    Replaces legacy kb-postgres-search with OpenAI 1536-dim embedding +
+    pgvector cosine + Postgres tsvector BM25 fused via RRF.
+    Serves same /webhook/kb/search URL.
+
+  inputs:
+    - query
+    - product (optional)
+    - top_k (optional, default 6)
+
+  outputs:
+    - kb_context
+    - snippets
+    - hit_count
+
+  dependencies:
+    - service: openai
+      auth: OPENAI_API_KEY
+      note: text-embedding-3-small (1536-dim)
+    - service: postgres
+      auth: Postgres account credential
+
+  files:
+    - customer-service-kb-search.json
+    - README.md
+    - asset.yaml

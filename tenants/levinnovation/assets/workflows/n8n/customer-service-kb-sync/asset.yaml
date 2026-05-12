@@ -1,0 +1,36 @@
+asset:
+  name: customer-service-kb-sync
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    KB ingestion workflow v2. Replaces legacy gdrive-kb-sync-postgres.
+    Dual sources: Google Drive (authoritative) + static catalog stubs (fallback).
+    Recursive chunking, LLM product tagging, batched OpenAI embedding,
+    doc-level hash skip, and cs_documents tracking.
+
+  inputs:
+    - manual trigger or schedule (daily 02:00 UTC)
+
+  outputs:
+    - synced_at
+    - chunks_inserted
+
+  dependencies:
+    - service: google-drive
+      auth: GDRIVE_ACCESS_TOKEN
+    - service: openai
+      auth: OPENAI_API_KEY
+      note: text-embedding-3-small (1536-dim)
+    - service: openrouter
+      auth: OPENROUTER_API_KEY
+      note: Gemini Flash for product tagging
+    - service: postgres
+      auth: Postgres account credential
+
+  files:
+    - customer-service-kb-sync.json
+    - README.md
+    - asset.yaml

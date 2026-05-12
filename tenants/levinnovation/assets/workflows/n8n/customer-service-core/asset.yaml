@@ -8,8 +8,8 @@ asset:
   description: |
     Reusable core AI agent for LEV Innovation customer service.
     Receives canonical envelope from channel adapters, processes messages
-    via Gemini LLM with Redis memory, knowledge base retrieval, Composio
-    tool integration (Google Calendar), Twenty CRM sync, and lead
+    via Gemini LLM with Redis memory, hybrid KB retrieval via webhook,
+    Composio tool integration (Google Calendar), Twenty CRM sync, and lead
     prequalification using BANT criteria.
 
   inputs:
@@ -40,6 +40,10 @@ asset:
     - service: openai
       auth: OPENAI_API_KEY
       note: Used for audio transcription (Whisper)
+    - service: customer-service-kb-search
+      endpoint: ${KB_SEARCH_WEBHOOK_URL}
+      auth: N8N_AUTH_TRUSTED_PROXY_SECRET
+      note: Hybrid RRF retrieval (pgvector cosine + tsvector BM25)
 
   files:
     - customer-service-core.json

@@ -38,6 +38,8 @@
 - [change-log/2026-05-08-multichannel-personal-assistant.md](change-log/2026-05-08-multichannel-personal-assistant.md)
 - [change-log/2026-05-08-portal-self-service-signup.md](change-log/2026-05-08-portal-self-service-signup.md)
 - [change-log/2026-05-08-tenant-link-reconciliation-and-cookie-scope.md](change-log/2026-05-08-tenant-link-reconciliation-and-cookie-scope.md)
+- [change-log/2026-05-11-customer-service-agent.md](change-log/2026-05-11-customer-service-agent.md)
+- [change-log/2026-05-12-customer-service-rag-rebuild.md](change-log/2026-05-12-customer-service-rag-rebuild.md)
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
 - [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
@@ -58,6 +60,7 @@
 - [change-log/2026/05/2026-05-06-add-levinnovation-tenant.md](change-log/2026/05/2026-05-06-add-levinnovation-tenant.md)
 - [change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md](change-log/2026/05/2026-05-06-auth-proxy-portal-cutover.md)
 - [change-log/2026/05/2026-05-06-railway-internal-template.md](change-log/2026/05/2026-05-06-railway-internal-template.md)
+- [change-log/2026/05/2026-05-11-twenty-crm-levinnovation-railway.md](change-log/2026/05/2026-05-11-twenty-crm-levinnovation-railway.md)
 - [change-log/CHANGE_RECORD_TEMPLATE.md](change-log/CHANGE_RECORD_TEMPLATE.md)
 - [change-log/README.md](change-log/README.md)
 
@@ -107,6 +110,7 @@
 - [decisions/0026-portal-self-service-signup-with-admin-approval.md](decisions/0026-portal-self-service-signup-with-admin-approval.md)
 - [decisions/0027-composio-triggers-via-mcp-bridge.md](decisions/0027-composio-triggers-via-mcp-bridge.md)
 - [decisions/0028-multichannel-personal-assistant-and-n8n-as-librechat-mcp.md](decisions/0028-multichannel-personal-assistant-and-n8n-as-librechat-mcp.md)
+- [decisions/0029-customer-service-rag-rebuild.md](decisions/0029-customer-service-rag-rebuild.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -132,6 +136,7 @@
 - [operations/composio-mcp-n8n-runbook.md](operations/composio-mcp-n8n-runbook.md)
 - [operations/composio-mcp-security-preflight.md](operations/composio-mcp-security-preflight.md)
 - [operations/composio-triggers-runbook.md](operations/composio-triggers-runbook.md)
+- [operations/customer-service-rag-runbook.md](operations/customer-service-rag-runbook.md)
 - [operations/how-to-close-an-architecture-change.md](operations/how-to-close-an-architecture-change.md)
 - [operations/how-to-connect-google-workspace-scim.md](operations/how-to-connect-google-workspace-scim.md)
 - [operations/how-to-deploy-without-railway-github-app.md](operations/how-to-deploy-without-railway-github-app.md)

@@ -3,6 +3,9 @@ type: workflow.n8n
 tenant: levinnovation
 domain: customer-service
 capability: lead-qualification-and-scheduling
-status: draft
+status: superseded
+superseded_by: customer-service-kb-sync
 entrypoint: gdrive-kb-sync-postgres.json
-description: Poll Google Drive folder/subfolders and upsert vectors into Postgres pgvector tables.
+description: |
+  LEGACY — superseded by customer-service-kb-sync v2.
+  Naive single-chunk ingestion; kept for reference only.
