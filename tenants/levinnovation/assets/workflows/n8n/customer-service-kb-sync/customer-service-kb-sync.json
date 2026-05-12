@@ -73,27 +73,27 @@
     },
     {
       "parameters": {
-        "operation": "search",
-        "query": "={{ \"'\" + $('Load Config').item.json.root_folder_id + \"' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'\" }}",
-        "returnAll": true,
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(id,name,mimeType,parents,modifiedTime,trashed,webViewLink,md5Checksum),nextPageToken&q=' + encodeURIComponent(\"'\" + $('Load Config').item.json.root_folder_id + \"' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'\") }}",
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": {
-          "fields": [
-            "id",
-            "name",
-            "mimeType",
-            "parents",
-            "modifiedTime",
-            "trashed",
-            "webViewLink",
-            "md5Checksum"
-          ],
-          "includeTrashed": false
+          "timeout": 30000
         }
       },
       "id": "kb-sync-v2-list-drive",
       "name": "List Drive Files",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         940,
         120
@@ -135,7 +135,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const all = $input.all().map(i => i.json);\nconst rootFolderId = String($('Load Config').item.json.root_folder_id || '');\nconst byId = new Map(all.map(f => [String(f.id), f]));\nfunction hasRoot(f, seen=new Set()) {\n  const id = String(f?.id||''); if (!id || seen.has(id)) return false; seen.add(id);\n  const ps = Array.isArray(f.parents)?f.parents:[];\n  if (ps.includes(rootFolderId)) return true;\n  for (const pid of ps) { if (pid===rootFolderId) return true; const p=byId.get(pid); if (p&&hasRoot(p,seen)) return true; }\n  return false;\n}\nconst allowed = new Set(['text/plain','application/pdf','application/vnd.google-apps.document','application/vnd.google-apps.spreadsheet']);\nconst driveItems = all\n  .filter(f => !f.trashed)\n  .filter(f => allowed.has(String(f.mimeType || '')))\n  .filter(f => hasRoot(f))\n  .map(f => ({\n    source: 'google-drive',\n    source_id: f.id,\n    title: f.name,\n    url: f.webViewLink || '',\n    mime: f.mimeType,\n    modified_time: f.modifiedTime || ''\n  }));\n\nconst staticInput = $('Fetch Static Catalog').item?.json || {};\nconst staticDocs = Array.isArray(staticInput.documents) ? staticInput.documents : [];\nconst staticItems = staticDocs.map(d => ({\n  source: 'static',\n  source_id: d.source_id,\n  title: d.title,\n  url: d.url || '',\n  mime: d.mime,\n  modified_time: '',\n  raw_text: d.raw_text\n}));\n\nreturn [...driveItems, ...staticItems].map(i => ({ json: i }));"
+        "jsCode": "const all = $input.all().map(i => i.json);\nlet driveFiles = [];\nlet staticDocs = [];\nfor (const item of all) {\n  if (Array.isArray(item.files)) driveFiles = item.files;\n  if (Array.isArray(item.documents)) staticDocs = item.documents;\n}\nconst rootFolderId = String($('Load Config').item.json.root_folder_id || '');\nconst byId = new Map(driveFiles.map(f => [String(f.id), f]));\nfunction hasRoot(f, seen=new Set()) {\n  const id = String(f?.id||''); if (!id || seen.has(id)) return false; seen.add(id);\n  const ps = Array.isArray(f.parents)?f.parents:[];\n  if (ps.includes(rootFolderId)) return true;\n  for (const pid of ps) { if (pid===rootFolderId) return true; const p=byId.get(pid); if (p&&hasRoot(p,seen)) return true; }\n  return false;\n}\nconst allowed = new Set(['text/plain','application/pdf','application/vnd.google-apps.document','application/vnd.google-apps.spreadsheet']);\nconst driveItems = driveFiles\n  .filter(f => !f.trashed)\n  .filter(f => allowed.has(String(f.mimeType || '')))\n  .filter(f => hasRoot(f))\n  .map(f => {\n    let url='';\n    if (f.mimeType==='application/vnd.google-apps.document') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`;\n    else if (f.mimeType==='application/vnd.google-apps.spreadsheet') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/csv`;\n    else url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`;\n    return {source:'google-drive',source_id:f.id,title:f.name,url:f.webViewLink||'',mime:f.mimeType,download_url:url,modified_time:f.modifiedTime||'',raw_text:''};\n  });\n\nconst staticItems = staticDocs.map(d => ({\n  source: 'static',\n  source_id: d.source_id,\n  title: d.title,\n  url: d.url || '',\n  mime: d.mime,\n  modified_time: '',\n  raw_text: d.raw_text\n}));\n\nreturn [...driveItems, ...staticItems].map(i => ({ json: i }));"
       },
       "id": "kb-sync-v2-build-list",
       "name": "Build Source List",
@@ -184,20 +184,32 @@
     },
     {
       "parameters": {
-        "operation": "download",
-        "fileId": "={{ $json.source_id }}",
+        "url": "={{ $json.download_url }}",
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": {
-          "googleFileConversion": true
+          "timeout": 60000
         }
       },
       "id": "kb-sync-v2-download",
       "name": "Download Drive File",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
         2140,
         120
       ],
+      "continueOnFail": true,
       "credentials": {
         "googleDriveOAuth2Api": {
           "id": "v7kCbCgLS3aXRqtp",
