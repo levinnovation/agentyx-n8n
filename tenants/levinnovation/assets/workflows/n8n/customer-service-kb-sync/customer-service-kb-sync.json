@@ -73,29 +73,39 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://www.googleapis.com/drive/v3/files?pageSize=1000&fields=files(id,name,mimeType,parents,modifiedTime,trashed,webViewLink,md5Checksum),nextPageToken&q=' + encodeURIComponent('trashed=false') }}",
-        "method": "GET",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.GDRIVE_ACCESS_TOKEN || '') }}"
-            }
-          ]
+        "operation": "list",
+        "filters": {
+          "folder": "={{ $('Load Config').item.json.root_folder_id }}"
         },
         "options": {
-          "timeout": 30000
+          "fields": [
+            "id",
+            "name",
+            "mimeType",
+            "parents",
+            "modifiedTime",
+            "trashed",
+            "webViewLink",
+            "md5Checksum"
+          ],
+          "pageSize": 1000,
+          "includeTrashed": false
         }
       },
       "id": "kb-sync-v2-list-drive",
       "name": "List Drive Files",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
       "position": [
         940,
         120
-      ]
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "v7kCbCgLS3aXRqtp",
+          "name": "Google Drive account"
+        }
+      }
     },
     {
       "parameters": {
@@ -127,7 +137,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const all = $input.all().map(i => i.json);\nlet driveFiles = [];\nlet staticDocs = [];\nfor (const item of all) {\n  if (Array.isArray(item.files)) driveFiles = item.files;\n  if (Array.isArray(item.documents)) staticDocs = item.documents;\n}\nconst rootFolderId = String($('Load Config').item.json.root_folder_id || '');\nconst byId = new Map(driveFiles.map(f => [String(f.id), f]));\nfunction hasRoot(f, seen=new Set()) {\n  const id = String(f?.id||''); if (!id || seen.has(id)) return false; seen.add(id);\n  const ps = Array.isArray(f.parents)?f.parents:[];\n  if (ps.includes(rootFolderId)) return true;\n  for (const pid of ps) { if (pid===rootFolderId) return true; const p=byId.get(pid); if (p&&hasRoot(p,seen)) return true; }\n  return false;\n}\nconst allowed = new Set(['text/plain','application/pdf','application/vnd.google-apps.document','application/vnd.google-apps.spreadsheet']);\nconst driveItems = driveFiles.filter(f=>!f.trashed).filter(f=>allowed.has(String(f.mimeType||''))).filter(f=>hasRoot(f)).map(f=>{\n  let url='';\n  if (f.mimeType==='application/vnd.google-apps.document') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`;\n  else if (f.mimeType==='application/vnd.google-apps.spreadsheet') url=`https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/csv`;\n  else url=`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`;\n  return {source:'google-drive',source_id:f.id,title:f.name,url:f.webViewLink||'',mime:f.mimeType,download_url:url,modified_time:f.modifiedTime||'',raw_text:''};\n});\nconst staticItems = staticDocs.map(d=>({source:'static',source_id:d.source_id,title:d.title,url:d.url||'',mime:d.mime,download_url:'',modified_time:'',raw_text:d.raw_text}));\nreturn [...driveItems,...staticItems].map(i=>({json:i}));"
+        "jsCode": "const all = $input.all().map(i => i.json);\nconst rootFolderId = String($('Load Config').item.json.root_folder_id || '');\nconst byId = new Map(all.map(f => [String(f.id), f]));\nfunction hasRoot(f, seen=new Set()) {\n  const id = String(f?.id||''); if (!id || seen.has(id)) return false; seen.add(id);\n  const ps = Array.isArray(f.parents)?f.parents:[];\n  if (ps.includes(rootFolderId)) return true;\n  for (const pid of ps) { if (pid===rootFolderId) return true; const p=byId.get(pid); if (p&&hasRoot(p,seen)) return true; }\n  return false;\n}\nconst allowed = new Set(['text/plain','application/pdf','application/vnd.google-apps.document','application/vnd.google-apps.spreadsheet']);\nconst driveItems = all\n  .filter(f => !f.trashed)\n  .filter(f => allowed.has(String(f.mimeType || '')))\n  .filter(f => hasRoot(f))\n  .map(f => ({\n    source: 'google-drive',\n    source_id: f.id,\n    title: f.name,\n    url: f.webViewLink || '',\n    mime: f.mimeType,\n    modified_time: f.modifiedTime || ''\n  }));\n\n// Static catalog comes as a single item with documents array from Fetch Static Catalog\nconst staticInput = $('Fetch Static Catalog').item?.json || {};\nconst staticDocs = Array.isArray(staticInput.documents) ? staticInput.documents : [];\nconst staticItems = staticDocs.map(d => ({\n  source: 'static',\n  source_id: d.source_id,\n  title: d.title,\n  url: d.url || '',\n  mime: d.mime,\n  modified_time: '',\n  raw_text: d.raw_text\n}));\n\nreturn [...driveItems, ...staticItems].map(i => ({ json: i }));"
       },
       "id": "kb-sync-v2-build-list",
       "name": "Build Source List",
@@ -176,34 +186,30 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.download_url }}",
-        "method": "GET",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.GDRIVE_ACCESS_TOKEN || '') }}"
-            }
-          ]
-        },
+        "operation": "download",
+        "fileId": "={{ $json.source_id }}",
         "options": {
-          "timeout": 60000
+          "googleFileConversion": true
         }
       },
       "id": "kb-sync-v2-download",
       "name": "Download Drive File",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
       "position": [
         2140,
         120
       ],
-      "continueOnFail": true
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "v7kCbCgLS3aXRqtp",
+          "name": "Google Drive account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const file = $input.first().json;\nconst raw = $input.first().binary?.data;\nlet text = '';\nif (typeof raw === 'string') text = raw;\nelse if (raw && raw.data) text = Buffer.from(raw.data, 'base64').toString('utf-8');\nelse if (typeof $json === 'string') text = $json;\nelse text = JSON.stringify($json||{});\ntext = String(text||'').replace(/\\u0000/g,'').trim();\nreturn [{json:{...file,raw_text:text}}];"
+        "jsCode": "const file = $input.first().json;\nconst binary = $input.first().binary?.data;\nlet text = '';\nif (typeof binary === 'string') {\n  text = binary;\n} else if (binary && binary.data) {\n  text = Buffer.from(binary.data, 'base64').toString('utf-8');\n} else if (typeof $json === 'string') {\n  text = $json;\n} else {\n  text = JSON.stringify($json || {});\n}\ntext = String(text || '').replace(/\\u0000/g, '').trim();\nreturn [{ json: { ...file, raw_text: text } }];"
       },
       "id": "kb-sync-v2-extract-drive",
       "name": "Extract Drive Text",
