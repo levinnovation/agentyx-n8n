@@ -17,5 +17,6 @@ build/
 .DS_Store
 .tmp-paperclip-upstream/
 node_modules/
+.railway/
 *.zip
 *.tar.gz

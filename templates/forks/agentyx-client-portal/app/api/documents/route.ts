@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { upsertDocument } from "@/app/lib/kb-client";
+import { insertDocument } from "@/app/lib/kb-client";
 import { resolveTenantSlug } from "@/app/lib/tenant-slug";
 
 export const runtime = "nodejs";
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const tenantSlug = resolveTenantSlug(request.url, request);
     const mime = formData.get("mime") as string || "text/plain";
 
-    const doc = await upsertDocument(tenantSlug, title, mime, content, visibility, product);
+    const doc = await insertDocument(tenantSlug, title, mime, content, visibility, product);
 
     return NextResponse.json({ document: doc });
   } catch (error) {

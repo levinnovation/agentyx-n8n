@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = request.nextUrl;
     const docId = searchParams.get("id");
 
     if (!docId) {

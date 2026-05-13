@@ -34,7 +34,7 @@ export async function getDocuments(tenantSlug: string): Promise<KbDocument[]> {
   }
 }
 
-export async function upsertDocument(
+export async function insertDocument(
   tenantSlug: string,
   title: string,
   mime: string,
@@ -101,15 +101,4 @@ export async function updateDocumentVisibility(
   }
 }
 
-export async function getEmbedding(tenantSlug: string, docId: string): Promise<number[] | null> {
-  const client = await pool.connect();
-  try {
-    const res = await client.query(
-      `SELECT embedding FROM public.cs_documents WHERE tenant_slug = $1 AND id = $2 AND embedding IS NOT NULL`,
-      [tenantSlug, docId]
-    );
-    return res.rows[0]?.embedding || null;
-  } finally {
-    client.release();
-  }
-}
+
