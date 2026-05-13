@@ -1,0 +1,115 @@
+import { Pool } from "pg";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+  idleTimeoutMillis: 30000,
+});
+
+export interface KbDocument {
+  id: string;
+  title: string;
+  product: string;
+  mime: string;
+  version: number;
+  updated_at: string;
+  visibility: string;
+  chars: number;
+  signed_url?: string;
+}
+
+export async function getDocuments(tenantSlug: string): Promise<KbDocument[]> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `SELECT id, title, product, mime, version, updated_at, visibility, chars
+       FROM public.cs_documents
+       WHERE tenant_slug = $1
+       ORDER BY updated_at DESC`,
+      [tenantSlug]
+    );
+    return res.rows;
+  } finally {
+    client.release();
+  }
+}
+
+export async function upsertDocument(
+  tenantSlug: string,
+  title: string,
+  mime: string,
+  content: string,
+  visibility: string = "context_only",
+  product: string = "default"
+): Promise<KbDocument> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `INSERT INTO public.cs_documents (tenant_slug, title, mime, content, visibility, product, chars)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, title, product, mime, version, updated_at, visibility, chars`,
+      [tenantSlug, title, mime, content, visibility, product, content.length]
+    );
+    return res.rows[0];
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteDocument(tenantSlug: string, docId: string): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `DELETE FROM public.cs_documents WHERE tenant_slug = $1 AND id = $2`,
+      [tenantSlug, docId]
+    );
+    return (res.rowCount ?? 0) > 0;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getDocumentById(tenantSlug: string, docId: string): Promise<KbDocument | null> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `SELECT id, title, product, mime, version, updated_at, visibility, chars
+       FROM public.cs_documents
+       WHERE tenant_slug = $1 AND id = $2`,
+      [tenantSlug, docId]
+    );
+    return res.rows[0] || null;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateDocumentVisibility(
+  tenantSlug: string,
+  docId: string,
+  visibility: string
+): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `UPDATE public.cs_documents SET visibility = $1, updated_at = now() WHERE tenant_slug = $2 AND id = $3`,
+      [visibility, tenantSlug, docId]
+    );
+    return (res.rowCount ?? 0) > 0;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getEmbedding(tenantSlug: string, docId: string): Promise<number[] | null> {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(
+      `SELECT embedding FROM public.cs_documents WHERE tenant_slug = $1 AND id = $2 AND embedding IS NOT NULL`,
+      [tenantSlug, docId]
+    );
+    return res.rows[0]?.embedding || null;
+  } finally {
+    client.release();
+  }
+}
