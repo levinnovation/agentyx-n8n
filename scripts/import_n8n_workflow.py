@@ -25,6 +25,24 @@ def _api_headers(api_key: str) -> dict[str, str]:
     }
 
 
+def _resolve_active_workflow_graph(payload: dict) -> dict:
+    """Prefer activeVersion graph from exported n8n JSON when present."""
+    active_version = payload.get("activeVersion")
+    if not isinstance(active_version, dict):
+        return payload
+    if not isinstance(active_version.get("nodes"), list):
+        return payload
+    if not isinstance(active_version.get("connections"), dict):
+        return payload
+
+    merged = dict(payload)
+    # Use the graph that n8n considers active/published in the export.
+    for key in ("nodes", "connections", "settings"):
+        if key in active_version:
+            merged[key] = active_version[key]
+    return merged
+
+
 def _sanitize_workflow_payload(payload: dict) -> dict:
     """Drop server-managed fields rejected by n8n API."""
     read_only_fields = {
@@ -38,8 +56,16 @@ def _sanitize_workflow_payload(payload: dict) -> dict:
         "staticData",
         "pinData",
         "tags",
+        "shared",
+        "activeVersion",
+        "activeVersionId",
+        "triggerCount",
+        "versionCounter",
     }
     sanitized = {k: v for k, v in payload.items() if k not in read_only_fields}
+    # n8n create endpoint rejects unknown/extra top-level fields from exported JSON,
+    # including description on some instances. Keep payload minimal and portable.
+    sanitized.pop("description", None)
     settings = sanitized.get("settings")
     if isinstance(settings, dict):
         # n8n API rejects UI-only settings on update.
@@ -102,6 +128,7 @@ def activate_workflow(client: httpx.Client, n8n_url: str, api_key: str, workflow
 
 def import_workflow(json_path: Path, n8n_url: str, api_key: str, activate: bool = True) -> dict:
     payload = json.loads(json_path.read_text(encoding="utf-8"))
+    payload = _resolve_active_workflow_graph(payload)
     name = payload.get("name", json_path.stem)
 
     with httpx.Client(follow_redirects=True) as client:

@@ -13,7 +13,7 @@
       "title": "Contax",
       "url": "https://contax.dev",
       "mime": "text/markdown",
-      "raw_text": "Contax es la solución de comunicación omnicanal de LEV Innovation. Integra WhatsApp, Telegram, correo electrónico y redes sociales en una única bandeja unificada con IA. Rol: plataforma de comunicación omnicanal. Sitio web: https://contax.dev"
+      "raw_text": "Contax es la plataforma SaaS de gestión contable, tesorería y finanzas de LEV Innovation. Centraliza procesos financieros, cuentas por pagar/cobrar, conciliaciones y visibilidad de flujo de caja para operación empresarial. Rol: plataforma SaaS de contabilidad, tesorería y finanzas. Sitio web: https://contax.dev"
     },
     {
       "source_id": "acumatica.md",
@@ -34,7 +34,7 @@
       "title": "Legalink",
       "url": "https://legalink.co/",
       "mime": "text/markdown",
-      "raw_text": "Legalink es la plataforma de gestión documental y firma electrónica de LEV Innovation. Permite a bufetes y departamentos legales automatizar contratos, diligencias y flujos de aprobación con validez jurídica. Rol: gestión documental y firma electrónica. Sitio web: https://legalink.co/"
+      "raw_text": "Legalink es una plataforma SaaS para el segmento legal. Permite a despachos y equipos jurídicos gestionar casos, expedientes, flujos de trabajo y colaboración legal con soporte de automatización e IA. Rol: plataforma SaaS para audiencia legal. Sitio web: https://legalink.co/"
     }
   ]
 }

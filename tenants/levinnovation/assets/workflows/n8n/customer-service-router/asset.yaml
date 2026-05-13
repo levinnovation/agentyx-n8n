@@ -1,0 +1,29 @@
+asset:
+  name: customer-service-router
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Router workflow for LEV customer service that classifies inbound envelopes
+    into FAQ/RAG or Action routes and dispatches to specialized sub-cores.
+
+  inputs:
+    - channel
+    - conversation_id
+    - user_id
+    - message
+    - attachments
+    - metadata
+
+  outputs:
+    - reply_text
+    - reply_attachments
+    - end_session
+    - metadata (route_target, lead_status, qualification_score, crm_fields, calendar_action)
+
+  files:
+    - customer-service-router.json
+    - README.md
+    - asset.yaml

@@ -1,0 +1,15 @@
+asset:
+  name: customer-service-faq-rag-core
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    FAQ/RAG specialized core for customer-service requests.
+    Initial version forwards to customer-service-core for compatibility.
+
+  files:
+    - customer-service-faq-rag-core.json
+    - README.md
+    - asset.yaml
