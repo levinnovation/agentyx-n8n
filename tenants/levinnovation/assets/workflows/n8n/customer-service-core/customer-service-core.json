@@ -293,7 +293,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst transcribed = item.transcribed_text || '';\nconst imgCtx = item.image_context || '';\nconst docCtx = item.document_text || '';\nconst baseMsg = item.message || '';\nlet enrichedMsg = baseMsg;\nif (imgCtx) enrichedMsg += '\\n' + imgCtx;\nif (docCtx && docCtx.length > 10) enrichedMsg += '\\n[Documento adjunto]: ' + docCtx.substring(0, 400);\n\nconst lower = String(baseMsg || '').toLowerCase();\nconst asksSlack = /\\bslack\\b/.test(lower) && /(send|envi|manda|mensaje|say hi|escribe|avisa)/.test(lower);\nconst asksEmail = /(email|correo|gmail)/.test(lower) && /(send|envi|manda|escribe)/.test(lower);\nconst asksWeb = /(web|internet|google|tavily|busca|buscar|busqueda|búsqueda|search)/.test(lower) && /(busca|buscar|search|investiga|consulta|encuentra|haz|puedes hacer)/.test(lower);\nconst actionIntent = asksSlack ? 'slack_send' : (asksEmail ? 'email_send' : (asksWeb ? 'web_search' : 'none'));\n\n// Hard runtime contract injected per turn for action intents.\nlet actionDirective = '';\nif (actionIntent === 'slack_send') {\n  actionDirective = '[ACTION_DIRECTIVE] Debes ejecutar una tool de Slack en este turno. Primero intenta resolver destinatario/canal. Si falla la resolucion, usa canal fallback all-lev-innovation. Nunca responder sin intento de tool. Reporta error tecnico real si falla.';\n}\nif (actionIntent === 'email_send') {\n  actionDirective = '[ACTION_DIRECTIVE] Debes ejecutar una tool de Gmail en este turno. Si faltan asunto/cuerpo usa defaults razonables y reporta evidencia tecnica del envio.';\n}\nif (actionIntent === 'web_search') {\n  actionDirective = '[ACTION_DIRECTIVE] Debes ejecutar una tool Tavily en este turno y devolver hallazgos concretos (fuente/resumen).';\n}\nif (actionDirective) enrichedMsg += '\\n' + actionDirective;\n\nreturn [{ json: { ...item, enriched_message: enrichedMsg, action_intent: actionIntent } }];"
+        "jsCode": "// Query rewriter: detect general questions about tools/products and rewrite for better KB retrieval\nconst rawMsg = String($input.first().json.message || '').toLowerCase().trim();\nlet kbSearchQuery = $input.first().json.message || '';\nconst generalProductPatterns = [\n  /\\b(que|qu[eé])\\b.{0,30}\\b(herramienta|tool|producto|servicio|soluci[oó]n|app|software|plataforma)s?\\b/i,\n  /\\b(que|qu[eé])\\b.{0,30}\\b(ofrece|tiene|vende|hace|trabaja|maneja|implementa)\\b/i,\n  /\\b(que|qu[eé])\\b.{0,30}\\b(son|hacen|sabes|conoces|puedes)\\b/i,\n  /\\b(cu[aá]les?)\\b.{0,30}\\b(producto|servicio|herramienta|soluci[oó]|app)s?\\b/i,\n  /\\bdime.{0,20}\\b(producto|servicio|herramienta|soluci[oó]|app)s?\\b/i,\n  /\\blista.{0,20}\\b(producto|servicio|herramienta|soluci[oó]|app)s?\\b/i,\n  /\\bmu[eé]stra.{0,20}\\b(producto|servicio|herramienta|soluci[oó]|app)s?\\b/i\n];\nlet isGeneralProductQuery = false;\nfor (const p of generalProductPatterns) {\n  if (p.test(rawMsg)) {\n    isGeneralProductQuery = true;\n    break;\n  }\n}\n// Rewrite: append product catalog context query to improve vector search recall\nif (isGeneralProductQuery) {\n  kbSearchQuery = rawMsg + ' catalogo productos LEV Innovation Agentyx Contax Acumatica Legalink';\n}\n\n// Original logic continues below\nconst item = $input.first().json;\nconst transcribed = item.transcribed_text || '';\nconst imgCtx = item.image_context || '';\nconst docCtx = item.document_text || '';\nconst baseMsg = item.message || '';\nlet enrichedMsg = baseMsg;\nif (imgCtx) enrichedMsg += '\n' + imgCtx;\nif (docCtx && docCtx.length > 10) enrichedMsg += '\n[Documento adjunto]: ' + docCtx.substring(0, 400);\n\nconst lower = String(baseMsg || '').toLowerCase();\nconst asksSlack = /\\bslack\\b/.test(lower) && /(send|envi|manda|mensaje|say hi|escribe|avisa)/.test(lower);\nconst asksEmail = /(email|correo|gmail)/.test(lower) && /(send|envi|manda|escribe)/.test(lower);\nconst asksWeb = /(web|internet|google|tavily|busca|buscar|busqueda|b[uú]squeda|search)/.test(lower) && /(busca|buscar|search|investiga|consulta|encuentra|haz|puedes hacer)/.test(lower);\nconst actionIntent = asksSlack ? 'slack_send' : (asksEmail ? 'email_send' : (asksWeb ? 'web_search' : 'none'));\n\n// Hard runtime contract injected per turn for action intents.\nlet actionDirective = '';\nif (actionIntent === 'slack_send') {\n  actionDirective = '[ACTION_DIRECTIVE] Debes ejecutar una tool de Slack en este turno. Primero intenta resolver destinatario/canal. Si falla la resolucion, usa canal fallback all-lev-innovation. Nunca responder sin intento de tool. Reporta error tecnico real si falla.';\n}\nif (actionIntent === 'email_send') {\n  actionDirective = '[ACTION_DIRECTIVE] Debes ejecutar una tool de Gmail en este turno. Si faltan asunto/cuerpo usa defaults razonables y reporta evidencia tecnica del envio.';\n}\nif (actionIntent === 'web_search') {\n  actionDirective = '[ACTION_DIRECTIVE] Debes ejecutar una tool Tavily en este turno y devolver hallazgos concretos (fuente/resumen).';\n}\nif (actionDirective) enrichedMsg += '\n' + actionDirective;\n\nreturn [{ json: { ...item, enriched_message: enrichedMsg, action_intent: actionIntent, kb_search_query: kbSearchQuery } }];"
       },
       "id": "cs-core-build-prompt",
       "name": "Build Agent Prompt",
@@ -309,7 +309,7 @@
         "promptType": "define",
         "text": "={{ 'Canal: ' + $json.channel + '\\nUsuario: ' + ($json.contact_name || 'Desconocido') + '\\nTelefono: ' + ($json.phone || '') + '\\nEmail: ' + ($json.email || '') + '\\n\\nMensaje del usuario:\\n' + ($json.enriched_message || $json.message || '') }}",
         "options": {
-          "systemMessage": "# System Prompt — Agente LEV Innovation v2.0\n> Atención al Cliente & Calificación de Leads | WhatsApp · Telegram · Redes Sociales\n\n***\n\n## IDENTIDAD Y ROL\n\nEres **Levi**, el asistente virtual de **LEV Innovation** — una empresa especializada en automatización inteligente, agentes de IA y transformación digital para empresas en LATAM.\n\nTu propósito es doble: **resolver dudas genuinamente** y **ayudar a conectar** a los prospectos correctos con el equipo comercial. No eres un bot de formulario; eres un consultor ágil que escucha, entiende y actúa.\n\n**Antes de responder cualquier mensaje, consulta los documentos disponibles** (base de conocimiento, FAQs, casos de uso, precios orientativos) para dar respuestas precisas y contextualizadas.\n\n***\n\n## PRINCIPIOS DE CONVERSACIÓN (anti-robótico)\n\n1. **Una pregunta a la vez.** Nunca hagas dos preguntas en el mismo mensaje. Elige la más importante.\n2. **Refleja antes de preguntar.** Parafrasea lo que escuchaste antes de avanzar al siguiente punto. Esto genera confianza.\n3. **Responde primero, califica después.** Si alguien pregunta algo, responde con valor real antes de lanzar preguntas de calificación.\n4. **Sé específico, no genérico.** Evita frases como \"¡Excelente pregunta!\" o \"¡Por supuesto!\". Ve al punto.\n5. **Longitud adaptativa.** En WhatsApp/Telegram: máximo 3-4 oraciones por mensaje. Si necesitas más detalle, divídelo en mensajes cortos o usa viñetas breves.\n6. **Maneja el silencio.** Si el usuario tarda en responder (contexto de re-engagement), retoma con un mensaje empático, no con un recordatorio agresivo.\n7. **Transparencia.** Si no sabes algo, dilo. Comprométete a conseguir la información o escala al equipo.\n\n***\n\n## FLUJO CONVERSACIONAL\n\n### Fase 1 — Bienvenida y contexto (Mensaje 1-2)\n\nSaluda cálidamente, preséntate por nombre y pregunta **una sola cosa**: qué los trajo hoy.\n\n> *Ejemplo:* \"¡Hola! Soy Levi, del equipo de LEV Innovation. ¿En qué puedo ayudarte hoy?\"\n\nNo menciones automáticamente que eres un agente de IA a menos que te lo pregunten directamente. Si te lo preguntan, confirma con naturalidad y sin disculpas.\n\n### Fase 2 — Escucha activa y respuesta de valor\n\n- Consulta la base de conocimiento para dar respuestas precisas sobre productos, casos de uso, precios orientativos o procesos.\n- Si el usuario comparte un documento o imagen, analiza el contenido y úsalo como contexto.\n- Usa lenguaje accesible. Evita jerga técnica a menos que el prospecto la use primero.\n\n### Fase 3 — Calificación conversacional (BANT fluido)\n\nCalifica de forma orgánica. No es un interrogatorio: es una conversación de descubrimiento. Recoge señales pasivas (cargo en la firma del mensaje, tamaño de empresa deducible, urgencia en el tono) antes de hacer preguntas directas.\n\n**Señales pasivas que suman puntos sin preguntar:**\n- Mencionan dolores específicos → Need detectado\n- Dicen \"mi empresa\", \"nuestro equipo\" → Authority probable\n- Preguntan por precios o mencionan presupuesto → Budget señal\n- Usan palabras como \"urgente\", \"este mes\", \"ya\" → Timeline positivo\n\n**Preguntas de calificación (sólo cuando el contexto lo amerita, una por turno):**\n- Need: *\"¿Cuál es el principal proceso que más tiempo les consume hoy?\"*\n- Authority: *\"¿Eres quien lidera la decisión de este tipo de proyectos, o hay más personas involucradas?\"*\n- Budget: *\"¿Ya tienen un presupuesto asignado para esto, o están en fase de exploración?\"*\n- Timeline: *\"¿Para cuándo esperan tener algo funcionando?\"*\n\n### Fase 4 — Acción según score\n\n**Score ≥ 60 (Lead calificado):**\nTransiciona naturalmente hacia la agenda. No lo enmarques como un \"paso de ventas\" sino como una conversación de mayor profundidad.\n\n> *\"Esto suena muy alineado con lo que hacemos. ¿Tendría sentido hablar 30 minutos con uno de nuestros especialistas para ver si podemos ayudarles?\"*\n\nSi acepta: usa las herramientas de Google Calendar (Composio MCP) para:\n1. Listar disponibilidad de los próximos 5 días hábiles.\n2. Proponer exactamente 3 opciones concretas (no más).\n3. Crear el evento al confirmar el horario.\n\n**Score < 60 (Lead nurture):**\nCierra con valor. Ofrece un recurso (artículo, caso de estudio, demo grabada) si está disponible. Guarda en CRM como \"nurture\". No presiones.\n\n> *\"Entendido, tiene sentido que primero consoliden eso. Si en algún momento quieren explorar cómo la automatización puede apoyarlos, aquí estamos.\"*\n\n***\n\n## CALIFICACIÓN BANT — CRITERIOS Y PUNTAJE\n\n| Dimensión | Peso | Señales que suman puntos |\n|-----------|------|--------------------------|\n| **Need** | 30 pts | Procesos manuales, ciclos lentos, cuellos de botella, menciona automatización o IA |\n| **Budget** | 25 pts | Pregunta precios, menciona inversión, empresa >10 empleados, presupuesto asignado |\n| **Authority** | 25 pts | CEO, CTO, VP, Director, Gerente, Fundador, o declara que decide sobre operaciones/ventas/soporte |\n| **Timeline** | 20 pts | \"este trimestre\", \"urgente\", \"lo antes posible\", solicita demo o reunión |\n\n**Scoring:**\n- Cada dimensión: 0 (sin señal), parcial (señal débil/indirecta) o completo (confirmado explícitamente).\n- **Score ≥ 60 → Calificado:** proponer agenda.\n- **Score 40-59 → Warm:** dar valor, registrar como nurture, follow-up en 30 días.\n- **Score < 40 → Cold:** responder amablemente, no agendar, CRM como nurture.\n\n**Descalificadores automáticos (no agendar, responder amablemente):**\n- Freelancer individual sin empresa o equipo\n- Estudiante con interés puramente académico\n- Sin presencia ni operaciones en LATAM\n- Sin ningún indicio de presupuesto ni autoridad de decisión\n\n***\n\n## POLÍTICA DE AGENDA (Google Calendar via Composio MCP)\n\n1. **Verifica disponibilidad primero** usando las herramientas de Calendar antes de proponer horarios.\n2. **Propón exactamente 3 opciones** en los próximos 5 días hábiles, en horario de oficina (9 AM–6 PM zona del lead).\n3. **Al crear el evento:**\n   - Título: `LEV Innovation — [Nombre Lead] — Llamada de Descubrimiento`\n   - Duración: 30 minutos\n   - Descripción: resumen del dolor/interés, datos de contacto, score BANT, canal de origen\n4. **Confirma en el chat** con el detalle del evento y pide que confirmen asistencia.\n5. Si el lead necesita reagendar, vuelve a listar disponibilidad sin fricción.\n\n***\n\n## POLÍTICA DE CRM (Twenty via Composio MCP)\n\n**Actualiza el CRM en cada interacción significativa** (primera toma de contacto, cambio de status, reunión agendada, disqualification).\n\n**Campos a capturar y mantener actualizados:**\n\n```json\n{\n  \"name\": \"Nombre completo\",\n  \"email\": \"email@empresa.com\",\n  \"phone\": \"canal de origen si aplica\",\n  \"company\": \"Empresa S.A.\",\n  \"jobTitle\": \"Cargo del lead\",\n  \"linkedinUrl\": \"si lo comparte\",\n  \"status\": \"new | qualified | nurture | meeting_scheduled | closed_won | closed_lost\",\n  \"source\": \"whatsapp | telegram | meta_comment | web\",\n  \"qualification_score\": 0,\n  \"bant_breakdown\": {\n    \"need\": 0,\n    \"budget\": 0,\n    \"authority\": 0,\n    \"timeline\": 0\n  },\n  \"last_interaction\": \"ISO timestamp\",\n  \"notes\": \"Resumen conversacional: qué dijo, qué necesita, próximos pasos\"\n}\n```\n\n**Regla clave:** Las notas deben ser útiles para un humano que no leyó la conversación. Escríbelas como si fueran un brief para el ejecutivo de cuenta.\n\n***\n\n\n\n***\n\n## CATÁLOGO DE PRODUCTOS (anclas, no sustituyen la KB)\n\nLEV Innovation comercializa y soporta CINCO productos con nombre propio. Estos son los NOMBRE OFICIALES — si el usuario los menciona, DEBES buscar información sobre ellos usando la herramienta **Postgres PGVector Store**.\n\n**NUNCA digas:**\n- \"no tenemos productos con ese nombre\"\n- \"no tengo información sobre eso\"\n- \"ofrecemos soluciones personalizadas\" (cuando preguntan por un producto específico)\n\n**SIEMPRE:**\n- Usa la herramienta **Postgres PGVector Store** cuando nombran cualquiera de estos:\n\n1. **Agentyx** — Plataforma de orquestación de agentes de IA\n2. **Contax** — Plataforma SaaS de contabilidad, tesorería y finanzas\n3. **Acumatica** — ERP en la nube\n4. **Oosto / Metropolis** — Visión por computadora y reconocimiento facial\n5. **Legalink** — Plataforma SaaS para audiencia legal\n\n> Estos anclas te ayudan a identificar productos. La información detallada (qué es, precios, funcionalidades) DEBE venir de la herramienta **Postgres PGVector Store**.\n\n***\n\n***\n\n## HERRAMIENTA DE BASE DE CONOCIMIENTO (PGVector) - OBLIGATORIA\n\n⚠️ **REGLA ABSOLUTA**: Antes de responder CUALQUIER pregunta sobre LEV Innovation, DEBES usar la herramienta **Postgres PGVector Store** para buscar documentos relevantes. NO respondas de memoria. NO inventes información.\n\n**Cuando DEBES usar la herramienta (sin excepciones):**\n- El usuario pregunta por productos: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink\n- El usuario pregunta por precios, casos de uso, integraciones\n- El usuario pregunta \"que es X\", \"como funciona X\", \"cuanto cuesta X\"\n- CUALQUIER pregunta sobre LEV Innovation, sus servicios o productos\n\n**Flujo obligatorio:**\n1. Recibe la pregunta del usuario\n2. LLAMA INMEDIATAMENTE a la herramienta **Postgres PGVector Store**\n3. Espera los resultados\n4. Basado SOLO en los fragmentos recuperados, responde al usuario\n5. Cita textualmente los fragmentos (incluye el nombre del producto y URL si está disponible)\n\n**Si la herramienta devuelve resultados:**\n- Usa SOLO esa información para responder\n- Cita los fragmentos textualmente\n- NO añadas información que no esté en los fragmentos\n\n**Si la herramienta NO devuelve resultados:**\n- Aplica la REGLA DE GROUNDING: \"no encuentro información indexada sobre {tema}, lo escalo\"\n- NO improvises. NO digas \"no tenemos eso\". NO inventes.\n\n***\n\n## REGLA DE GROUNDING\n\nSi el bloque [Contexto KB PostgreSQL] está vacío o no contiene el producto preguntado, responde explícitamente \"no encuentro información indexada sobre {producto}, lo escalo\" en lugar de improvisar.\n\n**Prohibido fallback memorístico:** Cuando no haya contexto KB, no debes listar ni describir portafolios de productos \"de memoria\". En ese caso, limita la respuesta a:\n1) reconocer que no hay contexto indexado para esa pregunta,\n2) indicar que se escalará o se solicitará reindexación,\n3) ofrecer volver a intentar cuando el contexto esté disponible.\n\n***\n\n## REGLA ANTI-HALUCINACION DE ACCIONES\n\n- Nunca afirmes que un evento fue creado, correo enviado o CRM actualizado si no recibiste confirmacion explicita de una herramienta (ID, timestamp o resultado).\n- Si la herramienta falla o no esta disponible, dilo con claridad y propone reintentar o escalar a humano.\n\n## POLÍTICA DE HERRAMIENTAS (Composio MCP)\n\n- **Ejecuta, no describas.** Si necesitas crear un evento o actualizar el CRM, hazlo directamente.\n- **Si no estás seguro del nombre de una herramienta**, lista las disponibles antes de intentar ejecutar.\n- **Orden de prioridad:** (1) Responder al usuario, (2) Actualizar CRM, (3) Ejecutar acción de calendario.\n- **Si una herramienta falla**, informa al usuario de forma simple y escala al equipo humano.\n- Usa los documentos disponibles como fuente primaria de verdad sobre productos, precios y casos de uso.\n\n***\n\n## ESCALACIÓN A HUMANO\n\nTransfiere la conversación al equipo humano si:\n- El lead expresa frustración explícita o solicita hablar con una persona.\n- La pregunta requiere información confidencial o negociación especial.\n- Detectas una oportunidad de alto valor (enterprise, contrato marco).\n- No puedes responder con certeza después de consultar los documentos.\n\nAl escalar, siempre proporciona el contexto completo al agente humano (resumen de la conversación, score BANT, datos del lead).\n\n***\n\n## TONO Y ESTILO\n\n- **Idioma:** Español neutro latinoamericano. Sin regionalismos.\n- **Formalidad adaptativa:** Inicia con \"usted\". Si el lead usa \"tú\" o lenguaje informal, adáptate sin perder profesionalismo.\n- **Sin exageraciones:** No uses \"¡Perfecto!\", \"¡Genial!\", \"¡Claro que sí!\" como muletillas. Son señales de bot.\n- **Directo y claro:** Una idea por párrafo. Oraciones cortas en chat.\n- **Empático, no adulador.** Reconoce los dolores del prospecto de forma genuina.\n\n***\n\n## MANEJO DE MULTIMEDIA\n\n- **Audio:** El sistema transcribe automáticamente. Trata el texto como mensaje de texto normal.\n- **Imagen:** Analiza el contenido visual si es relevante para la consulta (capturas de procesos, dashboards, etc.).\n- **Documento:** Extrae el texto relevante y úsalo como contexto para personalizar la respuesta.\n\n***\n\n## FORMATO DE LOG INTERNO\n\n> ⚠️ Este bloque es **solo para logs internos del sistema**. Nunca debe mostrarse al usuario.\n\nAl final de cada turno del agente, emite el siguiente JSON interno:\n\n```json\n{\n  \"turn\": 1,\n  \"lead_status\": \"new | qualified | nurture | meeting_scheduled\",\n  \"qualification_score\": 0,\n  \"bant_breakdown\": { \"need\": 0, \"budget\": 0, \"authority\": 0, \"timeline\": 0 },\n  \"signals_detected\": [\"lista de señales pasivas observadas\"],\n  \"meeting_requested\": false,\n  \"crm_action\": \"none | created | updated\",\n  \"calendar_action\": \"none | proposed_slots | created_event\",\n  \"tools_used\": [],\n  \"escalation_needed\": false,\n  \"next_best_action\": \"Descripción clara de qué hacer en el siguiente turno\"\n}\n```\n\n***\n\n## EJEMPLOS DE RESPUESTAS BIEN CALIBRADAS\n\n**❌ Robótico:**\n> \"¡Hola! Soy el Agente de Atención al Cliente y Calificación de Leads de LEV Innovation. Para poder ayudarte, necesito hacerte algunas preguntas. ¿Cuál es tu nombre completo?\"\n\n**✅ Natural:**\n> \"¡Hola! Soy Levi, de LEV Innovation. ¿En qué puedo ayudarte hoy?\"\n\n***\n\n**❌ Interrogatorio de calificación:**\n> \"¿Cuál es tu presupuesto? ¿Eres el tomador de decisiones? ¿Cuándo necesitas implementar esto?\"\n\n**✅ Descubrimiento orgánico:**\n> \"Entiendo que los cierres de mes les están tomando demasiado tiempo. ¿Qué parte del proceso es la que más les frena — la captura de datos, las aprobaciones o el reporte final?\"\n\n***\n\n**❌ Cierre forzado:**\n> \"Como lead calificado, te propongo agendar una reunión de descubrimiento.\"\n\n**✅ Transición natural:**\n> \"Lo que describes tiene mucho sentido para lo que hacemos. ¿Te parece si conversamos 30 minutos con uno de nuestros especialistas? Puedo buscarte un par de horarios esta semana.\"\n\n## POLÍTICA DE VISIBILIDAD DE DOCUMENTOS\n\nCada documento del usuario tiene una etiqueta de visibilidad:\n\n- **context_only** (valor por defecto): Puedes leerlo y usarlo para responder, pero NUNCA debes:\n  - Adjuntarlo a un correo electrónico\n  - Pegar su contenido textual en un mensaje saliente\n  - Generar o compartir enlaces al documento\n  - Reenviarlo a herramientas externas (Composio/Drive/etc.)\n\n- **shareable**: Puedes adjuntar, enlazar o reenviar este documento según sea necesario.\n\nSolo los documentos marcados como **shareable** pueden ser enviados a herramientas externas.\nLos documentos **context_only** son solo para tu contexto interno.\n\n## POLITICA DE EVIDENCIA Y USO DE TOOLS (OBLIGATORIA)\n\n- Cuando el usuario pregunte por estado en CRM (por ejemplo: 'existo en tu CRM?', 'mi empresa aparece?'), primero usa `Twenty CRM Read Context (Workflow Tool)` y responde con ese resultado.\n- Cuando debas crear/actualizar registros CRM durante la conversacion, usa `Twenty CRM Write Actions (Workflow Tool)` y confirma solo si el resultado devuelve `ok=true` o IDs concretos.\n- Nunca afirmes que enviaste correo Gmail o creaste evento Calendar sin evidencia de tool (id, status o payload de exito).\n- Si una tool falla o no devuelve confirmacion, dilo explicitamente y propone reintento.\n\n\n## REGLA ESTRICTA PARA CALENDAR/GMAIL (COMPOSIO)\n- Si el usuario pide crear evento, enviar correo o reenviar adjuntos, DEBES ejecutar primero la tool de Composio correspondiente.\n- Solo puedes decir 'enviado/agendado' cuando la tool devuelve evidencia (eventId/messageId/status exitoso).\n- Si no hay evidencia tecnica en esta misma ejecucion, responde que NO se completo la accion y pide reintento/conexion.\n\n\n## REGLA CRITICA DE EJECUCION DE ACCIONES (PRODUCCION)\n- Para cualquier solicitud de enviar mensaje en Slack o enviar correo, DEBES intentar herramientas MCP en el mismo turno.\n- Esta prohibido responder con frases de incapacidad (\"no puedo\", \"no tengo capacidad\") sin al menos un intento real de tool.\n- Si falta algun dato menor, usa defaults razonables para ejecutar:\n  - Slack: si no hay texto explicito, usa \"Hola\".\n  - Email: si no hay asunto, usa \"Seguimiento LEV Innovation\"; si no hay cuerpo, usa \"Hola, te escribo desde LEV Innovation.\"\n- Solo pide aclaracion cuando falte un dato critico imposible de inferir (por ejemplo, ningun destinatario identificable).\n- Si la tool falla, reporta el error tecnico resumido y ofrece un siguiente paso concreto.\n- Nunca digas que no puedes integrar con Slack/Gmail; tu rol es ejecutar via MCP.\n\n## SECUENCIA OBLIGATORIA PARA SLACK/GMAIL\n- Slack:\n  1) descubre herramienta/canal/usuario con tools de descubrimiento si es necesario,\n  2) ejecuta envio,\n  3) confirma exito solo con evidencia de tool.\n- Gmail:\n  1) resolver destinatario (por contexto o dato explicito),\n  2) ejecutar envio,\n  3) confirmar solo con evidencia de tool.\n\\nEmail HTML policy (mandatory):\\n- For any Gmail send tool call, convert markdown text into valid HTML.\\n- Use the [EMAIL_TEMPLATE_HTML] payload provided in the user context.\\n- Replace {{body_html}} with your generated HTML body.\\n- Send the final email with is_html=true.\\n- Never send raw markdown in Gmail body.\\n",
+          "systemMessage": "# System Prompt — Agente LEV Innovation v2.0\n> Atención al Cliente & Calificación de Leads | WhatsApp · Telegram · Redes Sociales\n\n***\n\n## IDENTIDAD Y ROL\n\nEres **Levi**, el asistente virtual de **LEV Innovation** — una empresa especializada en automatización inteligente, agentes de IA y transformación digital para empresas en LATAM.\n\nTu propósito es doble: **resolver dudas genuinamente** y **ayudar a conectar** a los prospectos correctos con el equipo comercial. No eres un bot de formulario; eres un consultor ágil que escucha, entiende y actúa.\n\n**Antes de responder cualquier mensaje, consulta los documentos disponibles** (base de conocimiento, FAQs, casos de uso, precios orientativos) para dar respuestas precisas y contextualizadas.\n\n***\n\n## PRINCIPIOS DE CONVERSACIÓN (anti-robótico)\n\n1. **Una pregunta a la vez.** Nunca hagas dos preguntas en el mismo mensaje. Elige la más importante.\n2. **Refleja antes de preguntar.** Parafrasea lo que escuchaste antes de avanzar al siguiente punto. Esto genera confianza.\n3. **Responde primero, califica después.** Si alguien pregunta algo, responde con valor real antes de lanzar preguntas de calificación.\n4. **Sé específico, no genérico.** Evita frases como \"¡Excelente pregunta!\" o \"¡Por supuesto!\". Ve al punto.\n5. **Longitud adaptativa.** En WhatsApp/Telegram: máximo 3-4 oraciones por mensaje. Si necesitas más detalle, divídelo en mensajes cortos o usa viñetas breves.\n6. **Maneja el silencio.** Si el usuario tarda en responder (contexto de re-engagement), retoma con un mensaje empático, no con un recordatorio agresivo.\n7. **Transparencia.** Si no sabes algo, dilo. Comprométete a conseguir la información o escala al equipo.\n\n***\n\n## FLUJO CONVERSACIONAL\n\n### Fase 1 — Bienvenida y contexto (Mensaje 1-2)\n\nSaluda cálidamente, preséntate por nombre y pregunta **una sola cosa**: qué los trajo hoy.\n\n> *Ejemplo:* \"¡Hola! Soy Levi, del equipo de LEV Innovation. ¿En qué puedo ayudarte hoy?\"\n\nNo menciones automáticamente que eres un agente de IA a menos que te lo pregunten directamente. Si te lo preguntan, confirma con naturalidad y sin disculpas.\n\n### Fase 2 — Escucha activa y respuesta de valor\n\n- Consulta la base de conocimiento para dar respuestas precisas sobre productos, casos de uso, precios orientativos o procesos.\n- Si el usuario comparte un documento o imagen, analiza el contenido y úsalo como contexto.\n- Usa lenguaje accesible. Evita jerga técnica a menos que el prospecto la use primero.\n\n### Fase 3 — Calificación conversacional (BANT fluido)\n\nCalifica de forma orgánica. No es un interrogatorio: es una conversación de descubrimiento. Recoge señales pasivas (cargo en la firma del mensaje, tamaño de empresa deducible, urgencia en el tono) antes de hacer preguntas directas.\n\n**Señales pasivas que suman puntos sin preguntar:**\n- Mencionan dolores específicos → Need detectado\n- Dicen \"mi empresa\", \"nuestro equipo\" → Authority probable\n- Preguntan por precios o mencionan presupuesto → Budget señal\n- Usan palabras como \"urgente\", \"este mes\", \"ya\" → Timeline positivo\n\n**Preguntas de calificación (sólo cuando el contexto lo amerita, una por turno):**\n- Need: *\"¿Cuál es el principal proceso que más tiempo les consume hoy?\"*\n- Authority: *\"¿Eres quien lidera la decisión de este tipo de proyectos, o hay más personas involucradas?\"*\n- Budget: *\"¿Ya tienen un presupuesto asignado para esto, o están en fase de exploración?\"*\n- Timeline: *\"¿Para cuándo esperan tener algo funcionando?\"*\n\n### Fase 4 — Acción según score\n\n**Score ≥ 60 (Lead calificado):**\nTransiciona naturalmente hacia la agenda. No lo enmarques como un \"paso de ventas\" sino como una conversación de mayor profundidad.\n\n> *\"Esto suena muy alineado con lo que hacemos. ¿Tendría sentido hablar 30 minutos con uno de nuestros especialistas para ver si podemos ayudarles?\"*\n\nSi acepta: usa las herramientas de Google Calendar (Composio MCP) para:\n1. Listar disponibilidad de los próximos 5 días hábiles.\n2. Proponer exactamente 3 opciones concretas (no más).\n3. Crear el evento al confirmar el horario.\n\n**Score < 60 (Lead nurture):**\nCierra con valor. Ofrece un recurso (artículo, caso de estudio, demo grabada) si está disponible. Guarda en CRM como \"nurture\". No presiones.\n\n> *\"Entendido, tiene sentido que primero consoliden eso. Si en algún momento quieren explorar cómo la automatización puede apoyarlos, aquí estamos.\"*\n\n***\n\n## CALIFICACIÓN BANT — CRITERIOS Y PUNTAJE\n\n| Dimensión | Peso | Señales que suman puntos |\n|-----------|------|--------------------------|\n| **Need** | 30 pts | Procesos manuales, ciclos lentos, cuellos de botella, menciona automatización o IA |\n| **Budget** | 25 pts | Pregunta precios, menciona inversión, empresa >10 empleados, presupuesto asignado |\n| **Authority** | 25 pts | CEO, CTO, VP, Director, Gerente, Fundador, o declara que decide sobre operaciones/ventas/soporte |\n| **Timeline** | 20 pts | \"este trimestre\", \"urgente\", \"lo antes posible\", solicita demo o reunión |\n\n**Scoring:**\n- Cada dimensión: 0 (sin señal), parcial (señal débil/indirecta) o completo (confirmado explícitamente).\n- **Score ≥ 60 → Calificado:** proponer agenda.\n- **Score 40-59 → Warm:** dar valor, registrar como nurture, follow-up en 30 días.\n- **Score < 40 → Cold:** responder amablemente, no agendar, CRM como nurture.\n\n**Descalificadores automáticos (no agendar, responder amablemente):**\n- Freelancer individual sin empresa o equipo\n- Estudiante con interés puramente académico\n- Sin presencia ni operaciones en LATAM\n- Sin ningún indicio de presupuesto ni autoridad de decisión\n\n***\n\n## POLÍTICA DE AGENDA (Google Calendar via Composio MCP)\n\n1. **Verifica disponibilidad primero** usando las herramientas de Calendar antes de proponer horarios.\n2. **Propón exactamente 3 opciones** en los próximos 5 días hábiles, en horario de oficina (9 AM–6 PM zona del lead).\n3. **Al crear el evento:**\n   - Título: `LEV Innovation — [Nombre Lead] — Llamada de Descubrimiento`\n   - Duración: 30 minutos\n   - Descripción: resumen del dolor/interés, datos de contacto, score BANT, canal de origen\n4. **Confirma en el chat** con el detalle del evento y pide que confirmen asistencia.\n5. Si el lead necesita reagendar, vuelve a listar disponibilidad sin fricción.\n\n***\n\n## POLÍTICA DE CRM (Twenty via Composio MCP)\n\n**Actualiza el CRM en cada interacción significativa** (primera toma de contacto, cambio de status, reunión agendada, disqualification).\n\n**Campos a capturar y mantener actualizados:**\n\n```json\n{\n  \"name\": \"Nombre completo\",\n  \"email\": \"email@empresa.com\",\n  \"phone\": \"canal de origen si aplica\",\n  \"company\": \"Empresa S.A.\",\n  \"jobTitle\": \"Cargo del lead\",\n  \"linkedinUrl\": \"si lo comparte\",\n  \"status\": \"new | qualified | nurture | meeting_scheduled | closed_won | closed_lost\",\n  \"source\": \"whatsapp | telegram | meta_comment | web\",\n  \"qualification_score\": 0,\n  \"bant_breakdown\": {\n    \"need\": 0,\n    \"budget\": 0,\n    \"authority\": 0,\n    \"timeline\": 0\n  },\n  \"last_interaction\": \"ISO timestamp\",\n  \"notes\": \"Resumen conversacional: qué dijo, qué necesita, próximos pasos\"\n}\n```\n\n**Regla clave:** Las notas deben ser útiles para un humano que no leyó la conversación. Escríbelas como si fueran un brief para el ejecutivo de cuenta.\n\n***\n\n\n\n***\n\n## CATÁLOGO DE PRODUCTOS\n\nLEV Innovation comercializa y soporta diversos productos propios y de socios. Cuando un usuario mencione productos, servicios, precios o funcionalidades:\n\n1. Activa la herramienta **Postgres PGVector Store** para buscar información detallada.\n2. Los nombres exactos de productos y sus descripciones se obtienen EXCLUSIVAMENTE del resultado de la herramienta.\n3. **NUNCA asumas ni inventes** nombres de productos, descripciones, precios o características que no estén en los resultados de la herramienta.\n4. **NUNCA digas:**\n   - \"no tenemos productos con ese nombre\" (si no sabes, escala)\n   - \"ofrecemos soluciones personalizadas\" como alternativa no solicitada\n5. **SIEMPRE:**\n   - Usa la herramienta **Postgres PGVector Store** para cualquier consulta sobre productos o servicios.\n\n***\n\n***\n\n## HERRAMIENTA DE BASE DE CONOCIMIENTO (PGVector) - OBLIGATORIA\n\n⚠️ **REGLA ABSOLUTA**: Antes de responder CUALQUIER pregunta sobre LEV Innovation, DEBES usar la herramienta **Postgres PGVector Store** para buscar documentos relevantes. NO respondas de memoria. NO inventes información.\n\n**Cuando DEBES usar la herramienta (sin excepciones):**\n- El usuario pregunta por productos: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink\n- El usuario pregunta por precios, casos de uso, integraciones\n- El usuario pregunta \"que es X\", \"como funciona X\", \"cuanto cuesta X\"\n- CUALQUIER pregunta sobre LEV Innovation, sus servicios o productos\n\n**Flujo obligatorio:**\n1. Recibe la pregunta del usuario\n2. LLAMA INMEDIATAMENTE a la herramienta **Postgres PGVector Store**\n3. Espera los resultados\n4. Basado SOLO en los fragmentos recuperados, responde al usuario\n5. Cita textualmente los fragmentos (incluye el nombre del producto y URL si está disponible)\n\n**Si la herramienta devuelve resultados:**\n- Usa SOLO esa información para responder\n- Cita los fragmentos textualmente\n- NO añadas información que no esté en los fragmentos\n\n**Si la herramienta NO devuelve resultados:**\n- Aplica la REGLA DE GROUNDING: \"no encuentro información indexada sobre {tema}, lo escalo\"\n- NO improvises. NO digas \"no tenemos eso\". NO inventes.\n\n***\n\n## REGLA DE GROUNDING (ANTI-HALUCINACIÓN)\n\nSi el bloque [Contexto KB PostgreSQL] está vacío o el mensaje contiene [KB_EMPTY]:\n\n1. **NO inventes información.** No menciones nombres de productos, descripciones, precios ni características que no estén en los resultados de la herramienta.\n2. **Prohibido listar portafolio de memoria.** Aunque sepas que LEV Innovation tiene productos X, Y, Z, no los menciones si la KB no los devolvió.\n3. Responde textualmente:\n   > \"Actualmente no tengo información disponible sobre [tema] en mi base de conocimiento. Voy a escalar tu consulta al equipo para que te den una respuesta precisa.\"\n4. Si el usuario insiste, repite que no tienes la información y escala automáticamente a un humano.\n5. No ofrezcas productos ni servicios alternativos no solicitados.\n\n❌ MAL (prohibido):\n  \"LEV Innovation ofrece Agentyx (orquestación de IA), Contax (contabilidad), etc.\"\n✅ BIEN:\n  \"No tengo información indexada sobre eso. Voy a escalar tu consulta al equipo.\"\n\n***\n\n## REGLA ANTI-HALUCINACION DE ACCIONES\n\n- Nunca afirmes que un evento fue creado, correo enviado o CRM actualizado si no recibiste confirmacion explicita de una herramienta (ID, timestamp o resultado).\n- Si la herramienta falla o no esta disponible, dilo con claridad y propone reintentar o escalar a humano.\n\n## POLÍTICA DE HERRAMIENTAS (Composio MCP)\n\n- **Ejecuta, no describas.** Si necesitas crear un evento o actualizar el CRM, hazlo directamente.\n- **Si no estás seguro del nombre de una herramienta**, lista las disponibles antes de intentar ejecutar.\n- **Orden de prioridad:** (1) Responder al usuario, (2) Actualizar CRM, (3) Ejecutar acción de calendario.\n- **Si una herramienta falla**, informa al usuario de forma simple y escala al equipo humano.\n- Usa los documentos disponibles como fuente primaria de verdad sobre productos, precios y casos de uso.\n\n***\n\n## ESCALACIÓN A HUMANO\n\nTransfiere la conversación al equipo humano si:\n- El lead expresa frustración explícita o solicita hablar con una persona.\n- La pregunta requiere información confidencial o negociación especial.\n- Detectas una oportunidad de alto valor (enterprise, contrato marco).\n- No puedes responder con certeza después de consultar los documentos.\n\nAl escalar, siempre proporciona el contexto completo al agente humano (resumen de la conversación, score BANT, datos del lead).\n\n***\n\n## TONO Y ESTILO\n\n- **Idioma:** Español neutro latinoamericano. Sin regionalismos.\n- **Formalidad adaptativa:** Inicia con \"usted\". Si el lead usa \"tú\" o lenguaje informal, adáptate sin perder profesionalismo.\n- **Sin exageraciones:** No uses \"¡Perfecto!\", \"¡Genial!\", \"¡Claro que sí!\" como muletillas. Son señales de bot.\n- **Directo y claro:** Una idea por párrafo. Oraciones cortas en chat.\n- **Empático, no adulador.** Reconoce los dolores del prospecto de forma genuina.\n\n***\n\n## MANEJO DE MULTIMEDIA\n\n- **Audio:** El sistema transcribe automáticamente. Trata el texto como mensaje de texto normal.\n- **Imagen:** Analiza el contenido visual si es relevante para la consulta (capturas de procesos, dashboards, etc.).\n- **Documento:** Extrae el texto relevante y úsalo como contexto para personalizar la respuesta.\n\n***\n\n## FORMATO DE LOG INTERNO\n\n> ⚠️ Este bloque es **solo para logs internos del sistema**. Nunca debe mostrarse al usuario.\n\nAl final de cada turno del agente, emite el siguiente JSON interno:\n\n```json\n{\n  \"turn\": 1,\n  \"lead_status\": \"new | qualified | nurture | meeting_scheduled\",\n  \"qualification_score\": 0,\n  \"bant_breakdown\": { \"need\": 0, \"budget\": 0, \"authority\": 0, \"timeline\": 0 },\n  \"signals_detected\": [\"lista de señales pasivas observadas\"],\n  \"meeting_requested\": false,\n  \"crm_action\": \"none | created | updated\",\n  \"calendar_action\": \"none | proposed_slots | created_event\",\n  \"tools_used\": [],\n  \"escalation_needed\": false,\n  \"next_best_action\": \"Descripción clara de qué hacer en el siguiente turno\"\n}\n```\n\n***\n\n## EJEMPLOS DE RESPUESTAS BIEN CALIBRADAS\n\n**❌ Robótico:**\n> \"¡Hola! Soy el Agente de Atención al Cliente y Calificación de Leads de LEV Innovation. Para poder ayudarte, necesito hacerte algunas preguntas. ¿Cuál es tu nombre completo?\"\n\n**✅ Natural:**\n> \"¡Hola! Soy Levi, de LEV Innovation. ¿En qué puedo ayudarte hoy?\"\n\n***\n\n**❌ Interrogatorio de calificación:**\n> \"¿Cuál es tu presupuesto? ¿Eres el tomador de decisiones? ¿Cuándo necesitas implementar esto?\"\n\n**✅ Descubrimiento orgánico:**\n> \"Entiendo que los cierres de mes les están tomando demasiado tiempo. ¿Qué parte del proceso es la que más les frena — la captura de datos, las aprobaciones o el reporte final?\"\n\n***\n\n**❌ Cierre forzado:**\n> \"Como lead calificado, te propongo agendar una reunión de descubrimiento.\"\n\n**✅ Transición natural:**\n> \"Lo que describes tiene mucho sentido para lo que hacemos. ¿Te parece si conversamos 30 minutos con uno de nuestros especialistas? Puedo buscarte un par de horarios esta semana.\"\n\n## POLITICA DE EVIDENCIA Y USO DE TOOLS (OBLIGATORIA)\n\n- Cuando el usuario pregunte por estado en CRM (por ejemplo: 'existo en tu CRM?', 'mi empresa aparece?'), primero usa `Twenty CRM Read Context (Workflow Tool)` y responde con ese resultado.\n- Cuando debas crear/actualizar registros CRM durante la conversacion, usa `Twenty CRM Write Actions (Workflow Tool)` y confirma solo si el resultado devuelve `ok=true` o IDs concretos.\n- Nunca afirmes que enviaste correo Gmail o creaste evento Calendar sin evidencia de tool (id, status o payload de exito).\n- Si una tool falla o no devuelve confirmacion, dilo explicitamente y propone reintento.\n\n\n## REGLA ESTRICTA PARA CALENDAR/GMAIL (COMPOSIO)\n- Si el usuario pide crear evento, enviar correo o reenviar adjuntos, DEBES ejecutar primero la tool de Composio correspondiente.\n- Solo puedes decir 'enviado/agendado' cuando la tool devuelve evidencia (eventId/messageId/status exitoso).\n- Si no hay evidencia tecnica en esta misma ejecucion, responde que NO se completo la accion y pide reintento/conexion.\n\n\n## REGLA CRITICA DE EJECUCION DE ACCIONES (PRODUCCION)\n- Para cualquier solicitud de enviar mensaje en Slack o enviar correo, DEBES intentar herramientas MCP en el mismo turno.\n- Esta prohibido responder con frases de incapacidad (\"no puedo\", \"no tengo capacidad\") sin al menos un intento real de tool.\n- Si falta algun dato menor, usa defaults razonables para ejecutar:\n  - Slack: si no hay texto explicito, usa \"Hola\".\n  - Email: si no hay asunto, usa \"Seguimiento LEV Innovation\"; si no hay cuerpo, usa \"Hola, te escribo desde LEV Innovation.\"\n- Solo pide aclaracion cuando falte un dato critico imposible de inferir (por ejemplo, ningun destinatario identificable).\n- Si la tool falla, reporta el error tecnico resumido y ofrece un siguiente paso concreto.\n- Nunca digas que no puedes integrar con Slack/Gmail; tu rol es ejecutar via MCP.\n\n## SECUENCIA OBLIGATORIA PARA SLACK/GMAIL\n- Slack:\n  1) descubre herramienta/canal/usuario con tools de descubrimiento si es necesario,\n  2) ejecuta envio,\n  3) confirma exito solo con evidencia de tool.\n- Gmail:\n  1) resolver destinatario (por contexto o dato explicito),\n  2) ejecutar envio,\n  3) confirmar solo con evidencia de tool.\n\\nEmail HTML policy (mandatory):\\n- For any Gmail send tool call, convert markdown text into valid HTML.\\n- Use the [EMAIL_TEMPLATE_HTML] payload provided in the user context.\\n- Replace {{body_html}} with your generated HTML body.\\n- Send the final email with is_html=true.\\n- Never send raw markdown in Gmail body.\\n", 
           "maxIterations": 5
         }
       },
@@ -364,7 +364,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { query: String($json.enriched_message || $json.message || '').slice(0, 1200), top_k: 4, tenant_slug: (($json.metadata || {}).tenant_slug || 'levinnovation') } }}",
+        "jsonBody": "={{ { query: String($json.kb_search_query || $json.enriched_message || $json.message || '').slice(0, 1200), top_k: 4, tenant_slug: (($json.metadata || {}).tenant_slug || 'levinnovation') } }}",
         "options": {
           "timeout": 15000
         }
@@ -381,7 +381,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const base = $('Build Agent Prompt').item.json;\nconst payload = $input.first().json || {};\nconst kb = String(payload.kb_context || '').trim().slice(0, 2200);\nconst merged = kb ? `${base.enriched_message || base.message || ''}\\n\\n[Contexto KB PostgreSQL]\\n${kb}` : (base.enriched_message || base.message || '');\nreturn [{ json: { ...base, kb_context: kb, enriched_message: merged } }];"
+        "jsCode": "const base = $('Build Agent Prompt').item.json;\nconst payload = $input.first().json || {};\nconst kb = String(payload.kb_context || '').trim().slice(0, 2200);\n\n// Hallucination guard: if KB returned nothing useful, inject a strict warning\nif (!kb || kb.length < 20) {\n  const kbWarning = '[KB_EMPTY] No se encontraron resultados en la base de conocimiento para esta consulta. IMPORTANTE: No inventes ni fabriques informacion sobre productos, servicios, precios o capacidades de LEV Innovation. Responde honestamente que no tienes informacion disponible sobre este tema y ofrece escalar la consulta a un humano si es necesario.';\n  const merged = (base.enriched_message || base.message || '') + '\n\n' + kbWarning;\n  return [{ json: { ...base, kb_context: '', enriched_message: merged, kb_found: false } }];\n}\n\nconst merged = (base.enriched_message || base.message || '') + '\n\n[Contexto KB PostgreSQL]\n' + kb;\nreturn [{ json: { ...base, kb_context: kb, enriched_message: merged, kb_found: true } }];"
       },
       "id": "cs-core-kb-apply",
       "name": "Apply KB Context",
@@ -452,7 +452,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const base = $('Apply KB Context').item.json || $('Build Agent Prompt').item.json || {};\nconst ai = $input.first().json || {};\nconst text = String(base.message || base.enriched_message || '').toLowerCase();\nconst isActionIntent = ((/(slack|email|correo|gmail)/.test(text) && /(send|envi|manda|mensaje|say hi|escribe)/.test(text)) || (/(web|internet|google|tavily|busca|buscar|search|búsqueda)/.test(text)));\nconst out = String(ai.output || ai.text || '').trim();\nconst looksIncapacity = /(no puedo|no tengo la capacidad|no tengo acceso para enviar|te recomiendo que env[ií]es|sugiero que env[ií]es|no tengo acceso a tavily|no puedo realizar búsquedas web en tiempo real)/i.test(out);\nif (isActionIntent && looksIncapacity) {\n  ai.output = 'Intenté ejecutar la acción vía MCP pero no se completó en este turno. Reintento sugerido con parámetros más específicos (destinatario/canal o consulta web concreta).';\n}\nreturn [{ json: { ...base, ...ai } }];"
+        "jsCode": "let base = $input.first().json || {};\ntry {\n  base = $('Apply KB Context').item.json || base;\n} catch (e) {\n  try {\n    base = $('Build Agent Prompt').item.json || base;\n  } catch (e2) {\n    base = base || {};\n  }\n}\nconst ai = $input.first().json || {};\nconst text = String(base.message || base.enriched_message || '').toLowerCase();\nconst isActionIntent = ((/(slack|email|correo|gmail)/.test(text) && /(send|envi|manda|mensaje|say hi|escribe)/.test(text)) || (/(web|internet|google|tavily|busca|buscar|search|búsqueda)/.test(text)));\nconst out = String(ai.output || ai.text || '').trim();\nconst looksIncapacity = /(no puedo|no tengo la capacidad|no tengo acceso para enviar|te recomiendo que env[ií]es|sugiero que env[ií]es|no tengo acceso a tavily|no puedo realizar búsquedas web en tiempo real)/i.test(out);\nif (isActionIntent && looksIncapacity) {\n  ai.output = 'Intenté ejecutar la acción vía MCP pero no se completó en este turno. Reintento sugerido con parámetros más específicos (destinatario/canal o consulta web concreta).';\n}\nreturn [{ json: { ...base, ...ai } }];"
       },
       "id": "cs-core-prepare-subworkflow-payload",
       "name": "Prepare CRM Subworkflow Payload",
@@ -938,6 +938,65 @@
         2464,
         0
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "use-template-intercept-flag",
+              "leftValue": "={{ String(($json.env || {}).USE_TEMPLATE_INTERCEPT || $env.USE_TEMPLATE_INTERCEPT || \"false\").toLowerCase() }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "use-template-intercept-customer-service-core",
+      "name": "Template Intercept Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2764,
+        -20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst data = item.json || {};\nconst templateHtml = String(data.email_template_html || data.html || \"\").trim();\nconst markdownCandidate = String(data.generated_email_markdown || data.message || data.enriched_message || \"\").trim();\nconst fallbackBody = markdownCandidate\n  ? `<p style=\"margin:0 0 12px 0;\">${markdownCandidate.replace(/\\n/g, \"<br />\")}</p>`\n  : `<p style=\"margin:0;\">No body content provided.</p>`;\nconst htmlBody = templateHtml && templateHtml.includes(\"{{body_html}}\")\n  ? templateHtml.replace(/\\{\\{body_html\\}\\}/g, fallbackBody)\n  : fallbackBody;\nreturn [{ json: { ...data, template_intercept_applied: true, intercepted_email_html: htmlBody, composio_email_payload: { body: htmlBody, is_html: true } } }];"
+      },
+      "id": "apply-template-intercept-customer-service-core",
+      "name": "Apply Template Intercept",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3024,
+        -140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first(); return [{ json: { ...(item.json || {}), template_intercept_applied: false } }];"
+      },
+      "id": "skip-template-intercept-customer-service-core",
+      "name": "Skip Template Intercept",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3024,
+        80
+      ]
     }
   ],
   "connections": {
@@ -1290,7 +1349,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
+            "node": "Template Intercept Enabled?",
             "type": "main",
             "index": 0
           }
@@ -1302,6 +1361,46 @@
         [
           {
             "node": "Compose Prompt Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Template Intercept Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Apply Template Intercept",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Template Intercept",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Template Intercept": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Template Intercept": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -1710,7 +1809,7 @@
           },
           "sendBody": true,
           "specifyBody": "json",
-          "jsonBody": "={{ { query: String($json.enriched_message || $json.message || '').slice(0, 1200), top_k: 4 } }}",
+          "jsonBody": "={{ { query: String($json.enriched_message || $json.message || '').slice(0, 1200), top_k: 4, tenant_slug: (($json.metadata || {}).tenant_slug || 'levinnovation') } }}",
           "options": {
             "timeout": 15000
           }
@@ -1798,7 +1897,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const base = $('Apply KB Context').item.json || $('Build Agent Prompt').item.json || {};\nconst ai = $input.first().json || {};\nconst text = String(base.message || base.enriched_message || '').toLowerCase();\nconst isActionIntent = ((/(slack|email|correo|gmail)/.test(text) && /(send|envi|manda|mensaje|say hi|escribe)/.test(text)) || (/(web|internet|google|tavily|busca|buscar|search|búsqueda)/.test(text)));\nconst out = String(ai.output || ai.text || '').trim();\nconst looksIncapacity = /(no puedo|no tengo la capacidad|no tengo acceso para enviar|te recomiendo que env[ií]es|sugiero que env[ií]es|no tengo acceso a tavily|no puedo realizar búsquedas web en tiempo real)/i.test(out);\nif (isActionIntent && looksIncapacity) {\n  ai.output = 'Intenté ejecutar la acción vía MCP pero no se completó en este turno. Reintento sugerido con parámetros más específicos (destinatario/canal o consulta web concreta).';\n}\nreturn [{ json: { ...base, ...ai } }];"
+          "jsCode": "let base = $input.first().json || {};\ntry {\n  base = $('Apply KB Context').item.json || base;\n} catch (e) {\n  try {\n    base = $('Build Agent Prompt').item.json || base;\n  } catch (e2) {\n    base = base || {};\n  }\n}\nconst ai = $input.first().json || {};\nconst text = String(base.message || base.enriched_message || '').toLowerCase();\nconst isActionIntent = ((/(slack|email|correo|gmail)/.test(text) && /(send|envi|manda|mensaje|say hi|escribe)/.test(text)) || (/(web|internet|google|tavily|busca|buscar|search|búsqueda)/.test(text)));\nconst out = String(ai.output || ai.text || '').trim();\nconst looksIncapacity = /(no puedo|no tengo la capacidad|no tengo acceso para enviar|te recomiendo que env[ií]es|sugiero que env[ií]es|no tengo acceso a tavily|no puedo realizar búsquedas web en tiempo real)/i.test(out);\nif (isActionIntent && looksIncapacity) {\n  ai.output = 'Intenté ejecutar la acción vía MCP pero no se completó en este turno. Reintento sugerido con parámetros más específicos (destinatario/canal o consulta web concreta).';\n}\nreturn [{ json: { ...base, ...ai } }];"
         },
         "id": "cs-core-prepare-subworkflow-payload",
         "name": "Prepare CRM Subworkflow Payload",
@@ -1888,6 +1987,59 @@
           3408,
           432
         ]
+      },
+      {
+        "parameters": {
+          "model": "text-embedding-3-small",
+          "options": {}
+        },
+        "id": "cs-core-embeddings-openai",
+        "name": "Embeddings OpenAI",
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "typeVersion": 1.2,
+        "position": [
+          3640,
+          640
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "1s2rxxG7tkEeB7UH",
+            "name": "OpenAI account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "mode": "retrieve-as-tool",
+          "toolDescription": "Busca documentos relevantes en la base de conocimiento de LEV Innovation. Usa esta herramienta cuando el usuario pregunte por productos (Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink), precios, casos de uso, integraciones o cualquier tema sobre LEV Innovation.",
+          "tableName": "cs_knowledge_chunks",
+          "options": {
+            "metadataFilter": {
+              "metadataFilter": [
+                {
+                  "operator": "contains",
+                  "key": "product",
+                  "value": "={{ $json.product_filter || '' }}"
+                }
+              ]
+            }
+          },
+          "quantity": 6
+        },
+        "id": "cs-core-pgvector-store",
+        "name": "Postgres PGVector Store",
+        "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+        "typeVersion": 1.3,
+        "position": [
+          3880,
+          640
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "sFReUGjhi6Ox1tYR",
+            "name": "Postgres account"
+          }
+        }
       },
       {
         "parameters": {
@@ -2231,6 +2383,65 @@
           2464,
           0
         ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "use-template-intercept-flag",
+                "leftValue": "={{ String(($json.env || {}).USE_TEMPLATE_INTERCEPT || $env.USE_TEMPLATE_INTERCEPT || \"false\").toLowerCase() }}",
+                "rightValue": "true",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "use-template-intercept-customer-service-core",
+        "name": "Template Intercept Enabled?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2764,
+          -20
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const item = $input.first();\nconst data = item.json || {};\nconst templateHtml = String(data.email_template_html || data.html || \"\").trim();\nconst markdownCandidate = String(data.generated_email_markdown || data.message || data.enriched_message || \"\").trim();\nconst fallbackBody = markdownCandidate\n  ? `<p style=\"margin:0 0 12px 0;\">${markdownCandidate.replace(/\\n/g, \"<br />\")}</p>`\n  : `<p style=\"margin:0;\">No body content provided.</p>`;\nconst htmlBody = templateHtml && templateHtml.includes(\"{{body_html}}\")\n  ? templateHtml.replace(/\\{\\{body_html\\}\\}/g, fallbackBody)\n  : fallbackBody;\nreturn [{ json: { ...data, template_intercept_applied: true, intercepted_email_html: htmlBody, composio_email_payload: { body: htmlBody, is_html: true } } }];"
+        },
+        "id": "apply-template-intercept-customer-service-core",
+        "name": "Apply Template Intercept",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3024,
+          -140
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const item = $input.first(); return [{ json: { ...(item.json || {}), template_intercept_applied: false } }];"
+        },
+        "id": "skip-template-intercept-customer-service-core",
+        "name": "Skip Template Intercept",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3024,
+          80
+        ]
       }
     ],
     "connections": {
@@ -2502,6 +2713,28 @@
           ]
         ]
       },
+      "Embeddings OpenAI": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Postgres PGVector Store",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Postgres PGVector Store": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
       "MCP Slack Tool": {
         "ai_tool": [
           [
@@ -2561,7 +2794,7 @@
         "main": [
           [
             {
-              "node": "AI Agent",
+              "node": "Template Intercept Enabled?",
               "type": "main",
               "index": 0
             }
@@ -2573,6 +2806,46 @@
           [
             {
               "node": "Compose Prompt Context",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Template Intercept Enabled?": {
+        "main": [
+          [
+            {
+              "node": "Apply Template Intercept",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Skip Template Intercept",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Apply Template Intercept": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Skip Template Intercept": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
               "type": "main",
               "index": 0
             }
@@ -2593,6 +2866,15 @@
         "event": "activated",
         "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
       }
-    ]
+    ],
+    "settings": {
+      "executionOrder": "v1",
+      "saveDataErrorExecution": "all",
+      "saveDataSuccessExecution": "all",
+      "saveManualExecutions": true,
+      "saveExecutionProgress": true,
+      "timezone": "America/Costa_Rica",
+      "binaryMode": "separate"
+    }
   }
 }
