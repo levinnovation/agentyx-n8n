@@ -1,10 +1,21 @@
 import { Pool } from "pg";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-});
+let pool: Pool | null = null;
+
+function getPool(): Pool {
+  if (!pool) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error("DATABASE_URL environment variable is not set");
+    }
+    pool = new Pool({
+      connectionString,
+      max: 10,
+      idleTimeoutMillis: 30000,
+    });
+  }
+  return pool;
+}
 
 export interface KbDocument {
   id: string;
@@ -19,7 +30,7 @@ export interface KbDocument {
 }
 
 export async function getDocuments(tenantSlug: string): Promise<KbDocument[]> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const res = await client.query(
       `SELECT id, title, product, mime, version, updated_at, visibility, chars
@@ -42,7 +53,7 @@ export async function insertDocument(
   visibility: string = "context_only",
   product: string = "default"
 ): Promise<KbDocument> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const res = await client.query(
       `INSERT INTO public.cs_documents (tenant_slug, title, mime, content, visibility, product, chars)
@@ -57,7 +68,7 @@ export async function insertDocument(
 }
 
 export async function deleteDocument(tenantSlug: string, docId: string): Promise<boolean> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const res = await client.query(
       `DELETE FROM public.cs_documents WHERE tenant_slug = $1 AND id = $2`,
@@ -70,7 +81,7 @@ export async function deleteDocument(tenantSlug: string, docId: string): Promise
 }
 
 export async function getDocumentById(tenantSlug: string, docId: string): Promise<KbDocument | null> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const res = await client.query(
       `SELECT id, title, product, mime, version, updated_at, visibility, chars
@@ -89,7 +100,7 @@ export async function updateDocumentVisibility(
   docId: string,
   visibility: string
 ): Promise<boolean> {
-  const client = await pool.connect();
+  const client = await getPool().connect();
   try {
     const res = await client.query(
       `UPDATE public.cs_documents SET visibility = $1, updated_at = now() WHERE tenant_slug = $2 AND id = $3`,
@@ -100,5 +111,3 @@ export async function updateDocumentVisibility(
     client.release();
   }
 }
-
-
