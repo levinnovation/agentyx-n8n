@@ -161,10 +161,24 @@ export class AuthService {
 
 				if (proxyEmail && (!expectedSecret || proxySecret === expectedSecret)) {
 					try {
-				const user = await this.userRepository.findOne({
+				let user = await this.userRepository.findOne({
 					where: { email: proxyEmail.toLowerCase() },
 					select: ['id', 'email', 'password', 'firstName', 'lastName', 'disabled', 'mfaEnabled'],
 				});
+						if (!user) {
+							// Auto-create user on first proxy auth
+							const emailLocalPart = proxyEmail.toLowerCase().split('@')[0];
+							const nameParts = emailLocalPart.split(/[._-]/);
+							const firstName = nameParts[0] || emailLocalPart;
+							const lastName = nameParts.slice(1).join(' ') || '';
+							user = this.userRepository.create({
+								email: proxyEmail.toLowerCase(),
+								firstName,
+								lastName,
+							});
+							user = await this.userRepository.save(user);
+							this.logger.info('Auto-created user via proxy auth', { email: proxyEmail.toLowerCase() });
+						}
 						if (user) {
 							// Bypass issueCookie license check for SSO gateway users.
 							// Directly issue JWT and set cookie.
