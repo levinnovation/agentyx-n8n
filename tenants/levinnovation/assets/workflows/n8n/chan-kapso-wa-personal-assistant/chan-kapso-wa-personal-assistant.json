@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\nlet messageText = '';\nlet mediaUrl = null;\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Image received]';\n  mediaUrl = msg.image.link || null;\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Document received]';\n  mediaUrl = msg.document.link || null;\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Voice message received]';\n  mediaUrl = msg.voice.link || null;\n}\n\nconst phoneNumber = conv.phone_number ? '+' + conv.phone_number : (msg.from ? '+' + msg.from : '');\n\nreturn [{\n  json: {\n    core_workflow_id: '1USjs2JAP4tlHIcm',\n    channel: 'kapso-wa',\n    conversation_id: String(conv.id || msg.from || ''),\n    user_id: String(phoneNumber || ''),\n    message: messageText,\n    attachments: mediaUrl ? [{ type: msg.type || 'media', url: mediaUrl }] : [],\n    metadata: {\n      message_id: msg.id || '',\n      contact_name: conv.contact_name || ''\n    },\n    incoming_message_id: String(msg.id || ''),\n    phone_number: phoneNumber\n  }\n}];"
+        "jsCode": "const input = $input.first().json || {};\nconst payload = input.body && typeof input.body === 'object' ? input.body : input;\nconst msg = payload.message || {};\nconst conv = payload.conversation || {};\n\nlet messageText = '';\nlet mediaUrl = null;\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Image received]';\n  mediaUrl = msg.image.link || null;\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Document received]';\n  mediaUrl = msg.document.link || null;\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Voice message received]';\n  mediaUrl = msg.voice.link || null;\n}\n\nconst phoneRaw = conv.phone_number || msg.from || '';\nconst phoneDigits = String(phoneRaw).replace(/\\D/g, '');\nconst phoneNumber = phoneDigits ? `+${phoneDigits}` : '';\n\nreturn [{\n  json: {\n    core_workflow_id: '1USjs2JAP4tlHIcm',\n    channel: 'kapso-wa',\n    conversation_id: String(conv.id || msg.from || ''),\n    user_id: String(phoneNumber || ''),\n    message: messageText,\n    attachments: mediaUrl ? [{ type: msg.type || 'media', url: mediaUrl }] : [],\n    metadata: {\n      message_id: msg.id || '',\n      contact_name: conv.contact_name || ''\n    },\n    incoming_message_id: String(msg.id || ''),\n    phone_number: phoneNumber\n  }\n}];"
       },
       "id": "f63b2b5f-7f55-4fd7-b8f8-2f588f1af074",
       "name": "Validate + Normalize",
@@ -129,14 +129,13 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"messaging_product\": \"whatsapp\", \"to\": $('Validate + Normalize').item.json.user_id.replace('+',''), \"type\": \"text\", \"text\": { \"body\": $json.reply_text || '' } } }}",
+        "jsonBody": "={{ (() => { const rawRecipient = $('Validate + Normalize').item.json.user_id || $('Validate + Normalize').item.json.phone_number || ''; const to = String(rawRecipient).replace(/\\D/g, ''); return { messaging_product: 'whatsapp', to, type: 'text', text: { body: $json.reply_text || '' } }; })() }}",
         "options": {}
       },
       "id": "7ba40f08-e696-4116-8838-68f25d1685b6",
       "name": "Send Reply via Kapso",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "onError": "continueRegularOutput",
       "position": [
         1340,
         160
@@ -146,7 +145,8 @@
           "id": "QgENg20F5GeZ8lf4",
           "name": "Kapso Header Auth LEV Personal Assistant"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -161,6 +161,121 @@
       "position": [
         1580,
         160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst blob = JSON.stringify(item).toLowerCase();\nconst isOutside24h = blob.includes('outside the 24-hour window') || blob.includes('outside the 24h window');\nreturn [{ json: { ...item, is_outside_24h_window: isOutside24h } }];"
+      },
+      "id": "4b0b31b0-24f8-4f26-b804-5b17d2e6bb36",
+      "name": "Detect 24h Window Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6d942a62-9c37-4db5-920f-27f5a3b42ec7",
+              "leftValue": "={{ $json.is_outside_24h_window }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "908f2991-4482-4a6f-a035-2f884ba226f0",
+      "name": "Is Outside 24h Window?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kapso.ai/meta/whatsapp/v24.0/1169330222921278/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const rawRecipient = $('Validate + Normalize').item.json.user_id || $('Validate + Normalize').item.json.phone_number || ''; const to = String(rawRecipient).replace(/\\D/g, ''); return { messaging_product: 'whatsapp', to, type: 'template', template: { name: 'levinnovation_reengage_v1', language: { code: 'en_US' } } }; })() }}",
+        "options": {}
+      },
+      "id": "8726dc2d-fd47-49ff-92b4-8e5beb7d54cd",
+      "name": "Send Template Fallback via Kapso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2010,
+        260
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "QgENg20F5GeZ8lf4",
+          "name": "Kapso Header Auth LEV Personal Assistant"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": true, \"reply_sent\": false, \"fallback_template_sent\": true, \"template_name\": $env.KAPSO_FALLBACK_TEMPLATE_NAME || 'hello_world' } }}",
+        "options": {}
+      },
+      "id": "4f4fccce-c4f5-4b9d-9fb8-60d6d31d2ee6",
+      "name": "Respond Template Fallback OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        2240,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"ok\": false, \"reply_sent\": false, \"error\": \"whatsapp_send_failed\", \"details\": $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "5e5928d6-b741-450f-b7a4-9150f58ea1cc",
+      "name": "Respond Send Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        2010,
+        420
       ]
     }
   ],
@@ -232,6 +347,60 @@
         [
           {
             "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Detect 24h Window Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect 24h Window Error": {
+      "main": [
+        [
+          {
+            "node": "Is Outside 24h Window?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Outside 24h Window?": {
+      "main": [
+        [
+          {
+            "node": "Send Template Fallback via Kapso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Send Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Template Fallback via Kapso": {
+      "main": [
+        [
+          {
+            "node": "Respond Template Fallback OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Send Error",
             "type": "main",
             "index": 0
           }

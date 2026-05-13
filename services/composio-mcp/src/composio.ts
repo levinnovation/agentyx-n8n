@@ -10,6 +10,14 @@ export interface ComposioToolItem {
 	is_deprecated?: boolean;
 }
 
+export interface ComposioToolSchemaDescriptor {
+	slug: string;
+	name: string;
+	description: string;
+	toolkit: string | null;
+	inputSchema: Record<string, unknown>;
+}
+
 interface ToolsListResponse {
 	items: ComposioToolItem[];
 	next_cursor?: string | null;
@@ -1100,6 +1108,28 @@ export class ComposioClient {
 		}
 
 		return { tools: local, source: 'local' };
+	}
+
+	async getToolSchema(correlationId: string, slug: string): Promise<ComposioToolSchemaDescriptor> {
+		const target = slug.trim().toUpperCase();
+		if (!target) throw new Error('slug_required');
+		if (!this.allToolsCache || Date.now() - this.toolsCacheTimestamp > this.cacheTtlMs) {
+			await this.fetchAllTools(correlationId);
+		}
+		const tool = this.allToolsBySlug.get(target);
+		if (!tool) throw new Error(`tool_not_found:${target}`);
+		return {
+			slug: tool.slug,
+			name: tool.name,
+			description: tool.description || tool.human_description || '',
+			toolkit: tool.toolkit?.slug ?? null,
+			inputSchema:
+				(typeof tool.input_parameters === 'object' &&
+				tool.input_parameters !== null &&
+				'type' in (tool.input_parameters as Record<string, unknown>))
+					? (tool.input_parameters as Record<string, unknown>)
+					: { type: 'object', properties: {} },
+		};
 	}
 
 	/* ─── Tool execution ────────────────────────────────────────────── */

@@ -11,6 +11,8 @@ Provide one item with:
 - `user_id` — sender identifier
 - `message` — text content
 - `attachments` — array of `{ type, url, mime_type }`
+- `user_documents` — array of `{ id, title, visibility, summary_or_excerpt }`
+- `document_visibility` — string: `"context_only"` (default, model may read but never share) or `"shareable"` (may attach/send via external tools)
 - `metadata` — object with `contact_name`, `phone`, `email`, etc.
 
 ## Output envelope
@@ -44,7 +46,10 @@ Returns:
 ## Architecture changes (2026-05-12)
 
 - **Removed:** broken `Postgres PGVector Store` + `Embeddings Google Gemini` retrieve-as-tool (dimension mismatch: Gemini 768-dim vs pgvector 1536-dim).
-- **Retrieval:** exclusive via the `Customer Service KB Search v2` hybrid webhook (OpenAI 1536-dim query embedding + pgvector cosine + Postgres tsvector BM25 fused via RRF).
+- **Added:** new `Postgres PGVector Store` + `Embeddings OpenAI` retrieve-as-tool (text-embedding-3-small, 1536-dim, matched to pgvector column). The AI Agent now has direct vector search access to `cs_knowledge_chunks`.
+- **Retrieval (dual):**
+  1. **Direct tool** — `Postgres PGVector Store` retrieve-as-tool for agent-driven semantic search
+  2. **Webhook fallback** — `Customer Service KB Search v2` hybrid webhook (OpenAI 1536-dim + pgvector cosine + Postgres tsvector BM25 fused via RRF) for pre-fetching context
 - **Prompt:** system prompt now anchors the five LEV product names (Agentyx, Contax, Acumatica, Oosto/Metropolis, Legalink) and includes a strict grounding rule: if KB context is empty or missing the asked product, respond explicitly "no encuentro información indexada sobre X, lo escalo" instead of hallucinating.
 
 ## Related workflows

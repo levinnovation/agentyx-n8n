@@ -2,9 +2,9 @@
 
 > **Status:** DRAFT — fallback stub only. Authoritative content lives in Google Drive.
 
-Contax es la solución de comunicación omnicanal de LEV Innovation. Integra WhatsApp, Telegram, correo electrónico y redes sociales en una única bandeja unificada con IA.
+Contax es la plataforma SaaS de gestión contable, tesorería y finanzas de LEV Innovation. Centraliza procesos financieros, cuentas por pagar/cobrar, conciliaciones y visibilidad de flujo de caja para operación empresarial.
 
-- Rol: plataforma de comunicación omnicanal
+- Rol: plataforma SaaS de contabilidad, tesorería y finanzas
 - Sitio web: https://contax.dev
 
 Para información detallada (precios, capacidades técnicas, casos de uso), consulta los documentos oficiales en la carpeta de Drive.

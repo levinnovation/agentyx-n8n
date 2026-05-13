@@ -1,0 +1,133 @@
+{
+  "name": "Customer Service Router (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "cs-router-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [220, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst msg = String(item.message || '').toLowerCase();\nconst actionRegex = /(agend|calendar|calendario|evento|reunion|llamada|correo|email|enviar|programar|crm|twenty|actualiza|actualizar|crear contacto|escribir en crm)/i;\nconst route = actionRegex.test(msg) ? 'action' : 'faq';\nreturn [{ json: { ...item, route_target: route } }];"
+      },
+      "id": "cs-router-classify",
+      "name": "Classify Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.route_target === 'action' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cs-router-switch",
+      "name": "Action Route?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [640, 240]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "CUSTOMER_SERVICE_ACTION_CORE_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "cs-router-action-core",
+      "name": "Execute Action Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [860, 140],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "CUSTOMER_SERVICE_FAQ_RAG_CORE_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "cs-router-faq-core",
+      "name": "Execute FAQ Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [860, 340],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = $input.first().json || {};\nreturn [{ json: { ...out, metadata: { ...(out.metadata || {}), route_target: out.route_target || $('Classify Route').item.json.route_target || 'faq' } } }];"
+      },
+      "id": "cs-router-output",
+      "name": "Build Routed Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 240]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [[{ "node": "Classify Route", "type": "main", "index": 0 }]]
+    },
+    "Classify Route": {
+      "main": [[{ "node": "Action Route?", "type": "main", "index": 0 }]]
+    },
+    "Action Route?": {
+      "main": [
+        [{ "node": "Execute Action Core", "type": "main", "index": 0 }],
+        [{ "node": "Execute FAQ Core", "type": "main", "index": 0 }]
+      ]
+    },
+    "Execute Action Core": {
+      "main": [[{ "node": "Build Routed Output", "type": "main", "index": 0 }]]
+    },
+    "Execute FAQ Core": {
+      "main": [[{ "node": "Build Routed Output", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "levinnovation" },
+    { "name": "customer-service" },
+    { "name": "router" }
+  ]
+}

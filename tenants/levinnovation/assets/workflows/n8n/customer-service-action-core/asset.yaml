@@ -1,0 +1,16 @@
+asset:
+  name: customer-service-action-core
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification-and-scheduling
+
+  description: |
+    Action-specialized core for customer-service requests involving
+    CRM/calendar/email operations. Initial version delegates to
+    customer-service-core for compatibility.
+
+  files:
+    - customer-service-action-core.json
+    - README.md
+    - asset.yaml

@@ -115,6 +115,9 @@ interface McpRequestContext {
 	entityId?: string;
 	connectedAccountId?: string;
 	userPrompt?: string;
+	allowedToolkits?: string[];
+	compressedToolsMode?: boolean;
+	compressedVerbosity?: 'none' | 'minimal' | 'brief';
 }
 
 interface MetaToolDescriptor {
@@ -176,6 +179,29 @@ const CHECK_CONNECTION_META_TOOL: MetaToolDescriptor = {
 	},
 };
 
+const GET_TOOL_SCHEMA_META_TOOL: MetaToolDescriptor = {
+	name: 'composio_get_tool_schema',
+	description: 'Fetch the full JSON schema and metadata for one tool slug on demand.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			slug: { type: 'string' },
+		},
+		required: ['slug'],
+	},
+};
+
+const LIST_TOOLS_META_TOOL: MetaToolDescriptor = {
+	name: 'composio_list_tools',
+	description: 'List available Composio tools with compact metadata for discovery.',
+	inputSchema: {
+		type: 'object',
+		properties: {
+			max_results: { type: 'integer', minimum: 1, maximum: 100, default: 25 },
+		},
+	},
+};
+
 function createMcpServer(client: ComposioClient, correlationId: string, ctx?: McpRequestContext) {
 	const server = new Server(
 		{ name: 'composio-mcp', version: '1.0.0' },
@@ -191,16 +217,48 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 				entityId: ctx?.entityId,
 				userPrompt: ctx?.userPrompt,
 			});
+			const toolkitFilter = new Set((ctx?.allowedToolkits ?? []).map((k) => k.toLowerCase()));
+			const filteredTools =
+				toolkitFilter.size > 0
+					? tools.filter((t) => toolkitFilter.has(String(t.toolkit?.slug ?? '').toLowerCase()))
+					: tools;
 			const metaTools = getMetaTools();
 			const boundedTools =
 				ctx?.maxTools && ctx.maxTools > 0 && metaTools.length > 0
-					? tools.slice(0, Math.max(ctx.maxTools - metaTools.length, 1))
-					: tools;
-			const formattedTools = boundedTools.map((t) => ({
-				name: t.slug,
-				description: t.description || t.human_description || t.name || `Composio tool ${t.slug}`,
-				inputSchema: inputParametersToJsonSchema(t.input_parameters),
-			}));
+					? filteredTools.slice(0, Math.max(ctx.maxTools - metaTools.length, 1))
+					: filteredTools;
+			let formattedTools;
+			if (ctx?.compressedToolsMode) {
+				const verbosity = ctx.compressedVerbosity ?? 'brief';
+				formattedTools = boundedTools.map((t) => {
+					const toolkit = String(t.toolkit?.slug ?? '').toLowerCase();
+					const descriptionBase = t.description || t.human_description || t.name || `Composio tool ${t.slug}`;
+					let description = `Toolkit:${toolkit || 'unknown'}`;
+					if (verbosity === 'brief') {
+						description = `${description} | ${descriptionBase.slice(0, 140)}`;
+					}
+					return {
+						name: t.slug,
+						description,
+						inputSchema:
+							verbosity === 'none'
+								? { type: 'object', properties: {} }
+								: inputParametersToJsonSchema(t.input_parameters),
+					};
+				});
+				formattedTools = [
+					LIST_TOOLS_META_TOOL,
+					GET_TOOL_SCHEMA_META_TOOL,
+					EXECUTE_META_TOOL,
+					...formattedTools,
+				];
+			} else {
+				formattedTools = boundedTools.map((t) => ({
+					name: t.slug,
+					description: t.description || t.human_description || t.name || `Composio tool ${t.slug}`,
+					inputSchema: inputParametersToJsonSchema(t.input_parameters),
+				}));
+			}
 			logLine('info', 'mcp_list_tools', {
 				correlationId,
 				toolCount: formattedTools.length + metaTools.length,
@@ -242,6 +300,30 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 
 		try {
 			let result: unknown;
+			if (name === 'composio_list_tools') {
+				const maxResultsRaw = Number(args.max_results ?? ctx?.maxTools ?? 25);
+				const maxResults = Math.max(1, Math.min(Number.isFinite(maxResultsRaw) ? maxResultsRaw : 25, 100));
+				const tools = await client.listTools(correlationId, {
+					preferredCategories: ctx?.preferredCategories,
+					maxTools: maxResults,
+					entityId: ctx?.entityId,
+					userPrompt: ctx?.userPrompt,
+				});
+				const toolkitFilter = new Set((ctx?.allowedToolkits ?? []).map((k) => k.toLowerCase()));
+				result = (toolkitFilter.size > 0
+					? tools.filter((t) => toolkitFilter.has(String(t.toolkit?.slug ?? '').toLowerCase()))
+					: tools
+				).slice(0, maxResults).map((tool) => ({
+					slug: tool.slug,
+					toolkit: tool.toolkit?.slug ?? null,
+					description: (tool.description || tool.human_description || '').slice(0, 180),
+				}));
+			} else if (name === 'composio_get_tool_schema') {
+				const slug = typeof args.slug === 'string' ? args.slug.trim().toUpperCase() : '';
+				if (!slug) throw new Error('slug is required');
+				const schema = await client.getToolSchema(correlationId, slug);
+				result = schema;
+			} else
 			if (name === 'composio_search_tools') {
 				const query = typeof args.query === 'string' ? args.query.trim() : '';
 				if (!query) throw new Error('query is required');
@@ -417,6 +499,23 @@ app.post('/mcp', async (req, res) => {
 	const connectedAccountId =
 		typeof accountHeader === 'string' && accountHeader.trim() ? accountHeader.trim() : undefined;
 	const userPrompt = extractUserPrompt(req, req.body);
+	const toolkitsHeader = req.headers['x-allowed-toolkits'];
+	const allowedToolkits =
+		typeof toolkitsHeader === 'string'
+			? toolkitsHeader.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+			: Array.isArray(toolkitsHeader)
+				? toolkitsHeader.flatMap((item) => item.split(',').map((s) => s.trim().toLowerCase())).filter(Boolean)
+				: [];
+	const compressedHeader = req.headers['x-compressed-tools'];
+	const compressedToolsMode =
+		typeof compressedHeader === 'string'
+			? ['1', 'true', 'yes'].includes(compressedHeader.toLowerCase())
+			: false;
+	const verbosityHeader = req.headers['x-tool-verbosity'];
+	const compressedVerbosity =
+		typeof verbosityHeader === 'string' && ['none', 'minimal', 'brief'].includes(verbosityHeader.toLowerCase())
+			? (verbosityHeader.toLowerCase() as 'none' | 'minimal' | 'brief')
+			: 'brief';
 
 	const mcp = createMcpServer(client, cid, {
 		preferredCategories,
@@ -424,6 +523,9 @@ app.post('/mcp', async (req, res) => {
 		entityId,
 		connectedAccountId,
 		userPrompt,
+		allowedToolkits,
+		compressedToolsMode,
+		compressedVerbosity,
 	});
 	try {
 		const transport = new StreamableHTTPServerTransport({

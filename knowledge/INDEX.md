@@ -39,6 +39,8 @@
 - [change-log/2026-05-08-portal-self-service-signup.md](change-log/2026-05-08-portal-self-service-signup.md)
 - [change-log/2026-05-08-tenant-link-reconciliation-and-cookie-scope.md](change-log/2026-05-08-tenant-link-reconciliation-and-cookie-scope.md)
 - [change-log/2026-05-11-customer-service-agent.md](change-log/2026-05-11-customer-service-agent.md)
+- [change-log/2026-05-12-customer-service-mcp-overflow-baseline.md](change-log/2026-05-12-customer-service-mcp-overflow-baseline.md)
+- [change-log/2026-05-12-customer-service-mcp-router-rollout.md](change-log/2026-05-12-customer-service-mcp-router-rollout.md)
 - [change-log/2026-05-12-customer-service-rag-rebuild.md](change-log/2026-05-12-customer-service-rag-rebuild.md)
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
 - [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
@@ -111,6 +113,8 @@
 - [decisions/0027-composio-triggers-via-mcp-bridge.md](decisions/0027-composio-triggers-via-mcp-bridge.md)
 - [decisions/0028-multichannel-personal-assistant-and-n8n-as-librechat-mcp.md](decisions/0028-multichannel-personal-assistant-and-n8n-as-librechat-mcp.md)
 - [decisions/0029-customer-service-rag-rebuild.md](decisions/0029-customer-service-rag-rebuild.md)
+- [decisions/0030-document-visibility-model.md](decisions/0030-document-visibility-model.md)
+- [decisions/0030-portal-document-ingestion.md](decisions/0030-portal-document-ingestion.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -133,6 +137,7 @@
 ### `operations/`
 
 - [operations/agentyx-stack-audit-runbook-2026-05-05.md](operations/agentyx-stack-audit-runbook-2026-05-05.md)
+- [operations/apply-document-visibility-migration.md](operations/apply-document-visibility-migration.md)
 - [operations/composio-mcp-n8n-runbook.md](operations/composio-mcp-n8n-runbook.md)
 - [operations/composio-mcp-security-preflight.md](operations/composio-mcp-security-preflight.md)
 - [operations/composio-triggers-runbook.md](operations/composio-triggers-runbook.md)

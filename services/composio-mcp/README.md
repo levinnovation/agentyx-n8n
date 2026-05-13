@@ -69,6 +69,9 @@ Optional per-request headers on `/mcp`:
 - `x-entity-id` to override the execution user/entity.
 - `x-connected-account-id` to force a specific connected account.
 - `x-user-prompt` to pass the latest user request for prompt-aware tool ranking.
+- `x-allowed-toolkits` (CSV) to enforce server-side toolkit filtering for list/search surfaces.
+- `x-compressed-tools` (`1|true|yes`) to enable compressed MCP tool exposure.
+- `x-tool-verbosity` (`none|minimal|brief`) to control compressed tool schema verbosity.
 
 ### Prompt-inferred tools + meta-tools
 
@@ -79,6 +82,11 @@ When no explicit allowlists are set (`COMPOSIO_ALLOWED_TOOLKITS` and `COMPOSIO_A
 3. The server prepends synthetic discovery tools:
    - `composio_search_tools`
    - `composio_execute_tool`
+
+When compressed mode is enabled (`x-compressed-tools`), the server also exposes:
+
+- `composio_list_tools` (compact discovery list)
+- `composio_get_tool_schema` (on-demand full schema for one slug)
 
 This allows the LLM to discover and execute tools dynamically in-session without restarting MCP sessions.
 
