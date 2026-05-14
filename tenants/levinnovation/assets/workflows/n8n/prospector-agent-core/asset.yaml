@@ -8,11 +8,8 @@ metadata:
 spec:
   runtime: n8n
   entrypoint: prospector-agent-core.json
-  workflow_id: ln5Qw90tQaDQpcuZ
+  workflow_id: i06Dfr3BkClgMgT2
   trigger:
-    - type: schedule
-      cron: "0 9 * * *"
-      timezone: America/Costa_Rica
     - type: subworkflow
       input_envelope:
         linkedin_query: string?

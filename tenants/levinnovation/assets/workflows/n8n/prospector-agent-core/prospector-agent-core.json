@@ -291,8 +291,8 @@
       },
       "credentials": {
         "openRouterApi": {
-          "id": "UdJibBBHHZIbd9jP",
-          "name": "OpenRouter account"
+          "id": "xzxfrVCi8DyMDND6",
+          "name": "OpenRouter (Prospector)"
         }
       }
     },
@@ -366,12 +366,80 @@
       "continueOnFail": true
     },
     {
+      "id": "wrap-company",
+      "name": "Wrap Company Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        560
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-0",
+              "name": "operation",
+              "type": "string",
+              "value": "upsert_company"
+            },
+            {
+              "id": "set-1",
+              "name": "company",
+              "type": "string",
+              "value": "={{ $json.company }}"
+            },
+            {
+              "id": "set-2",
+              "name": "_lead_carry",
+              "type": "object",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "twenty-company",
+      "name": "Twenty Upsert Company",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        560
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8DwIA1gB946zMl7B",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "after-company",
+      "name": "Capture Company Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        560
+      ],
+      "parameters": {
+        "jsCode": "\nconst r = $input.first().json || {};\nconst lead = $('Wrap Company Input').item.json._lead_carry || {};\nreturn [{ json: { ...lead, company_id: r?.company?.id || '', _twenty_company_ok: r?.ok === true } }];\n"
+      }
+    },
+    {
       "id": "wrap-person",
       "name": "Wrap Person Input",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
+        1440,
         560
       ],
       "parameters": {
@@ -409,24 +477,30 @@
             },
             {
               "id": "p6",
+              "name": "company_id",
+              "type": "string",
+              "value": "={{ $json.company_id || '' }}"
+            },
+            {
+              "id": "p7",
               "name": "crm_fields",
               "type": "object",
               "value": "={{ { jobTitle: $json.role, linkedinUrl: $json.linkedin_url, company: $json.company } }}"
             },
             {
-              "id": "p7",
+              "id": "p8",
               "name": "user_id",
               "type": "string",
               "value": "={{ $json.lead_id }}"
             },
             {
-              "id": "p8",
+              "id": "p9",
               "name": "conversation_id",
               "type": "string",
               "value": "={{ 'prospect:' + $json.lead_id }}"
             },
             {
-              "id": "p9",
+              "id": "p10",
               "name": "_lead_carry",
               "type": "object",
               "value": "={{ $json }}"
@@ -442,7 +516,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        960,
+        1680,
         560
       ],
       "parameters": {
@@ -462,79 +536,11 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1200,
-        560
-      ],
-      "parameters": {
-        "jsCode": "\nconst personResult = $input.first().json || {};\nconst lead = $('Wrap Person Input').item.json._lead_carry || {};\nreturn [{\n  json: {\n    ...lead,\n    person_id: personResult?.person?.id || '',\n    _twenty_person_ok: personResult?.ok === true,\n  }\n}];\n"
-      }
-    },
-    {
-      "id": "wrap-company",
-      "name": "Wrap Company Input",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        1440,
-        560
-      ],
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "set-0",
-              "name": "operation",
-              "type": "string",
-              "value": "upsert_company"
-            },
-            {
-              "id": "set-1",
-              "name": "company",
-              "type": "string",
-              "value": "={{ $json.company }}"
-            },
-            {
-              "id": "set-2",
-              "name": "_lead_carry",
-              "type": "object",
-              "value": "={{ $json }}"
-            }
-          ]
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "twenty-company",
-      "name": "Twenty Upsert Company",
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.2,
-      "position": [
-        1680,
-        560
-      ],
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "8DwIA1gB946zMl7B",
-          "mode": "id"
-        },
-        "options": {
-          "waitForSubWorkflow": true
-        }
-      }
-    },
-    {
-      "id": "after-company",
-      "name": "Capture Company Result",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
         1920,
         560
       ],
       "parameters": {
-        "jsCode": "\nconst r = $input.first().json || {};\nconst lead = $('Wrap Company Input').item.json._lead_carry || {};\nreturn [{ json: { ...lead, company_id: r?.company?.id || '', _twenty_company_ok: r?.ok === true } }];\n"
+        "jsCode": "\nconst personResult = $input.first().json || {};\nconst lead = $('Wrap Person Input').item.json._lead_carry || {};\nreturn [{\n  json: {\n    ...lead,\n    person_id: personResult?.person?.id || '',\n    _twenty_person_ok: personResult?.ok === true,\n  }\n}];\n"
       }
     },
     {
@@ -1081,7 +1087,7 @@
       "main": [
         [
           {
-            "node": "Wrap Person Input",
+            "node": "Wrap Company Input",
             "type": "main",
             "index": 0
           }
@@ -1100,39 +1106,6 @@
         [
           {
             "node": "Split In Batches",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wrap Person Input": {
-      "main": [
-        [
-          {
-            "node": "Twenty Upsert Person",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Twenty Upsert Person": {
-      "main": [
-        [
-          {
-            "node": "Capture Person Result",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Capture Person Result": {
-      "main": [
-        [
-          {
-            "node": "Wrap Company Input",
             "type": "main",
             "index": 0
           }
@@ -1162,6 +1135,39 @@
       ]
     },
     "Capture Company Result": {
+      "main": [
+        [
+          {
+            "node": "Wrap Person Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wrap Person Input": {
+      "main": [
+        [
+          {
+            "node": "Twenty Upsert Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty Upsert Person": {
+      "main": [
+        [
+          {
+            "node": "Capture Person Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Capture Person Result": {
       "main": [
         [
           {

@@ -15,7 +15,7 @@ spec:
       cron: "0 * * * *"
       timezone: America/Costa_Rica
   subworkflows:
-    - id: ln5Qw90tQaDQpcuZ
+    - id: i06Dfr3BkClgMgT2
       name: Prospector Agent Core (Levinnovation)
       purpose: actual prospecting pipeline
   env_optional:
