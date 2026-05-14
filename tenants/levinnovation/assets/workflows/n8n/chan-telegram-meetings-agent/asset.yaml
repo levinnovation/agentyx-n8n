@@ -1,0 +1,33 @@
+asset:
+  name: chan-telegram-meetings-agent
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: internal-operations
+  capability: meeting-minutes-and-followups
+
+  description: |
+    Telegram channel adapter for the LEV Innovation Sofer meetings agent
+    (t.me/levinnovation_scribebot).
+    Receives Telegram inbound webhook events, normalizes payload into meetings
+    envelope, calls meetings-agent-core, and sends Sofer's user_message reply
+    via Telegram Bot API with HTML parse mode.
+
+  inputs:
+    - telegram inbound webhook payload
+
+  outputs:
+    - telegram outbound message reply with HTML formatting
+    - webhook acknowledgment
+
+  dependencies:
+    - service: telegram-bot-api
+      endpoint: https://api.telegram.org
+      auth: TELEGRAM_MEETINGS_BOT_TOKEN
+    - service: n8n-main
+      endpoint: https://levinnovation.n8n.agentyx.one
+
+  files:
+    - chan-telegram-meetings-agent.json
+    - README.md
+    - asset.yaml
+    - .env.example

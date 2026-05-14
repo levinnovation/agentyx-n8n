@@ -1,0 +1,240 @@
+{
+  "name": "Channel Adapter - Telegram Meetings Agent (ScribeBot)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram/meetings-agent",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "sofer-tg-webhook",
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        260
+      ],
+      "webhookId": "telegram-meetings-agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst msg = body.message || {};\nconst from = msg.from || {};\nconst chat = msg.chat || {};\nconst text = msg.text || msg.caption || '';\n\nconst urlMatch = text.match(/https?:\\/\\/\\S+/);\nconst meetingUrl = urlMatch ? urlMatch[0] : '';\n\nconst chatId = String(chat.id || '');\n\nreturn [{\n  json: {\n    core_workflow_id: 'MEETINGS_AGENT_CORE_ID',\n    trigger_source: 'telegram',\n    channel: 'telegram',\n    meeting_id: 'tg-' + chatId,\n    meeting_url: meetingUrl,\n    meeting_title: meetingUrl ? 'Solicitud via Telegram' : 'Chat via Telegram',\n    meeting_date: new Date().toISOString(),\n    message: text,\n    transcript_text: '',\n    attendees_hint: [],\n    conversation_id: chatId,\n    user_id: String(from.id || ''),\n    metadata: {\n      update_id: body.update_id || null,\n      message_id: msg.message_id || null,\n      username: from.username || null,\n      first_name: from.first_name || null,\n      chat_id: chatId,\n      source: 'telegram'\n    }\n  }\n}];"
+      },
+      "id": "sofer-tg-normalize",
+      "name": "Validate + Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "yMhnGt1bBWUjBTZ5",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "sofer-tg-execute-core",
+      "name": "Execute Meetings Agent Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1160,
+        180
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean(String($json.user_message || '').trim()) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "sofer-tg-has-reply",
+      "name": "Has Reply Text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputItem = $input.first().json || {};\nlet rawText = String(inputItem.user_message || '').trim();\n\nif (!rawText) {\n  const status = String(inputItem.status || '');\n  if (status === 'pending') rawText = 'Recibido. Cuando tengas la transcripcion lista, procesare la reunion.';\n  else if (status === 'skipped') rawText = 'La transcripcion no cumple los requisitos minimos para procesarla. Necesito al menos 5 intervenciones con contenido de reunion.';\n  else rawText = 'Procesado. Revisa los artefactos generados.';\n}\n\n// Remove accidental wrapper braces from serialized responses.\nif (rawText.startsWith('{') && rawText.endsWith('}')) {\n  const inner = rawText.slice(1, -1).trim();\n  if (inner.length > 0) rawText = inner;\n}\n\n// Normalize list markers.\nrawText = rawText\n  .replace(/^\\s*\\*\\s{2,}/gm, '\\u2022 ')\n  .replace(/^\\s*\\*\\s+/gm, '\\u2022 ')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nfunction splitByLimit(text, maxLen) {\n  if (!text) return [];\n  if (text.length <= maxLen) return [text];\n\n  const parts = [];\n  const paragraphs = text.split(/\\n\\n+/);\n  let current = '';\n\n  const flush = () => {\n    if (current.trim()) parts.push(current.trim());\n    current = '';\n  };\n\n  const forceSplit = (block) => {\n    const lines = block.split('\\n');\n    let acc = '';\n\n    const pushHard = (line) => {\n      if (line.length <= maxLen) {\n        if (!acc) acc = line;\n        else if ((acc + '\\n' + line).length <= maxLen) acc += '\\n' + line;\n        else {\n          parts.push(acc.trim());\n          acc = line;\n        }\n        return;\n      }\n\n      for (let i = 0; i < line.length; i += maxLen) {\n        const chunk = line.slice(i, i + maxLen);\n        if (acc && (acc + '\\n' + chunk).length <= maxLen) acc += '\\n' + chunk;\n        else {\n          if (acc.trim()) parts.push(acc.trim());\n          acc = chunk;\n        }\n      }\n    };\n\n    for (const line of lines) pushHard(line);\n    if (acc.trim()) parts.push(acc.trim());\n  };\n\n  for (const p of paragraphs) {\n    const candidate = current ? `${current}\\n\\n${p}` : p;\n    if (candidate.length <= maxLen) {\n      current = candidate;\n      continue;\n    }\n\n    if (current) flush();\n    if (p.length <= maxLen) current = p;\n    else forceSplit(p);\n  }\n\n  flush();\n  return parts;\n}\n\nfunction toTelegramHtml(text) {\n  const escaped = text\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n\n  return escaped\n    .replace(/\\*\\*(.+?)\\*\\*/g, '<b>$1</b>')\n    .replace(/__([^_]+)__/g, '<b>$1</b>')\n    .replace(/~~(.+?)~~/g, '<s>$1</s>')\n    .replace(/\\*([^*\\n]+)\\*/g, '<i>$1</i>')\n    .replace(/_((?!_)[^_\\n]+)_/g, '<i>$1</i>')\n    .replace(/`([^`\\n]+)`/g, '<code>$1</code>')\n    .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href=\"$2\">$1</a>');\n}\n\nconst TELEGRAM_SAFE_LIMIT = 3900;\nconst chunks = splitByLimit(rawText, TELEGRAM_SAFE_LIMIT);\n\nreturn chunks.map((chunk, idx) => ({\n  json: {\n    ...inputItem,\n    telegram_text: toTelegramHtml(chunk),\n    telegram_parse_mode: 'HTML',\n    telegram_chunk_index: idx + 1,\n    telegram_chunk_total: chunks.length\n  }\n}));"
+      },
+      "id": "sofer-tg-format-reply",
+      "name": "Format Reply for Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "user_message",
+              "value": "={{ '' }}",
+              "type": "string"
+            },
+            {
+              "name": "channel",
+              "value": "telegram",
+              "type": "string"
+            },
+            {
+              "name": "chunks_sent",
+              "value": "={{ 0 }}",
+              "type": "number"
+            },
+            {
+              "name": "skipped_reason",
+              "value": "={{ 'core_returned_empty_reply' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sofer-tg-skip-empty-reply",
+      "name": "Skip Empty Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_MEETINGS_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"text\": String($json.telegram_text || $json.user_message || ''), \"parse_mode\": String($json.telegram_parse_mode || 'HTML'), \"disable_web_page_preview\": true } }}",
+        "options": {}
+      },
+      "id": "sofer-tg-send-reply",
+      "name": "Send Reply via Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        80
+      ],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Telegram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate + Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate + Normalize": {
+      "main": [
+        [
+          {
+            "node": "Execute Meetings Agent Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Meetings Agent Core": {
+      "main": [
+        [
+          {
+            "node": "Has Reply Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Reply Text?": {
+      "main": [
+        [
+          {
+            "node": "Format Reply for Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Format Reply for Telegram": {
+      "main": [
+        [
+          {
+            "node": "Send Reply via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "levinnovation"
+    },
+    {
+      "name": "telegram"
+    },
+    {
+      "name": "meetings-agent"
+    },
+    {
+      "name": "sofer"
+    }
+  ]
+}
