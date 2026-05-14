@@ -69,7 +69,7 @@ full pipeline. If `dry_run: true`, Gmail send is skipped (everything else still 
 | System | Used for | Auth |
 |---|---|---|
 | LinkedIn (RapidAPI) | Lead sourcing | `RAPIDAPI_KEY` env |
-| Tavily | Company web enrichment | `TAVILY_API_KEY` env |
+| Tavily | Company web enrichment | n8n credential `httpHeaderAuth` id `8UlHXKvhdd4luxVZ` (Bearer token) |
 | Twenty CRM | Dedup, upsert person/company/opportunity | `TWENTY_API_KEY` env, via subworkflows |
 | Google Calendar | Slot availability for outreach | OAuth (`googleCalendarOAuth2Api`) |
 | Gmail | Outreach send | OAuth (`gmailOAuth2`) |

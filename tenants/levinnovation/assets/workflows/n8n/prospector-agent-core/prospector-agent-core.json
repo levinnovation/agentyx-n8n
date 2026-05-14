@@ -237,6 +237,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -248,11 +250,17 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ api_key: $env.TAVILY_API_KEY, query: (($('Split In Batches').item.json.company || $('Split In Batches').item.json.full_name || '') + ' company overview business products'), search_depth: 'basic', max_results: 3, include_answer: true }) }}",
+        "jsonBody": "={{ JSON.stringify({ query: (($('Split In Batches').item.json.company || $('Split In Batches').item.json.full_name || '') + ' company overview business products'), search_depth: 'basic', max_results: 3, include_answer: true }) }}",
         "options": {
           "timeout": 25000
         },
         "alwaysOutputData": true
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "8UlHXKvhdd4luxVZ",
+          "name": "Tavily API Key"
+        }
       },
       "continueOnFail": true
     },
