@@ -1,0 +1,116 @@
+{
+  "name": "Prospector Agent Scheduler (Levinnovation)",
+  "nodes": [
+    {
+      "id": "trg-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-400, 0],
+      "parameters": {}
+    },
+    {
+      "id": "trg-hourly",
+      "name": "Schedule Trigger (Hourly)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-400, 200],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "build-payload",
+      "name": "Build Run Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-160, 100],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "trigger_source",
+              "type": "string",
+              "value": "={{ $node['Manual Trigger']?.json ? 'manual' : 'cron-hourly' }}"
+            },
+            {
+              "id": "p2",
+              "name": "linkedin_query",
+              "type": "string",
+              "value": "={{ $env.LINKEDIN_SEARCH_QUERY || 'operations manager ai automation latam' }}"
+            },
+            {
+              "id": "p3",
+              "name": "leads_per_run",
+              "type": "number",
+              "value": "={{ Number($env.LEADS_PER_RUN || 25) }}"
+            },
+            {
+              "id": "p4",
+              "name": "fit_threshold",
+              "type": "number",
+              "value": "={{ Number($env.LEAD_FIT_THRESHOLD || 70) }}"
+            },
+            {
+              "id": "p5",
+              "name": "dry_run",
+              "type": "boolean",
+              "value": "={{ $env.PROSPECTOR_DRY_RUN === 'true' }}"
+            },
+            {
+              "id": "p6",
+              "name": "scheduled_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "invoke-prospector",
+      "name": "Invoke Prospector Agent Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [80, 100],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ln5Qw90tQaDQpcuZ",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{"node": "Build Run Config", "type": "main", "index": 0}]]
+    },
+    "Schedule Trigger (Hourly)": {
+      "main": [[{"node": "Build Run Config", "type": "main", "index": 0}]]
+    },
+    "Build Run Config": {
+      "main": [[{"node": "Invoke Prospector Agent Core", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Costa_Rica",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  }
+}

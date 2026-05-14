@@ -8,7 +8,10 @@ inbound also drives the outbound follow-up.
 
 - **Workflow ID (live):** `ln5Qw90tQaDQpcuZ`
 - **Status:** active
-- **Triggers:** Daily cron `0 9 * * *` (America/Costa_Rica) + `executeWorkflowTrigger` (callable)
+- **Triggers:**
+  - `Webhook Trigger (POST)` at `https://webhooks.n8n.agentyx.one/webhook/prospector/run`
+  - `Execute Workflow Trigger` (callable from other workflows)
+  - Scheduled hourly via the separate `prospector-agent-scheduler` workflow (id `x6UEapkGLMDXxXuv`)
 
 ## Pipeline
 

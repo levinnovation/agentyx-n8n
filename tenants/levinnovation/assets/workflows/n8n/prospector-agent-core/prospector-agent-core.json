@@ -15,26 +15,6 @@
       }
     },
     {
-      "id": "trg-cron",
-      "name": "Schedule Trigger (Daily 09:00)",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [
-        -2400,
-        480
-      ],
-      "parameters": {
-        "rule": {
-          "interval": [
-            {
-              "field": "cronExpression",
-              "expression": "0 9 * * *"
-            }
-          ]
-        }
-      }
-    },
-    {
       "id": "init",
       "name": "Initialize Run",
       "type": "n8n-nodes-base.code",
@@ -923,17 +903,6 @@
   ],
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [
-        [
-          {
-            "node": "Initialize Run",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Schedule Trigger (Daily 09:00)": {
       "main": [
         [
           {
