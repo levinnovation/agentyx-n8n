@@ -9,7 +9,10 @@
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [220, 240]
+      "position": [
+        220,
+        240
+      ]
     },
     {
       "parameters": {
@@ -19,7 +22,10 @@
       "name": "Classify Route",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 240]
+      "position": [
+        440,
+        240
+      ]
     },
     {
       "parameters": {
@@ -49,23 +55,31 @@
       "name": "Action Route?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [640, 240]
+      "position": [
+        640,
+        240
+      ]
     },
     {
       "parameters": {
         "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "CUSTOMER_SERVICE_ACTION_CORE_ID",
+          "value": "WZHj0j8kKT51abJ6",
           "mode": "id"
         },
-        "options": {}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "cs-router-action-core",
       "name": "Execute Action Core",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [860, 140],
+      "position": [
+        860,
+        140
+      ],
       "continueOnFail": true
     },
     {
@@ -73,16 +87,21 @@
         "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "CUSTOMER_SERVICE_FAQ_RAG_CORE_ID",
+          "value": "rYpSpcIwFXn3yqhJ",
           "mode": "id"
         },
-        "options": {}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "cs-router-faq-core",
       "name": "Execute FAQ Core",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [860, 340],
+      "position": [
+        860,
+        340
+      ],
       "continueOnFail": true
     },
     {
@@ -93,27 +112,74 @@
       "name": "Build Routed Output",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 240]
+      "position": [
+        1120,
+        240
+      ]
     }
   ],
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [[{ "node": "Classify Route", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Classify Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Classify Route": {
-      "main": [[{ "node": "Action Route?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Action Route?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Action Route?": {
       "main": [
-        [{ "node": "Execute Action Core", "type": "main", "index": 0 }],
-        [{ "node": "Execute FAQ Core", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Execute Action Core",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute FAQ Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Execute Action Core": {
-      "main": [[{ "node": "Build Routed Output", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Routed Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Execute FAQ Core": {
-      "main": [[{ "node": "Build Routed Output", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build Routed Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -126,8 +192,14 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "levinnovation" },
-    { "name": "customer-service" },
-    { "name": "router" }
+    {
+      "name": "levinnovation"
+    },
+    {
+      "name": "customer-service"
+    },
+    {
+      "name": "router"
+    }
   ]
 }

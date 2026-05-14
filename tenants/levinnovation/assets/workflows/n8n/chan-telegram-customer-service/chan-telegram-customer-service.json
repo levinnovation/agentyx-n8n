@@ -5,14 +5,17 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "telegram/customer-service",
-        "responseMode": "responseNode",
+        "responseMode": "onReceived",
         "options": {}
       },
       "id": "cs-tg-webhook",
       "name": "Telegram Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 260],
+      "position": [
+        240,
+        260
+      ],
       "webhookId": "telegram-customer-service"
     },
     {
@@ -23,7 +26,10 @@
       "name": "Validate + Normalize",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 260]
+      "position": [
+        460,
+        260
+      ]
     },
     {
       "parameters": {
@@ -33,13 +39,18 @@
           "value": "fM29GJKgwpCujakW",
           "mode": "id"
         },
-        "options": {}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "cs-tg-execute-core",
       "name": "Execute Customer Service Core",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [1160, 180],
+      "position": [
+        1160,
+        180
+      ],
       "continueOnFail": true
     },
     {
@@ -53,7 +64,7 @@
           },
           "conditions": [
             {
-              "leftValue": "={{ Boolean(String($json.reply_text || '').trim()) }}",
+              "leftValue": "={{ Boolean(String($json.reply_text || '').trim() || String($json.attachment_url || '').trim()) }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -70,17 +81,23 @@
       "name": "Has Reply Text?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1220, 180]
+      "position": [
+        1220,
+        180
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const inputItem = $input.first().json || {};\nlet rawText = String(inputItem.reply_text || '').trim();\n\n// Remove accidental wrapper braces from serialized responses.\nif (rawText.startsWith('{') && rawText.endsWith('}')) {\n  const inner = rawText.slice(1, -1).trim();\n  if (inner.length > 0) rawText = inner;\n}\n\n// Normalize WhatsApp-style list markers to Telegram-friendly bullets.\nrawText = rawText\n  .replace(/^\\s*\\*\\s{2,}/gm, '• ')\n  .replace(/^\\s*\\*\\s+/gm, '• ')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nfunction splitByLimit(text, maxLen) {\n  if (!text) return [];\n  if (text.length <= maxLen) return [text];\n\n  const parts = [];\n  const paragraphs = text.split(/\\n\\n+/);\n  let current = '';\n\n  const flush = () => {\n    if (current.trim()) parts.push(current.trim());\n    current = '';\n  };\n\n  const forceSplit = (block) => {\n    const lines = block.split('\\n');\n    let acc = '';\n\n    const pushHard = (line) => {\n      if (line.length <= maxLen) {\n        if (!acc) acc = line;\n        else if ((acc + '\\n' + line).length <= maxLen) acc += '\\n' + line;\n        else {\n          parts.push(acc.trim());\n          acc = line;\n        }\n        return;\n      }\n\n      for (let i = 0; i < line.length; i += maxLen) {\n        const chunk = line.slice(i, i + maxLen);\n        if (acc && (acc + '\\n' + chunk).length <= maxLen) acc += '\\n' + chunk;\n        else {\n          if (acc.trim()) parts.push(acc.trim());\n          acc = chunk;\n        }\n      }\n    };\n\n    for (const line of lines) pushHard(line);\n    if (acc.trim()) parts.push(acc.trim());\n  };\n\n  for (const p of paragraphs) {\n    const candidate = current ? `${current}\\n\\n${p}` : p;\n    if (candidate.length <= maxLen) {\n      current = candidate;\n      continue;\n    }\n\n    if (current) flush();\n    if (p.length <= maxLen) current = p;\n    else forceSplit(p);\n  }\n\n  flush();\n  return parts;\n}\n\nfunction toTelegramHtml(text) {\n  const escaped = text\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n\n  return escaped.replace(/\\*\\*(.+?)\\*\\*/g, '<b>$1</b>');\n}\n\nconst TELEGRAM_SAFE_LIMIT = 3900;\nconst chunks = splitByLimit(rawText, TELEGRAM_SAFE_LIMIT);\n\nreturn chunks.map((chunk, idx) => ({\n  json: {\n    ...inputItem,\n    telegram_text: toTelegramHtml(chunk),\n    telegram_parse_mode: 'HTML',\n    telegram_chunk_index: idx + 1,\n    telegram_chunk_total: chunks.length\n  }\n}));"
+        "jsCode": "const inputItem = $input.first().json || {};\nlet rawText = String(inputItem.reply_text || '').trim();\n\n// Remove accidental wrapper braces from serialized responses.\nif (rawText.startsWith('{') && rawText.endsWith('}')) {\n  const inner = rawText.slice(1, -1).trim();\n  if (inner.length > 0) rawText = inner;\n}\n\n// Normalize WhatsApp-style list markers to Telegram-friendly bullets.\nrawText = rawText\n  .replace(/^\\s*\\*\\s{2,}/gm, '• ')\n  .replace(/^\\s*\\*\\s+/gm, '• ')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nfunction splitByLimit(text, maxLen) {\n  if (!text) return [];\n  if (text.length <= maxLen) return [text];\n\n  const parts = [];\n  const paragraphs = text.split(/\\n\\n+/);\n  let current = '';\n\n  const flush = () => {\n    if (current.trim()) parts.push(current.trim());\n    current = '';\n  };\n\n  const forceSplit = (block) => {\n    const lines = block.split('\\n');\n    let acc = '';\n\n    const pushHard = (line) => {\n      if (line.length <= maxLen) {\n        if (!acc) acc = line;\n        else if ((acc + '\\n' + line).length <= maxLen) acc += '\\n' + line;\n        else {\n          parts.push(acc.trim());\n          acc = line;\n        }\n        return;\n      }\n\n      for (let i = 0; i < line.length; i += maxLen) {\n        const chunk = line.slice(i, i + maxLen);\n        if (acc && (acc + '\\n' + chunk).length <= maxLen) acc += '\\n' + chunk;\n        else {\n          if (acc.trim()) parts.push(acc.trim());\n          acc = chunk;\n        }\n      }\n    };\n\n    for (const line of lines) pushHard(line);\n    if (acc.trim()) parts.push(acc.trim());\n  };\n\n  for (const p of paragraphs) {\n    const candidate = current ? `${current}\\n\\n${p}` : p;\n    if (candidate.length <= maxLen) {\n      current = candidate;\n      continue;\n    }\n\n    if (current) flush();\n    if (p.length <= maxLen) current = p;\n    else forceSplit(p);\n  }\n\n  flush();\n  return parts;\n}\n\nfunction toTelegramHtml(text) {\n  const escaped = text\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;');\n\n  return escaped.replace(/\\*\\*(.+?)\\*\\*/g, '<b>$1</b>');\n}\n\nconst derivedAttachmentUrl = String(inputItem.attachment_url || ((Array.isArray(inputItem.reply_attachments) ? (inputItem.reply_attachments[0] || {}).url : '') || '')).trim();\nconst derivedAttachmentCaption = String((Array.isArray(inputItem.reply_attachments) ? (inputItem.reply_attachments[0] || {}).caption : '') || inputItem.reply_text || 'Adjunto solicitado').trim();\n\nconst TELEGRAM_SAFE_LIMIT = 3900;\nconst chunks = splitByLimit(rawText, TELEGRAM_SAFE_LIMIT);\n\nreturn chunks.map((chunk, idx) => ({\n  json: {\n    ...inputItem,\n    telegram_text: toTelegramHtml(chunk),\n    telegram_parse_mode: 'HTML',\n    telegram_chunk_index: idx + 1,\n    telegram_chunk_total: chunks.length,\n    attachment_url: derivedAttachmentUrl,\n    attachment_caption: derivedAttachmentCaption\n  }\n}));"
       },
       "id": "cs-tg-format-reply",
       "name": "Format Reply for Telegram",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1420, 80]
+      "position": [
+        1420,
+        80
+      ]
     },
     {
       "parameters": {
@@ -114,61 +131,179 @@
       "name": "Skip Empty Reply",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [1420, 300]
+      "position": [
+        1420,
+        300
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/{{ String($json.attachment_url || '').trim() ? 'sendDocument' : 'sendMessage' }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"text\": String($json.telegram_text || $json.reply_text || ''), \"parse_mode\": String($json.telegram_parse_mode || 'HTML'), \"disable_web_page_preview\": true } }}",
+        "jsonBody": "={{ String($json.attachment_url || '').trim() ? { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"document\": String($json.attachment_url), \"caption\": String($json.attachment_caption || $json.telegram_text || $json.reply_text || 'Adjunto solicitado').slice(0, 1000), \"parse_mode\": \"HTML\" } : { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"text\": String($json.telegram_text || $json.reply_text || ''), \"parse_mode\": String($json.telegram_parse_mode || 'HTML'), \"disable_web_page_preview\": true } }}",
         "options": {}
       },
       "id": "cs-tg-send-reply",
       "name": "Send Reply via Telegram",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1620, 80],
+      "position": [
+        1620,
+        80
+      ],
       "continueOnFail": true
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"ok\": true, \"reply_text\": $json.reply_text || '', \"channel\": \"telegram\", \"chunks_sent\": Number($json.telegram_chunk_total || $json.chunks_sent || 1), \"skipped_reason\": $json.skipped_reason || '' } }}",
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean(String($json.attachment_url || '').trim()) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
         "options": {}
       },
-      "id": "cs-tg-respond",
-      "name": "Respond OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.3,
-      "position": [1820, 180]
+      "id": "cs-tg-has-attachment-url",
+      "name": "Has Attachment URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1500,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendDocument",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"chat_id\": Number(($('Validate + Normalize').item.json.metadata.chat_id || $('Validate + Normalize').item.json.conversation_id || 0)), \"document\": String($json.attachment_url || ''), \"caption\": String($json.attachment_caption || $json.telegram_text || $json.reply_text || 'Adjunto solicitado').slice(0, 1000), \"parse_mode\": \"HTML\" } }}",
+        "options": {}
+      },
+      "id": "cs-tg-send-attachment",
+      "name": "Send Attachment via Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1740,
+        100
+      ],
+      "continueOnFail": true
     }
   ],
   "connections": {
     "Telegram Webhook": {
-      "main": [[{ "node": "Validate + Normalize", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Validate + Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Validate + Normalize": {
-      "main": [[{ "node": "Execute Customer Service Core", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Execute Customer Service Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Execute Customer Service Core": {
-      "main": [[{ "node": "Has Reply Text?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Reply Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has Reply Text?": {
       "main": [
-        [{ "node": "Format Reply for Telegram", "type": "main", "index": 0 }],
-        [{ "node": "Skip Empty Reply", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Format Reply for Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     },
     "Format Reply for Telegram": {
-      "main": [[{ "node": "Send Reply via Telegram", "type": "main", "index": 0 }]]
-    },
-    "Skip Empty Reply": {
-      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Send Reply via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Send Reply via Telegram": {
-      "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has Attachment URL?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Attachment URL?": {
+      "main": [
+        [
+          {
+            "node": "Send Attachment via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send Attachment via Telegram": {
+      "main": [
+        []
+      ]
+    },
+    "Has Attachment URL": {
+      "main": [
+        [
+          {
+            "node": "Send Attachment via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
     }
   },
   "settings": {
@@ -181,8 +316,14 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "levinnovation" },
-    { "name": "telegram" },
-    { "name": "customer-service" }
+    {
+      "name": "levinnovation"
+    },
+    {
+      "name": "telegram"
+    },
+    {
+      "name": "customer-service"
+    }
   ]
 }

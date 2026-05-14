@@ -450,6 +450,146 @@ function summarizePrompt(prompt?: string): string | null {
 	return compact.slice(0, 140);
 }
 
+function uniqueStrings(values: string[]): string[] {
+	return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function extractEmails(text?: string): string[] {
+	if (!text) return [];
+	return uniqueStrings(
+		Array.from(text.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)).map((match) =>
+			match[0].toLowerCase(),
+		),
+	);
+}
+
+function normalizeEmailList(value: unknown): string[] {
+	if (Array.isArray(value)) {
+		return uniqueStrings(value.flatMap((item) => extractEmails(String(item ?? ''))));
+	}
+	if (typeof value === 'string') return extractEmails(value);
+	return [];
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
+
+function markdownishToHtml(value: string): string {
+	const paragraphs = value
+		.split(/\n{2,}/)
+		.map((block) => block.trim())
+		.filter(Boolean);
+	return paragraphs
+		.map((block) => {
+			const escaped = escapeHtml(block)
+				.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+				.replace(/\n/g, '<br />');
+			return `<p style="margin:0 0 12px 0;line-height:1.6;">${escaped}</p>`;
+		})
+		.join('\n');
+}
+
+function extractEmailTemplateHtml(prompt?: string): string | null {
+	if (!prompt) return null;
+	const match = prompt.match(/\[EMAIL_TEMPLATE_HTML\]\s*([\s\S]*?)(?:\n\s*\[EMAIL_TEMPLATE_RULE\]|\s*$)/);
+	const template = match?.[1]?.trim();
+	return template && template.includes('{{body_html}}') ? template : null;
+}
+
+async function fetchDefaultEmailTemplateHtml(correlationId: string): Promise<string | null> {
+	const tenant = process.env.TENANT_SLUG || process.env.AGENTYX_CLIENT_SLUG || 'levinnovation';
+	const base = process.env.PORTAL_TEMPLATE_API_BASE || `https://${tenant}.portal.agentyx.one`;
+	const url = `${base.replace(/\/$/, '')}/api/public/templates/email?tenant=${encodeURIComponent(tenant)}`;
+	try {
+		const res = await fetch(url, { method: 'GET' });
+		if (!res.ok) {
+			logLine('warn', 'gmail_template_fetch_failed', { correlationId, status: res.status });
+			return null;
+		}
+		const json = (await res.json()) as { html?: unknown };
+		const html = typeof json.html === 'string' ? json.html.trim() : '';
+		return html && html.includes('{{body_html}}') ? html : null;
+	} catch (e) {
+		logLine('warn', 'gmail_template_fetch_error', {
+			correlationId,
+			error: e instanceof Error ? e.message : String(e),
+		});
+		return null;
+	}
+}
+
+function contentToHtml(value: string, alreadyHtml: boolean): string {
+	return alreadyHtml || /<\/?[a-z][\s\S]*>/i.test(value) ? value : markdownishToHtml(value);
+}
+
+async function hardenGmailSendArgs(
+	slug: string,
+	args: Record<string, unknown>,
+	userPrompt: string | undefined,
+	correlationId: string,
+): Promise<Record<string, unknown>> {
+	const normalizedSlug = slug.trim().toUpperCase();
+	if (!['GMAIL_SEND_EMAIL', 'GMAIL_SENDS_AN_EMAIL'].includes(normalizedSlug)) return args;
+
+	const next = { ...args };
+	const promptEmails = extractEmails(userPrompt);
+	const existingTo = uniqueStrings([
+		...normalizeEmailList(next.to),
+		...normalizeEmailList(next.recipient_email),
+	]);
+
+	if (existingTo.length === 0 && promptEmails.length > 0) {
+		next.to = [promptEmails[0]];
+		logLine('info', 'gmail_send_recipient_inferred', {
+			correlationId,
+			slug: normalizedSlug,
+			recipient: promptEmails[0],
+		});
+	}
+
+	let toEmails = normalizeEmailList(next.to).length > 0 ? normalizeEmailList(next.to) : normalizeEmailList(next.recipient_email);
+	if (toEmails.length === 0) {
+		const fallbackTo = normalizeEmailList(
+			process.env.GMAIL_DEFAULT_TO || process.env.DEFAULT_EMAIL_TO || process.env.TENANT_DEFAULT_EMAIL_TO,
+		);
+		if (fallbackTo.length === 0) {
+			throw new Error('Gmail send requires an explicit to/recipient_email address; refusing to send to cc/bcc only.');
+		}
+		next.recipient_email = fallbackTo[0];
+		toEmails = [fallbackTo[0]];
+		logLine('warn', 'gmail_send_recipient_fallback_applied', {
+			correlationId,
+			slug: normalizedSlug,
+			recipient: fallbackTo[0],
+		});
+	}
+	if (toEmails.length > 0) {
+		next.recipient_email = toEmails[0];
+		delete next.to;
+	}
+	const ccEmails = normalizeEmailList(next.cc).filter((email) => !toEmails.includes(email));
+	if (ccEmails.length > 0) next.cc = ccEmails;
+
+	const templateHtml = extractEmailTemplateHtml(userPrompt) || (await fetchDefaultEmailTemplateHtml(correlationId));
+	const body = typeof next.body === 'string' ? next.body : '';
+	if (templateHtml && body && !body.includes('<table role="presentation" width="640"')) {
+		next.body = templateHtml.replace(/\{\{body_html\}\}/g, contentToHtml(body, next.is_html === true));
+		next.is_html = true;
+		logLine('info', 'gmail_send_template_applied', {
+			correlationId,
+			slug: normalizedSlug,
+		});
+	}
+
+	return next;
+}
+
 /* ─── ComposioClient class ────────────────────────────────────────── */
 
 export class ComposioClient {
@@ -1186,9 +1326,10 @@ export class ComposioClient {
 			userPrompt: summarizePrompt(options?.userPrompt),
 		});
 
+		const hardenedArgs = await hardenGmailSendArgs(slug, args, options?.userPrompt, correlationId);
 		const url = `${this.baseUrlNorm}/tools/execute/${encodeURIComponent(slug)}`;
 		const body: Record<string, unknown> = {
-			arguments: args,
+			arguments: hardenedArgs,
 		};
 		if (entityId) body.user_id = entityId;
 		if (connectedAccountId) body.connected_account_id = connectedAccountId;

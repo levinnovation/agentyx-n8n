@@ -112,7 +112,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ 'Channel: ' + ($json.channel || 'unknown') + '\\nConversation ID: ' + ($json.conversation_id || '') + '\\nUser ID: ' + ($json.user_id || '') + '\\nIntent Type: ' + ($json.intent_type || 'general_chat') + '\\nAction Target Hint: ' + ($json.action_target_hint || '') + '\\nAction Message: ' + ($json.action_message || '') + '\\nDefault Slack Channel ID: ' + ($json.slack_default_channel_id || '') + '\\nDefault Slack Channel Name: ' + ($json.slack_default_channel_name || '') + '\\n\\nUser message:\\n' + ($json.message || '') + '\\n\\n[EMAIL_TEMPLATE_HTML]\\n' + (($json.html || '').slice(0, 6000)) + '\\n\\n[EMAIL_TEMPLATE_RULE]\\nIf you call Gmail send, convert markdown body to valid HTML, inject it into template placeholder {{body_html}}, and pass the resulting HTML body with is_html=true.' }}",
+        "text": "={{ 'Channel: ' + ($json.channel || 'unknown') + '\\nConversation ID: ' + ($json.conversation_id || '') + '\\nUser ID: ' + ($json.user_id || '') + '\\nIntent Type: ' + ($json.intent_type || 'general_chat') + '\\nAction Target Hint: ' + ($json.action_target_hint || '') + '\\nAction Message: ' + ($json.action_message || '') + '\\nDefault Slack Channel ID: ' + ($json.slack_default_channel_id || '') + '\\nDefault Slack Channel Name: ' + ($json.slack_default_channel_name || '') + '\\n\\nUser message:\\n' + ($json.message || '') + '\\n\\n[EMAIL_TEMPLATE_HTML]\\n' + (($json.html || '').slice(0, 6000)) + '\\n\\n[EMAIL_TEMPLATE_RULE]\\nIf you call Gmail send, convert markdown body to valid HTML, inject it into template placeholder body_html, and pass the resulting HTML body with is_html=true.' }}",
         "options": {
           "systemMessage": "You are a helpful Personal Assistant for the Levinnovation team.\n\nOperational rules:\n1) For channel=kapso-wa (WhatsApp inbound), assume this is a live chat with the current sender.\n2) In kapso-wa, default behavior is to reply directly to the same sender and same conversation.\n3) Never ask the user for phone_number_id, recipient number, or delivery channel when they are just chatting with you.\n4) Only ask for recipient details when the user explicitly asks to send a message to a different third party.\n5) If the user says generic phrases like \"send via whatsapp\" without a recipient, treat it as conversation intent and clarify content only; do not ask for sender/phone_number_id.\n\nAction execution policy (high priority):\n- If the user gives a clear action request, execute it immediately with tools in the same turn.\n- Default to DOING, not describing capabilities.\n- For intent_type=slack_send_action, run this order: resolve target from action_target_hint -> send action_message -> confirm delivery.\n- For Slack requests, invoke Slack tools directly.\n- If Slack target is missing or unresolved, discover channels/conversations via tools and execute without asking first.\n- Prefer channel all-lev-innovation (id C0AHR6GK2S0). If unavailable, use first writable public channel.\n- Never ask for Slack channel IDs/user IDs before attempting discovery and fuzzy matching.\n- Use exact Slack tool names from the available list; do not invent tool names.\n- Preferred Slack send tool sequence: SLACK_SEND_MESSAGE, then SLACK_SEND_ME_MESSAGE as fallback.\n- Do not claim a Slack tool is invalid until after listing tools and retrying with the closest valid Slack send tool.\n- Ask the user only one short clarification question when execution is impossible even after fallback.\n\nCalendar execution policy (strict):\n- For calendar requests, first call an events-list tool (prefer GOOGLECALENDAR_EVENTS_LIST).\n- Do NOT use GOOGLECALENDAR_GET_CURRENT_DATE_TIME as a substitute for listing events.\n- If user does not provide calendar_id, use primary calendar by default.\n- For phrases like \"today afternoon\", infer a local window 12:00-18:00 for today and query that range.\n- If user asks to email results, after listing events call Gmail send tool in the same turn.\n- If recipient email(s) are explicitly provided, send immediately in the same turn without asking for additional confirmation.\n- If no events are found, you must still send the email and clearly state that no events were found in the requested time window.\n- Never ask the user for calendar_id unless events-list call failed after trying primary.\n- If GOOGLECALENDAR_GET_CURRENT_DATE_TIME fails but GOOGLECALENDAR_EVENTS_LIST succeeds, continue and report success.\n- Never answer with \"I cannot get current date/time\" when the user asked for events/email; prioritize event retrieval + email delivery.\n\nEmail HTML policy (mandatory):\n- For any Gmail send tool call, convert markdown text into valid HTML.\n- Use the [EMAIL_TEMPLATE_HTML] payload provided in the user context.\n- Replace {{body_html}} with your generated HTML body.\n- Send the final email with is_html=true.\n- Never send raw markdown in Gmail body.\n\nGeneral tool policy:\n- For calendar/email/task/slack requests, you MUST call relevant tools before final response.\n- Never claim an action was completed unless tool output confirms success.\n- If a tool fails, report the exact failed step and provide one concrete retry path.\n\nHuman-style entity resolution policy (important):\n- Interpret person references flexibly (e.g., \"moshe\", \"Moshe Rosenstock\", \"moshe@...\").\n- Resolve names creatively like a human operator: nickname, first name, last name, email local-part, accent-insensitive.\n- For Slack and ClickUp people lookup, try multiple discovery tools and fuzzy-match candidates before asking the user.\n- If confidence is high, proceed immediately and state who was matched.\n- If ambiguous, ask one concise disambiguation question with top options.\n- Never ask end users for raw technical IDs unless every discovery path fails.\n\nTechnical-parameter UX policy (strict):\n- Prefer tool-driven discovery over asking the user for IDs.\n- If a tool needs team_id, workspace_id, calendar_id, user_id, list_id, channel_id or similar, first discover those values yourself.\n- For ClickUp requests, always run discovery first with CLICKUP_GET_AUTHORIZED_TEAMS_WORKSPACES, then continue with team tasks/users tools.\n- For Google Calendar requests, default to authenticated primary calendar if no calendar_id is provided.\n- For Slack requests, discover workspaces/channels/users via Slack tools before asking for IDs.\n- Do NOT ask for technical IDs unless discovery tool calls failed or returned empty.\n- Never ask for credentials/secrets in chat.\n\nConversation quality rules:\n- Do not repeat stale summaries from previous turns.\n- Address the latest user request directly.\n- Be concise, action-oriented, and explicit about what you executed.\n\nYou have access to Composio tools via MCP. Use tools when needed for external actions (email, calendar, tasks, Slack, outbound messages to third parties)."
         }
@@ -128,7 +128,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst raw = String(item.message || '').trim();\nconst lower = raw.toLowerCase();\n\nconst isSlackIntent = /\\bslack\\b/.test(lower) && /(envi|manda|mandar|post|send|mensaje|message|avisa|notifica)/.test(lower);\n\nlet targetHint = '';\nlet actionMessage = '';\n\nconst quoted = raw.match(/[\"“”']([^\"“”']{3,})[\"“”']/);\nif (quoted) actionMessage = quoted[1].trim();\n\nconst targetMatch = raw.match(/(?:a|to)\\s+([A-Za-zÀ-ÿ0-9._@\\-\\s]{2,60}?)(?:\\s+(?:que\\s+diga|diga|saying\\s+that|that)|\\s*:|$)/i);\nif (targetMatch) targetHint = targetMatch[1].trim();\n\nif (!actionMessage) {\n  const sayMatch = raw.match(/(?:que\\s+diga|diga|saying\\s+that|saying)\\s+(.+)$/i);\n  if (sayMatch) actionMessage = sayMatch[1].trim();\n}\n\nif (!actionMessage && isSlackIntent) actionMessage = raw;\n\nlet intentType = 'general_chat';\nif (isSlackIntent) intentType = 'slack_send_action';\nelse if (/(clickup|tarea|task|asignad|assigned)/.test(lower)) intentType = 'clickup_lookup';\nelse if (/(calendar|calendario|evento|eventos|meeting|reunion)/.test(lower)) intentType = 'calendar_lookup';\n\nreturn [{ json: { ...item, intent_type: intentType, action_target_hint: targetHint, action_message: actionMessage } }];"
+        "jsCode": "const item = $input.first().json;\nconst raw = String(item.message || '').trim();\nconst lower = raw.toLowerCase();\n\nconst isSlackIntent = /\\bslack\\b/.test(lower) && /(envi|manda|mandar|post|send|mensaje|message|avisa|notifica)/.test(lower);\n\nlet targetHint = '';\nlet actionMessage = '';\n\nconst quoted = raw.match(/[\"\u201c\u201d']([^\"\u201c\u201d']{3,})[\"\u201c\u201d']/);\nif (quoted) actionMessage = quoted[1].trim();\n\nconst targetMatch = raw.match(/(?:a|to)\\s+([A-Za-z\u00c0-\u00ff0-9._@\\-\\s]{2,60}?)(?:\\s+(?:que\\s+diga|diga|saying\\s+that|that)|\\s*:|$)/i);\nif (targetMatch) targetHint = targetMatch[1].trim();\n\nif (!actionMessage) {\n  const sayMatch = raw.match(/(?:que\\s+diga|diga|saying\\s+that|saying)\\s+(.+)$/i);\n  if (sayMatch) actionMessage = sayMatch[1].trim();\n}\n\nif (!actionMessage && isSlackIntent) actionMessage = raw;\n\nlet intentType = 'general_chat';\nif (isSlackIntent) intentType = 'slack_send_action';\nelse if (/(clickup|tarea|task|asignad|assigned)/.test(lower)) intentType = 'clickup_lookup';\nelse if (/(calendar|calendario|evento|eventos|meeting|reunion)/.test(lower)) intentType = 'calendar_lookup';\n\nreturn [{ json: { ...item, intent_type: intentType, action_target_hint: targetHint, action_message: actionMessage } }];"
       },
       "id": "c5f1a7ab-0fe1-43a7-a779-113994a39be8",
       "name": "Intent Preprocessor",
@@ -142,7 +142,7 @@
     {
       "parameters": {
         "sessionIdType": "customKey",
-        "sessionKey": "={{ $json.conversation_id || $json.user_id || 'session:default' }}",
+        "sessionKey": "={{ $json.conversation_id || $json.user_id || ($json.metadata || {}).chat_id || $json.chat_id || 'session:default' }}",
         "contextWindowLength": 6
       },
       "id": "830a7d04-dfe8-4595-b498-f3899f287739",
@@ -254,6 +254,65 @@
         1360,
         224
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "use-template-intercept-flag",
+              "leftValue": "={{ String(($json.env || {}).USE_TEMPLATE_INTERCEPT || $env.USE_TEMPLATE_INTERCEPT || \"false\").toLowerCase() }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "use-template-intercept-personal-assistant-core",
+      "name": "Template Intercept Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1212,
+        204
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst data = item.json || {};\nconst templateHtml = String(data.email_template_html || data.html || \"\").trim();\nconst markdownCandidate = String(data.generated_email_markdown || data.message || data.enriched_message || \"\").trim();\nconst fallbackBody = markdownCandidate\n  ? `<p style=\"margin:0 0 12px 0;\">${markdownCandidate.replace(/\\n/g, \"<br />\")}</p>`\n  : `<p style=\"margin:0;\">No body content provided.</p>`;\nconst htmlBody = templateHtml && templateHtml.includes(\"{{body_html}}\")\n  ? templateHtml.replace(/\\{\\{body_html\\}\\}/g, fallbackBody)\n  : fallbackBody;\nreturn [{ json: { ...data, template_intercept_applied: true, intercepted_email_html: htmlBody, composio_email_payload: { body: htmlBody, is_html: true } } }];"
+      },
+      "id": "apply-template-intercept-personal-assistant-core",
+      "name": "Apply Template Intercept",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        84
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first(); return [{ json: { ...(item.json || {}), template_intercept_applied: false } }];"
+      },
+      "id": "skip-template-intercept-personal-assistant-core",
+      "name": "Skip Template Intercept",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        304
+      ]
     }
   ],
   "pinData": {},
@@ -311,7 +370,7 @@
       "main": [
         [
           {
-            "node": "AI Agent (Tools Enabled)",
+            "node": "Template Intercept Enabled?",
             "type": "main",
             "index": 0
           }
@@ -350,23 +409,64 @@
           }
         ]
       ]
+    },
+    "Template Intercept Enabled?": {
+      "main": [
+        [
+          {
+            "node": "Apply Template Intercept",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Template Intercept",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Template Intercept": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Tools Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip Template Intercept": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Tools Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate",
     "saveDataErrorExecution": "all",
     "saveDataSuccessExecution": "all",
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
-    "timezone": "America/Costa_Rica"
+    "timezone": "America/Costa_Rica",
+    "binaryMode": "separate"
   },
-  "versionId": "81ce3e2a-0214-4460-9f68-08ffbd7aaa7f",
+  "versionId": "f8bcba10-3941-4d60-9870-87333f6e086f",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5884bef4e55de9055aac9badc39acc7412aa3809fde913cf95ebd084e6c2ffc2"
   },
   "id": "1USjs2JAP4tlHIcm",
-  "tags": []
+  "tags": [],
+  "versionCounter": 301
 }

@@ -6,8 +6,9 @@ Repository-native, durable Markdown for architecture, decisions, prompts, and ag
 
 1. Start at [INDEX.md](INDEX.md) for a generated file listing.
 2. Read [context-packs/repo-context.md](context-packs/repo-context.md) for repo-wide bootstrap.
-3. For decisions, see [decisions/](decisions/).
-4. For “how to maintain this system”, see [operations/](operations/).
+3. Read tenant-specific context as needed (for example, [context-packs/levinnovation-context.md](context-packs/levinnovation-context.md)).
+4. For decisions, see [decisions/](decisions/).
+5. For "how to maintain this system", see [operations/](operations/).
 
 ## Law
 
@@ -23,3 +24,10 @@ Regenerate the index after substantive additions:
 ```bash
 make knowledge-index
 ```
+
+## Current focus areas reflected in knowledge
+
+- Multi-tenant Railway runtime model and source-lock governance
+- Better Auth federation and auth-proxy integration patterns
+- Customer-service RAG rebuild, KB retrieval hardening, and portal-based ingestion
+- LEV Innovation tenant channel adapter and CRM orchestration operations

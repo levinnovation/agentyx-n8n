@@ -1,89 +1,134 @@
 # Agentyx Vertical Assets
 
-> **Tenant → Domain → Capability → Assets**
+> **Tenant -> Domain -> Capability -> Assets**
 
-This repository is the canonical home for vertical-domain agentic assets. It replaces ad-hoc agent and workflow folders with a strict, schema-governed hierarchy where every agent, n8n workflow, channel adapter, and infrastructure definition is an **asset of a capability**, which lives inside a **domain**, which belongs to a **tenant**.
+Canonical repository for Agentyx multi-tenant, domain-centric AI assets.  
+This repo is the source of truth for architecture specs, versioned n8n workflow assets, prompts, contracts, deployment templates, and governance records.
+
+---
+
+## What This Repo Contains
+
+- Tenant/domain/capability specifications under `tenants/`
+- n8n workflow assets (core logic, channel adapters, CRM/tool subflows)
+- Prompt assets and product knowledge assets
+- Deployment assets/templates (primarily Railway tenant stacks)
+- Shared standards and schemas under `standards/`
+- Durable architecture and operational ledger under `knowledge/` (ADRs, runbooks, change-log, context packs)
+
+This repository does **not** use top-level tool-centric trees such as `agents/` or `workflows/` at root; those are represented as capability assets inside tenants.
+
+---
+
+## Current Tenant Footprint
+
+### `levinnovation` (active internal tenant)
+
+Domains:
+- `customer-service`
+- `sales`
+- `sales-prospecting`
+
+Highlights:
+- Multi-channel customer-service stack (Kapso WhatsApp, Telegram, Meta comments)
+- Customer-service RAG pipeline with Postgres/pgvector-backed KB search
+- Portal-based document ingestion, reprocess, and per-document delete actions
+- Twenty CRM integration subflows and action routing
+- Prospecting workflows and prompt assets
+
+See `tenants/levinnovation/README.md`.
+
+### `euromobilia` (canonical reference tenant)
+
+Domain:
+- `kitchen-commerce`
+
+Used as reference for scaffolding patterns and tenant modeling.
+
+See `tenants/euromobilia/README.md`.
+
+---
+
+## Runtime and Deployment Model
+
+- Canonical platform direction: **per-tenant Railway project** (see ADR-0010 family in `knowledge/decisions/`)
+- Several runtime services are maintained via dedicated fork repos (portal, n8n fork, flowise, paperclip, etc.) while their tenant configuration, contracts, and integration assets are tracked here
+- Workflow JSON is versioned in Git and intended to be imported/synced to n8n environments
+
+---
 
 ## Quick Start
 
 ```bash
-# 1. Validate all tenant specs
+# Validate tenant/domain/capability specs and structural integrity
 make validate
 
-# 2. Scaffold a new tenant
+# Scaffold a new tenant
 make scaffold-tenant TENANT=acme-corp
 
-# 3. Scaffold a new capability inside a domain
+# Scaffold a capability inside a domain
 make scaffold-capability TENANT=acme-corp DOMAIN=retail CAPABILITY=store-locator
 
-# 4. Compile a LangGraph asset for local testing
+# Compile a LangGraph asset
 make compile-langgraph TENANT=euromobilia DOMAIN=kitchen-commerce CAPABILITY=kitchen-quotation ASSET=quotation-assistant
 
-# 5. Compile an n8n workflow asset
+# Compile an n8n workflow asset
 make compile-n8n TENANT=euromobilia DOMAIN=kitchen-commerce CAPABILITY=kitchen-quotation ASSET=kapso-inbound-quotation
+
+# Regenerate knowledge index after knowledge edits
+make knowledge-index
 ```
+
+---
 
 ## Repository Structure
 
-```
+```text
 .
-├── standards/                 # JSON Schemas + policy docs
-├── templates/                 # Reusable scaffolds
-│   ├── tenant/                # Generic tenant skeleton
-│   └── assets/                # Asset-type scaffolds (langgraph-agent, n8n-workflow, ...)
-├── tenants/                   # Real tenant instances
-│   └── euromobilia/           # Canonical example: kitchen-commerce domain
-├── knowledge/                 # Durable architecture ledger (ADRs, prompts, context packs)
-├── scripts/                   # Python CLI tools
-├── .github/workflows/         # CI/CD
-├── Makefile                   # Developer commands
-└── docs/
-    └── history.md             # Why this repo exists
+├── tenants/                    # Tenant implementations (specs + assets)
+├── templates/                  # Reusable scaffolds and tenant-stack templates
+├── standards/                  # JSON schemas and governance standards
+├── services/                   # Shared service implementations maintained in-repo
+├── scripts/                    # Operational and import/sync tooling
+├── knowledge/                  # ADRs, runbooks, context packs, change records
+├── .github/workflows/          # CI/CD automation
+├── docs/                       # Historical/contextual docs
+└── Makefile                    # Developer command entrypoint
 ```
 
-## AI Agent Context
+---
 
-For **AI coding agents** (Cursor, Claude Code, OpenCode, Open Codex, Copilot, etc.), this repo keeps **versioned, repo-native** instructions so sessions do not rely on chat memory alone:
+## Agent and Governance Entry Points
 
-- **`AGENTS.md`** — universal entrypoint; read this before editing code.
-- **Cursor** — project rules in `.cursor/rules/` (`.mdc` files).
-- **Claude Code** — `.claude/CLAUDE.md`.
-- **OpenCode** — `.opencode/AGENTS.md` and `.opencode/context.md`.
-- **Open Codex** — `.open-codex/AGENTS.md` and `.open-codex/context.md`.
-- **GitHub Copilot** — `.github/copilot-instructions.md`.
+Read these first before structural or architectural changes:
 
-Durable narrative, ADRs, prompt logs, and reusable bootstrap text live under **`knowledge/`** (start at `knowledge/INDEX.md` after running `make knowledge-index`). These files reduce repeated prompting and help keep coding sessions aligned with the vertical-domain model.
+- `AGENTS.md` (universal AI agent entrypoint)
+- `CONSTITUTION.md`
+- `DOMAIN_MODEL.md`
+- `knowledge/context-packs/repo-context.md`
+- `knowledge/INDEX.md`
 
-## Canonical Example: Euromobilia
+Tool-specific agent context files also exist for Cursor, Claude Code, OpenCode, Open Codex, and Copilot.
 
-- **Tenant:** `euromobilia`
-- **Domain:** `kitchen-commerce`
-- **Capabilities:** `kitchen-quotation`, `human-handoff`, `product-catalog-retrieval`, `quote-document-generation`
-- **Primary Asset:** `quotation-assistant` (LangGraph agent)
-- **Workflow Asset:** `kapso-inbound-quotation` (n8n workflow)
+---
 
-See `tenants/euromobilia/README.md` for the full domain model.
+## Decision and Change Ledger
 
-## Philosophy
+Canonical architecture decisions and operational history are under `knowledge/`:
 
-1. **Domain-centric, not tool-centric.** We organize by business capability, not by whether something is a LangGraph agent or an n8n workflow.
-2. **Schema-first.** Every `tenant.yaml`, `domain.yaml`, `capability.yaml`, and `asset.yaml` validates against a JSON Schema in `standards/`.
-3. **Tenant isolation.** No tenant references another tenant's assets directly. Shared primitives live in `templates/`.
-4. **Observable by default.** Every asset declares its observability contracts (Langfuse, LangSmith, or both).
-5. **Git-native.** All assets are files. All changes are PRs. No database-of-record outside Git.
+- Decisions (ADRs): `knowledge/decisions/`
+- Change records: `knowledge/change-log/`
+- Operations/runbooks: `knowledge/operations/`
+- Tenant context: `knowledge/tenants/`
 
-## Contributing
+For historical background on the migration from older structures, see `docs/history.md`.
 
-See `CONTRIBUTING.md`.
+---
 
-## Security
+## Contributing and Security
 
-See `SECURITY.md`.
+- Contributing guide: `CONTRIBUTING.md`
+- Security model: `SECURITY.md`
+- Roadmap: `ROADMAP.md`
 
-## Roadmap
-
-See `ROADMAP.md`.
-
-## License
-
-Proprietary — see `SECURITY.md`.
+License: Proprietary.

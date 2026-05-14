@@ -9,7 +9,10 @@
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [220, 240]
+      "position": [
+        220,
+        240
+      ]
     },
     {
       "parameters": {
@@ -19,19 +22,32 @@
           "value": "n0mTwpONyCbbyn2E",
           "mode": "id"
         },
-        "options": {}
+        "options": {
+          "waitForSubWorkflow": true
+        }
       },
       "id": "cs-faq-forward",
       "name": "Execute Customer Service Core",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
-      "position": [460, 240],
+      "position": [
+        460,
+        240
+      ],
       "continueOnFail": true
     }
   ],
   "connections": {
     "Execute Workflow Trigger": {
-      "main": [[{ "node": "Execute Customer Service Core", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Execute Customer Service Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -44,8 +60,14 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "levinnovation" },
-    { "name": "customer-service" },
-    { "name": "faq-rag-core" }
+    {
+      "name": "levinnovation"
+    },
+    {
+      "name": "customer-service"
+    },
+    {
+      "name": "faq-rag-core"
+    }
   ]
 }

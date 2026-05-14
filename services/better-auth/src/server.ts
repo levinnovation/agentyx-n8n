@@ -272,8 +272,12 @@ app.get("/api/auth/forward-auth", async (req, reply) => {
     if (acceptHeader.includes("text/html")) {
       const host = req.headers.host || "";
       const returnTo = `https://${host}/`;
-      const loginUrl = new URL("/sign-in", config.betterAuthUrl);
-      loginUrl.searchParams.set("callbackURL", returnTo);
+      const tenant = resolveTenantFromHost(host);
+      const portalBaseUrl =
+        config.portalBaseUrl ||
+        (tenant.slug ? `https://${tenant.slug}.portal.agentyx.one` : config.betterAuthUrl);
+      const loginUrl = new URL("/login", portalBaseUrl);
+      loginUrl.searchParams.set("callbackUrl", returnTo);
       reply.header("Location", loginUrl.toString());
       reply.status(302);
       return { redirect: loginUrl.toString() };
