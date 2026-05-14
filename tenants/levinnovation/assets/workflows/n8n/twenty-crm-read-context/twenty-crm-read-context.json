@@ -1,5 +1,7 @@
 {
   "name": "Twenty CRM Read Context (Levinnovation)",
+  "description": null,
+  "active": true,
   "nodes": [
     {
       "parameters": {
@@ -34,10 +36,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.TWENTY_API_KEY || $env.TWENTY_ACCESS_TOKEN || '') }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             }
@@ -45,7 +43,9 @@
         },
         "options": {
           "timeout": 15000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "twenty-read-people",
       "name": "Read People",
@@ -55,7 +55,13 @@
         700,
         260
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DuRvwpy2517gwbZH",
+          "name": "Twenty CRM API Key (Levinnovation)"
+        }
+      }
     },
     {
       "parameters": {
@@ -64,10 +70,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.TWENTY_API_KEY || $env.TWENTY_ACCESS_TOKEN || '') }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             }
@@ -75,7 +77,9 @@
         },
         "options": {
           "timeout": 15000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "twenty-read-companies",
       "name": "Read Companies",
@@ -85,7 +89,13 @@
         940,
         260
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DuRvwpy2517gwbZH",
+          "name": "Twenty CRM API Key (Levinnovation)"
+        }
+      }
     },
     {
       "parameters": {
@@ -94,10 +104,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.TWENTY_API_KEY || $env.TWENTY_ACCESS_TOKEN || '') }}"
-            },
-            {
               "name": "Content-Type",
               "value": "application/json"
             }
@@ -105,7 +111,9 @@
         },
         "options": {
           "timeout": 15000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "twenty-read-opportunities",
       "name": "Read Opportunities",
@@ -115,7 +123,13 @@
         1180,
         260
       ],
-      "continueOnFail": true
+      "continueOnFail": true,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "DuRvwpy2517gwbZH",
+          "name": "Twenty CRM API Key (Levinnovation)"
+        }
+      }
     },
     {
       "parameters": {
@@ -188,7 +202,6 @@
       ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
     "saveDataErrorExecution": "all",
@@ -196,5 +209,227 @@
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
     "timezone": "America/Costa_Rica"
+  },
+  "activeVersionId": "1d3e788e-386d-48c0-9839-225e7af308f3",
+  "versionCounter": 7,
+  "activeVersion": {
+    "updatedAt": "2026-05-14T17:03:55.024Z",
+    "createdAt": "2026-05-14T17:03:55.024Z",
+    "versionId": "1d3e788e-386d-48c0-9839-225e7af308f3",
+    "workflowId": "d6VSkkNoCIxolaFM",
+    "nodes": [
+      {
+        "parameters": {
+          "inputSource": "passthrough"
+        },
+        "id": "twenty-read-start",
+        "name": "Start",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          220,
+          260
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const raw = $input.first().json || {};\nconst msg = String(raw.enriched_message || raw.message || '').trim();\nconst emailRegex=/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})/;\nconst foundEmail=(msg.match(emailRegex)||[null])[0];\nconst userId=String(raw.user_id || raw.conversation_id || '').trim();\nconst resolvedEmail=String(raw.email || (raw.metadata||{}).email || foundEmail || (userId ? (userId + '@placeholder.lev') : 'lead@placeholder.lev')).toLowerCase().trim();\nconst companyMatch = msg.match(/(?:mi\\s+empresa\\s+es|empresa\\s*[:=]?\\s*)([^,\\n]{2,80})/i);\nlet company = String(raw.company || (raw.crm_fields||{}).company || (companyMatch ? companyMatch[1] : '')).trim();\ncompany = company.replace(/\\b(y\\s+quiero|quiero|presupuesto|budget|agendame|agenda|demo|licencia|enterprise|por\\s+favor)\\b.*$/i,'').trim();\nreturn [{ json: { ...raw, resolved_email: resolvedEmail, resolved_company: company } }];"
+        },
+        "id": "twenty-read-normalize",
+        "name": "Normalize Read Inputs",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          460,
+          260
+        ]
+      },
+      {
+        "parameters": {
+          "url": "={{ 'https://levinnovation.crm.agentyx.one/rest/people?filter=' + encodeURIComponent('emails.primaryEmail[eq]:' + $json.resolved_email) }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 15000
+          },
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "id": "twenty-read-people",
+        "name": "Read People",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          700,
+          260
+        ],
+        "continueOnFail": true,
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "DuRvwpy2517gwbZH",
+            "name": "Twenty CRM API Key (Levinnovation)"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.resolved_company ? ('https://levinnovation.crm.agentyx.one/rest/companies?filter=' + encodeURIComponent('name[eq]:' + $json.resolved_company)) : 'https://levinnovation.crm.agentyx.one/rest/companies?limit=5' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 15000
+          },
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "id": "twenty-read-companies",
+        "name": "Read Companies",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          940,
+          260
+        ],
+        "continueOnFail": true,
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "DuRvwpy2517gwbZH",
+            "name": "Twenty CRM API Key (Levinnovation)"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "url": "https://levinnovation.crm.agentyx.one/rest/opportunities?limit=8",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 15000
+          },
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth"
+        },
+        "id": "twenty-read-opportunities",
+        "name": "Read Opportunities",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1180,
+          260
+        ],
+        "continueOnFail": true,
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "DuRvwpy2517gwbZH",
+            "name": "Twenty CRM API Key (Levinnovation)"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const base = $('Normalize Read Inputs').item.json || {};\nconst peoplePayload = $('Read People').item.json || {};\nconst companiesPayload = $('Read Companies').item.json || {};\nconst oppPayload = $('Read Opportunities').item.json || {};\nconst people = Array.isArray(peoplePayload?.data?.people) ? peoplePayload.data.people : [];\nconst companies = Array.isArray(companiesPayload?.data?.companies) ? companiesPayload.data.companies : [];\nconst opportunities = Array.isArray(oppPayload?.data?.opportunities) ? oppPayload.data.opportunities : [];\nconst companyName = base.resolved_company || '';\nconst matchedOpportunity = companyName ? opportunities.find((o) => String(o?.name || '').toLowerCase().includes(companyName.toLowerCase())) : null;\nconst summary = {\n  crm_exists: people.length > 0,\n  resolved_email: base.resolved_email || '',\n  person: people[0] || null,\n  company: companies[0] || null,\n  opportunity: matchedOpportunity || opportunities[0] || null,\n  counts: { people: people.length, companies: companies.length, opportunities: opportunities.length }\n};\nconst text = summary.crm_exists\n  ? `CRM OK: existe persona para ${summary.resolved_email}${summary.company ? `, empresa ${summary.company.name}` : ''}${summary.opportunity ? `, oportunidad ${summary.opportunity.name}` : ''}.`\n  : `CRM CHECK: no se encontro persona para ${summary.resolved_email}.`;\nreturn [{ json: { ...summary, text } }];"
+        },
+        "id": "twenty-read-build",
+        "name": "Build CRM Read Snapshot",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1420,
+          260
+        ]
+      }
+    ],
+    "connections": {
+      "Start": {
+        "main": [
+          [
+            {
+              "node": "Normalize Read Inputs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Read Inputs": {
+        "main": [
+          [
+            {
+              "node": "Read People",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read People": {
+        "main": [
+          [
+            {
+              "node": "Read Companies",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Companies": {
+        "main": [
+          [
+            {
+              "node": "Read Opportunities",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read Opportunities": {
+        "main": [
+          [
+            {
+              "node": "Build CRM Read Snapshot",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Evargas Levinnovation",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-14T17:03:55.625Z",
+        "id": 1011,
+        "workflowId": "d6VSkkNoCIxolaFM",
+        "versionId": "1d3e788e-386d-48c0-9839-225e7af308f3",
+        "event": "activated",
+        "userId": "650331ab-3922-4ff0-b727-6b387a60495f"
+      }
+    ]
   }
 }
