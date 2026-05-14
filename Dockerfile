@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Thin custom layer on top of upstream n8n image with Agentyx SSO runtime patch.
-ARG N8N_VERSION=2.19.5
+ARG N8N_VERSION=2.21.2
 FROM n8nio/n8n:${N8N_VERSION}
 
 USER root

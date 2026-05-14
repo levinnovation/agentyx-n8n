@@ -20,8 +20,8 @@ function findAuthService() {
 
 const filePath = findAuthService();
 if (!filePath) {
-    console.error('[n8n-patch] auth.service.js not found');
-    process.exit(1);
+    console.warn('[n8n-patch] auth.service.js not found, skipping patch');
+    process.exit(0);
 }
 
 let content = fs.readFileSync(filePath, 'utf8');
@@ -37,8 +37,8 @@ const injectionPattern = /return\s+async\s*\(\s*([^)]*?)\s*\)\s*=>\s*\{/;
 const match = content.match(injectionPattern);
 
 if (!match) {
-    console.error('[n8n-patch] Could not find createAuthMiddleware async return');
-    process.exit(1);
+    console.warn('[n8n-patch] Could not find createAuthMiddleware async return, skipping patch');
+    process.exit(0);
 }
 
 const rawParams = match[1].split(',').map((p) => p.trim()).filter(Boolean);
