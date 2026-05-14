@@ -10,6 +10,7 @@
 | Workflow | Status | Trigger | Description |
 |---|---|---|---|
 | `agente-prospectador-ai` | Draft | Schedule (daily) | Deterministic LinkedIn lead prospecting, qualification, HubSpot sync, outreach draft, and Slack updates |
+| `meetings-agent-core` | Draft | Execute Workflow / Chat Trigger | Sofer multi-agent meeting minutes processor with transcript extraction, artifact composition, and optional Composio MCP actions |
 
 ## Required environment variables
 

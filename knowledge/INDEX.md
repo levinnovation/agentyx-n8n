@@ -44,6 +44,7 @@
 - [change-log/2026-05-12-customer-service-rag-rebuild.md](change-log/2026-05-12-customer-service-rag-rebuild.md)
 - [change-log/2026-05-13-n8n-ce-operator-provisioning.md](change-log/2026-05-13-n8n-ce-operator-provisioning.md)
 - [change-log/2026-05-13-tenant-email-template-method-a-b-and-ui-hardening.md](change-log/2026-05-13-tenant-email-template-method-a-b-and-ui-hardening.md)
+- [change-log/2026-05-14-levinnovation-meetings-agent-core.md](change-log/2026-05-14-levinnovation-meetings-agent-core.md)
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
 - [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
 - [change-log/2026/04/2026-04-29-initial-architecture-constitution.md](change-log/2026/04/2026-04-29-initial-architecture-constitution.md)
@@ -119,6 +120,7 @@
 - [decisions/0030-portal-document-ingestion.md](decisions/0030-portal-document-ingestion.md)
 - [decisions/0031-tenant-email-template-delivery-and-intercept-branch.md](decisions/0031-tenant-email-template-delivery-and-intercept-branch.md)
 - [decisions/0032-n8n-ce-operator-provisioning.md](decisions/0032-n8n-ce-operator-provisioning.md)
+- [decisions/0033-levinnovation-meetings-agent-core.md](decisions/0033-levinnovation-meetings-agent-core.md)
 - [decisions/ADR_TEMPLATE.md](decisions/ADR_TEMPLATE.md)
 - [decisions/README.md](decisions/README.md)
 
@@ -180,6 +182,7 @@
 - [prompts/cursor/0007-composio-mcp-bridge.md](prompts/cursor/0007-composio-mcp-bridge.md)
 - [prompts/cursor/0008-portal-self-service-signup.md](prompts/cursor/0008-portal-self-service-signup.md)
 - [prompts/cursor/0009-tenant-email-template-method-a-b.md](prompts/cursor/0009-tenant-email-template-method-a-b.md)
+- [prompts/cursor/0010-levinnovation-meetings-agent-core.md](prompts/cursor/0010-levinnovation-meetings-agent-core.md)
 - [prompts/cursor/README.md](prompts/cursor/README.md)
 - [prompts/open-codex/README.md](prompts/open-codex/README.md)
 - [prompts/opencode/README.md](prompts/opencode/README.md)

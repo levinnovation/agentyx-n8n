@@ -1,0 +1,14 @@
+id: meeting-minutes-and-followups
+name: Meeting Minutes and Follow-ups
+domain: internal-operations
+tenant: levinnovation
+description: |
+  Multi-agent meeting processor that accepts meeting transcripts or meeting
+  attendance requests, extracts minutes, decisions, risks, action items, and
+  orchestrates follow-up artifacts through Composio MCP tools.
+assets:
+  - meetings-agent-core
+owner: "ops@levinnovation.com"
+sla:
+  response_time_ms: 30000
+  availability: "99.5%"

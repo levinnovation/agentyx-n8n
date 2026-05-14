@@ -1,0 +1,12 @@
+id: internal-operations
+name: Internal Operations
+tenant: levinnovation
+description: |
+  Bounded context for internal operating workflows used by LEV Innovation
+  teams, including meeting capture, meeting notes, follow-up orchestration,
+  and back-office coordination.
+capabilities:
+  - meeting-minutes-and-followups
+data_residency: "us-east-1"
+compliance:
+  - gdpr

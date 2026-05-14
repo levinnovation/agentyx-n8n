@@ -1,0 +1,65 @@
+asset:
+  name: meetings-agent-core
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: internal-operations
+  capability: meeting-minutes-and-followups
+
+  description: |
+    Multi-agent n8n workflow for LEV Innovation meeting operations. It accepts
+    meeting transcripts or meeting attendance requests, validates context,
+    extracts structured minutes, composes artifacts, and optionally executes
+    Google Calendar, Google Docs, Gmail, and ClickUp actions through Composio MCP.
+
+  inputs:
+    - trigger_source
+    - meeting_id
+    - meeting_url
+    - meeting_title
+    - meeting_date
+    - transcript_text
+    - attendees_hint
+    - clickup_list_id
+    - external_actions_enabled
+    - send_followup_email
+    - create_clickup_tasks
+    - schedule_followups
+    - metadata
+
+  outputs:
+    - status
+    - language
+    - meeting
+    - executive_summary
+    - decisions
+    - action_items
+    - risks_and_questions
+    - created_artifacts
+    - errors
+    - user_message
+    - raw_outputs
+
+  dependencies:
+    - service: openrouter
+      auth: OPENROUTER_API_KEY
+      note: AI Agent chat models.
+    - service: redis
+      auth: Redis account credential
+      note: Optional meeting-scoped chat memory for conversational setup turns.
+    - service: composio-mcp
+      endpoint: https://levinnovation.mcp.agentyx.one/mcp
+      auth: Bearer MCP_AUTH_TOKEN via n8n Multiple Headers credential
+      note: Google Calendar, Google Docs, Gmail, and ClickUp tools.
+    - service: meeting-joiner
+      auth: MEETING_JOINER_API_KEY
+      note: External bot/transcription service must join meetings and produce transcripts before processing.
+
+  files:
+    - meetings-agent-core.json
+    - README.md
+    - asset.yaml
+    - .env.example
+    - prompts/intake-agent.system.md
+    - prompts/extraction-agent.system.md
+    - prompts/artifact-composer.system.md
+    - prompts/actions-agent.system.md

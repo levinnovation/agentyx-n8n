@@ -5,12 +5,14 @@ Internal tenant for LEV Innovation commercial automation and customer-facing age
 ## Domains
 
 - `customer-service/` - inbound customer engagement, qualification, routing, scheduling, CRM enrichment
+- `internal-operations/` - internal meeting operations, minutes, follow-ups, and back-office coordination
 - `sales/` - CRM management and sales operations
 - `sales-prospecting/` - outbound prospecting and enrichment workflows
 
 ## Capabilities
 
 - `customer-service/lead-qualification-and-scheduling`
+- `internal-operations/meeting-minutes-and-followups`
 - `sales/crm-management`
 - `sales-prospecting/linkedin-lead-prospecting`
 
@@ -43,6 +45,10 @@ Internal tenant for LEV Innovation commercial automation and customer-facing age
 ### CRM / Sales Operations
 
 - `domains/sales/capabilities/crm-management/assets/twenty-crm/` - Twenty CRM capability asset docs/contracts
+
+### Internal Operations
+
+- `assets/workflows/n8n/meetings-agent-core/` - Sofer multi-agent meeting minutes, artifact composition, and Composio MCP follow-up workflow
 
 ### Deployment / Runtime Assets
 

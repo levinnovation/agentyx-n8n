@@ -1,11 +1,12 @@
 # LEV Innovation context pack
 
 **Tenant:** `levinnovation`  
-**Primary domains:** `customer-service`, `sales`, `sales-prospecting`
+**Primary domains:** `customer-service`, `internal-operations`, `sales`, `sales-prospecting`
 
 ## Capability map
 
 - `customer-service/lead-qualification-and-scheduling`
+- `internal-operations/meeting-minutes-and-followups`
 - `sales/crm-management`
 - `sales-prospecting/linkedin-lead-prospecting`
 
@@ -15,6 +16,7 @@
 - Tenant spec: `tenants/levinnovation/tenant.yaml`
 - Domains:
   - `tenants/levinnovation/domains/customer-service/`
+  - `tenants/levinnovation/domains/internal-operations/`
   - `tenants/levinnovation/domains/sales/`
   - `tenants/levinnovation/domains/sales-prospecting/`
 - Workflow assets: `tenants/levinnovation/assets/workflows/n8n/`
@@ -26,6 +28,7 @@
 - Tenant Railway source of truth: `tenants/levinnovation/assets/deploy/railway/`
 - n8n runtime split into queue-mode services (`n8n-main`, `n8n-worker`, `n8n-webhook`, `redis`) as part of tenant stack operation.
 - Customer-service channel adapters currently include Kapso WhatsApp, Telegram, and Meta comments.
+- Internal operations now include `meetings-agent-core`, a Sofer multi-agent n8n workflow for meeting minutes, artifact composition, and optional Composio MCP follow-up actions.
 - CRM orchestration uses Twenty sub-workflows (`read-context`, `write-actions`, update interactions).
 - MCP-facing integration contracts are tracked under `tenants/levinnovation/assets/integrations/composio-mcp/`.
 

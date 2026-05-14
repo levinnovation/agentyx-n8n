@@ -1,0 +1,915 @@
+{
+  "name": "Meetings Agent Core (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "meetings-core-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -420,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "meetings-core-chat-trigger",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -420,
+        20
+      ],
+      "webhookId": "292b3bff-41a3-4be2-8dc9-3bb752882eba"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "trigger_source",
+              "value": "={{ $json.trigger_source || ($json.chatInput ? 'chat' : 'workflow') }}",
+              "type": "string"
+            },
+            {
+              "name": "meeting_id",
+              "value": "={{ $json.meeting_id || ('meeting:' + $now.toMillis()) }}",
+              "type": "string"
+            },
+            {
+              "name": "meeting_url",
+              "value": "={{ $json.meeting_url || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "meeting_title",
+              "value": "={{ $json.meeting_title || 'Reunion sin titulo' }}",
+              "type": "string"
+            },
+            {
+              "name": "meeting_date",
+              "value": "={{ $json.meeting_date || $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message || $json.chatInput || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "transcript_text",
+              "value": "={{ $json.transcript_text || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "attendees_hint",
+              "value": "={{ Array.isArray($json.attendees_hint) ? $json.attendees_hint : [] }}",
+              "type": "array"
+            },
+            {
+              "name": "clickup_list_id",
+              "value": "={{ $json.clickup_list_id || (($json.metadata || {}).clickup_list_id) || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "external_actions_enabled",
+              "value": "={{ Boolean($json.external_actions_enabled || $env.MEETINGS_EXTERNAL_ACTIONS_ENABLED === 'true') }}",
+              "type": "boolean"
+            },
+            {
+              "name": "send_followup_email",
+              "value": "={{ Boolean($json.send_followup_email || $env.MEETINGS_SEND_FOLLOWUP_EMAIL === 'true') }}",
+              "type": "boolean"
+            },
+            {
+              "name": "create_clickup_tasks",
+              "value": "={{ Boolean($json.create_clickup_tasks || $env.MEETINGS_CREATE_CLICKUP_TASKS === 'true') }}",
+              "type": "boolean"
+            },
+            {
+              "name": "schedule_followups",
+              "value": "={{ Boolean($json.schedule_followups || $env.MEETINGS_SCHEDULE_FOLLOWUPS === 'true') }}",
+              "type": "boolean"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ $json.metadata || {} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "meetings-core-normalize-envelope",
+      "name": "Normalize Envelope",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst transcript = String(item.transcript_text || '').trim();\nconst message = String(item.message || '').trim();\nconst meetingUrl = String(item.meeting_url || '').trim();\nconst turns = transcript.split(/\\n+/).map(s => s.trim()).filter(Boolean);\nconst looksLikeMeeting = turns.length >= 5 && /(:|speaker|hablante|vinicio|lev|meeting|reunion|reunión|acuerdo|tarea|decision|decisión)/i.test(transcript);\nlet request_type = 'conversation';\nlet status_hint = 'pending';\nif (transcript && looksLikeMeeting) {\n  request_type = 'transcript_processing';\n  status_hint = 'ready';\n} else if (meetingUrl) {\n  request_type = 'meeting_url_pending_transcript';\n  status_hint = 'pending';\n} else if (transcript) {\n  request_type = 'invalid_transcript';\n  status_hint = 'skipped';\n}\nconst language = /[áéíóúñ¿¡]|\\b(hola|reunion|reunión|tarea|acuerdo|correo)\\b/i.test(message + ' ' + transcript) ? 'es-CR' : 'en';\nreturn [{ json: { ...item, request_type, status_hint, language, transcript_turn_count: turns.length, transcript_valid: request_type === 'transcript_processing' } }];"
+      },
+      "id": "meetings-core-classify-request",
+      "name": "Classify Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean($json.transcript_valid) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "meetings-core-transcript-valid",
+      "name": "Transcript Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Request type: ' + $json.request_type + '\\nStatus hint: ' + $json.status_hint + '\\nLanguage: ' + $json.language + '\\nMeeting URL: ' + ($json.meeting_url || '') + '\\nMeeting title: ' + ($json.meeting_title || '') + '\\nMeeting date: ' + ($json.meeting_date || '') + '\\nMessage: ' + ($json.message || '') + '\\nTranscript turns: ' + ($json.transcript_turn_count || 0) }}",
+        "options": {
+          "systemMessage": "You are Sofer Intake Agent for LEV Innovation. Classify setup and non-ready meeting requests. Same language as user. If meeting_url is present but transcript_text is missing, return JSON status pending and explain a meeting-joiner/transcription service must provide transcript first. If transcript is invalid or shorter than five turns, return status skipped. If conversational, answer briefly as Sofer. Never claim attendance without transcript or bot result. Return valid JSON only with keys: status, language, meeting, errors, user_message."
+        }
+      },
+      "id": "meetings-core-intake-agent",
+      "name": "AI Agent (Intake + Validation)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Meeting ID: ' + $json.meeting_id + '\\nMeeting title: ' + $json.meeting_title + '\\nMeeting date: ' + $json.meeting_date + '\\nMeeting URL: ' + ($json.meeting_url || '') + '\\nKnown attendees hint: ' + (Array.isArray($json.attendees_hint) ? JSON.stringify($json.attendees_hint) : '[]') + '\\nLanguage: ' + $json.language + '\\n\\n--- TRANSCRIPT ---\\n' + ($json.transcript_text || '') + '\\n--- END TRANSCRIPT ---' }}",
+        "options": {
+          "systemMessage": "You are Sofer Transcript Extraction Agent for LEV Innovation. Extract structured meeting intelligence from a valid transcript. Default deliverable language is Spanish Costa Rica unless requested otherwise. Never invent facts, dates, owners, deadlines, attendees, or decisions. Resolve relative dates from meeting_date in America/Costa_Rica. If identity is uncertain use TBD - speaker label. Flag risks for unclear owners, unresolved dependencies, doubt, disagreement, or implied follow-up. Return valid JSON only with: status, language, meeting, attendee_candidates, executive_summary, decisions, action_items, risks_and_questions, errors."
+        }
+      },
+      "id": "meetings-core-extraction-agent",
+      "name": "AI Agent (Transcript Extraction)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        560,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json || {};\nconst rawOutput = raw.output || raw.text || raw.message || raw;\nlet parsed = null;\nif (typeof rawOutput === 'string') {\n  const match = rawOutput.match(/\\{[\\s\\S]*\\}/);\n  if (match) { try { parsed = JSON.parse(match[0]); } catch (e) { parsed = null; } }\n} else if (typeof rawOutput === 'object') parsed = rawOutput;\nconst input = $('Classify Request').item.json || {};\nconst safe = parsed || {};\nreturn [{ json: { ...input, extraction: safe, raw_extraction_output: rawOutput } }];"
+      },
+      "id": "meetings-core-parse-extraction",
+      "name": "Parse Extraction JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'Input envelope:\\n' + JSON.stringify($json, null, 2) }}",
+        "options": {
+          "systemMessage": "You are Sofer Artifact Composer Agent. Transform extracted meeting intelligence into operational artifacts. Do not call tools. Create Google Doc markdown, follow-up email subject/body, ClickUp task payloads, and follow-up calendar proposals. Do not fabricate IDs, URLs, task IDs, email IDs, or calendar IDs. Return valid JSON only with: status, language, meeting, google_doc_markdown, email_draft, clickup_tasks, calendar_proposals, executive_summary, decisions, action_items, risks_and_questions, errors."
+        }
+      },
+      "id": "meetings-core-artifact-agent",
+      "name": "AI Agent (Artifact Composer)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        1140,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json || {};\nconst rawOutput = raw.output || raw.text || raw.message || raw;\nlet parsed = null;\nif (typeof rawOutput === 'string') {\n  const match = rawOutput.match(/\\{[\\s\\S]*\\}/);\n  if (match) { try { parsed = JSON.parse(match[0]); } catch (e) { parsed = null; } }\n} else if (typeof rawOutput === 'object') parsed = rawOutput;\nconst prior = $('Parse Extraction JSON').item.json || {};\nconst safe = parsed || {};\nreturn [{ json: { ...prior, artifacts: safe, raw_artifact_output: rawOutput } }];"
+      },
+      "id": "meetings-core-parse-artifacts",
+      "name": "Parse Artifacts JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean($json.external_actions_enabled) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "meetings-core-external-actions-enabled",
+      "name": "External Actions Enabled?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1720,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ 'External action payload:\\n' + JSON.stringify($json, null, 2) }}",
+        "options": {
+          "systemMessage": "You are Sofer Actions Agent for LEV Innovation. Use Composio MCP tools only when external actions are enabled and enough data exists. Strict order: 1 calendar lookup near meeting_date +/- 4h to map attendees, 2 create Google Doc and insert prepared notes, 3 send Gmail follow-up only to confirmed emails when send_followup_email is true, 4 create ClickUp tasks when create_clickup_tasks is true and clickup_list_id exists, 5 schedule follow-up meetings only when schedule_followups is true and conflict-free. Never email uncertain recipients. Never overwrite calendar conflicts. Return valid JSON only with status, created_artifacts, matched_attendees, missing_attendees, pending_meetings, errors, user_message."
+        }
+      },
+      "id": "meetings-core-actions-agent",
+      "name": "AI Agent (MCP Actions)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        1980,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json || {};\nconst rawOutput = raw.output || raw.text || raw.message || raw;\nlet parsed = null;\nif (typeof rawOutput === 'string') {\n  const match = rawOutput.match(/\\{[\\s\\S]*\\}/);\n  if (match) { try { parsed = JSON.parse(match[0]); } catch (e) { parsed = null; } }\n} else if (typeof rawOutput === 'object') parsed = rawOutput;\nlet base = {};\ntry { base = $('Parse Artifacts JSON').item.json || {}; } catch (e) { try { base = $('Classify Request').item.json || {}; } catch (e2) { base = {}; } }\nconst artifacts = base.artifacts || {};\nconst actions = parsed || {};\nconst created = actions.created_artifacts || artifacts.created_artifacts || { google_doc_url: null, sent_email_ids: [], clickup_task_ids: [], calendar_event_ids: [] };\nconst errors = []\n  .concat(Array.isArray(base.errors) ? base.errors : [])\n  .concat(Array.isArray((base.extraction || {}).errors) ? base.extraction.errors : [])\n  .concat(Array.isArray(artifacts.errors) ? artifacts.errors : [])\n  .concat(Array.isArray(actions.errors) ? actions.errors : []);\nconst status = actions.status || artifacts.status || (base.extraction || {}).status || base.status_hint || 'completed';\nreturn [{ json: {\n  status,\n  language: actions.language || artifacts.language || (base.extraction || {}).language || base.language || 'es-CR',\n  meeting: actions.meeting || artifacts.meeting || (base.extraction || {}).meeting || { title: base.meeting_title, meeting_url: base.meeting_url, meeting_date: base.meeting_date, duration_minutes: null, attendees: [] },\n  executive_summary: artifacts.executive_summary || (base.extraction || {}).executive_summary || [],\n  decisions: artifacts.decisions || (base.extraction || {}).decisions || [],\n  action_items: artifacts.action_items || (base.extraction || {}).action_items || [],\n  risks_and_questions: artifacts.risks_and_questions || (base.extraction || {}).risks_and_questions || [],\n  created_artifacts: created,\n  errors,\n  user_message: actions.user_message || artifacts.user_message || (base.extraction || {}).user_message || raw.user_message || '',\n  raw_outputs: { intake_or_actions: rawOutput, extraction: base.raw_extraction_output || null, artifacts: base.raw_artifact_output || null }\n} }];"
+      },
+      "id": "meetings-core-build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.meeting_id || ('meeting:' + $now.toMillis()) }}",
+        "contextWindowLength": 4
+      },
+      "id": "meetings-core-redis-memory",
+      "name": "Redis Chat Memory (Meetings)",
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [
+        600,
+        520
+      ],
+      "credentials": {
+        "redis": {
+          "id": "aweV9SNrwCj8QHQ6",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {
+          "maxTokens": 1800,
+          "temperature": 0.1
+        }
+      },
+      "id": "meetings-core-intake-model",
+      "name": "OpenRouter Chat Model (Intake)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        460,
+        520
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "UdJibBBHHZIbd9jP",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {
+          "maxTokens": 6000,
+          "temperature": 0.1
+        }
+      },
+      "id": "meetings-core-extraction-model",
+      "name": "OpenRouter Chat Model (Extraction)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -220
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "UdJibBBHHZIbd9jP",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {
+          "maxTokens": 6000,
+          "temperature": 0.1
+        }
+      },
+      "id": "meetings-core-artifact-model",
+      "name": "OpenRouter Chat Model (Artifacts)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        -220
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "UdJibBBHHZIbd9jP",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {
+          "maxTokens": 2500,
+          "temperature": 0
+        }
+      },
+      "id": "meetings-core-actions-model",
+      "name": "OpenRouter Chat Model (Actions)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1960,
+        -320
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "UdJibBBHHZIbd9jP",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://levinnovation.mcp.agentyx.one/mcp",
+        "authentication": "multipleHeadersAuth",
+        "options": {},
+        "serverTransport": "httpStreamable",
+        "include": "selected",
+        "headers": {
+          "values": [
+            {
+              "name": "x-entity-id",
+              "value": "={{ $env.COMPOSIO_ENTITY_ID || 'levinnovation-meetings' }}"
+            },
+            {
+              "name": "x-user-prompt",
+              "value": "={{ $json.meeting_title || $json.meeting_id || 'meeting' }}"
+            },
+            {
+              "name": "x-allowed-toolkits",
+              "value": "GOOGLECALENDAR"
+            },
+            {
+              "name": "x-max-tools",
+              "value": "8"
+            },
+            {
+              "name": "x-compressed-tools",
+              "value": "1"
+            },
+            {
+              "name": "x-tool-verbosity",
+              "value": "brief"
+            }
+          ]
+        },
+        "includeTools": [
+          "GOOGLECALENDAR_GET_EVENT",
+          "GOOGLECALENDAR_EVENTS_LIST",
+          "GOOGLECALENDAR_CREATE_EVENT"
+        ]
+      },
+      "id": "meetings-core-mcp-calendar",
+      "name": "MCP Google Calendar Tool (Meetings)",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        2120,
+        -320
+      ],
+      "credentials": {
+        "httpMultipleHeadersAuth": {
+          "id": "KwXGwudCwIvTFfoJ",
+          "name": "Multiple Headers Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://levinnovation.mcp.agentyx.one/mcp",
+        "authentication": "multipleHeadersAuth",
+        "options": {},
+        "serverTransport": "httpStreamable",
+        "include": "selected",
+        "headers": {
+          "values": [
+            {
+              "name": "x-entity-id",
+              "value": "={{ $env.COMPOSIO_ENTITY_ID || 'levinnovation-meetings' }}"
+            },
+            {
+              "name": "x-user-prompt",
+              "value": "={{ $json.meeting_title || $json.meeting_id || 'meeting' }}"
+            },
+            {
+              "name": "x-allowed-toolkits",
+              "value": "GOOGLEDOCS"
+            },
+            {
+              "name": "x-max-tools",
+              "value": "6"
+            },
+            {
+              "name": "x-compressed-tools",
+              "value": "1"
+            },
+            {
+              "name": "x-tool-verbosity",
+              "value": "brief"
+            }
+          ]
+        },
+        "includeTools": [
+          "GOOGLEDOCS_CREATE_DOCUMENT",
+          "GOOGLEDOCS_UPDATE_DOCUMENT_MARKDOWN"
+        ]
+      },
+      "id": "meetings-core-mcp-docs",
+      "name": "MCP Google Docs Tool (Meetings)",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        2280,
+        -320
+      ],
+      "credentials": {
+        "httpMultipleHeadersAuth": {
+          "id": "KwXGwudCwIvTFfoJ",
+          "name": "Multiple Headers Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://levinnovation.mcp.agentyx.one/mcp",
+        "authentication": "multipleHeadersAuth",
+        "options": {},
+        "serverTransport": "httpStreamable",
+        "include": "selected",
+        "headers": {
+          "values": [
+            {
+              "name": "x-entity-id",
+              "value": "={{ $env.COMPOSIO_ENTITY_ID || 'levinnovation-meetings' }}"
+            },
+            {
+              "name": "x-user-prompt",
+              "value": "={{ $json.meeting_title || $json.meeting_id || 'meeting' }}"
+            },
+            {
+              "name": "x-allowed-toolkits",
+              "value": "GMAIL"
+            },
+            {
+              "name": "x-max-tools",
+              "value": "3"
+            },
+            {
+              "name": "x-compressed-tools",
+              "value": "0"
+            },
+            {
+              "name": "x-tool-verbosity",
+              "value": "brief"
+            }
+          ]
+        },
+        "includeTools": [
+          "GMAIL_SEND_EMAIL"
+        ]
+      },
+      "id": "meetings-core-mcp-gmail",
+      "name": "MCP Gmail Tool (Meetings)",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        2440,
+        -320
+      ],
+      "credentials": {
+        "httpMultipleHeadersAuth": {
+          "id": "KwXGwudCwIvTFfoJ",
+          "name": "Multiple Headers Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://levinnovation.mcp.agentyx.one/mcp",
+        "authentication": "multipleHeadersAuth",
+        "options": {},
+        "serverTransport": "httpStreamable",
+        "include": "selected",
+        "headers": {
+          "values": [
+            {
+              "name": "x-entity-id",
+              "value": "={{ $env.COMPOSIO_ENTITY_ID || 'levinnovation-meetings' }}"
+            },
+            {
+              "name": "x-user-prompt",
+              "value": "={{ $json.meeting_title || $json.meeting_id || 'meeting' }}"
+            },
+            {
+              "name": "x-allowed-toolkits",
+              "value": "CLICKUP"
+            },
+            {
+              "name": "x-max-tools",
+              "value": "8"
+            },
+            {
+              "name": "x-compressed-tools",
+              "value": "1"
+            },
+            {
+              "name": "x-tool-verbosity",
+              "value": "brief"
+            }
+          ]
+        },
+        "includeTools": [
+          "CLICKUP_CREATE_TASK"
+        ]
+      },
+      "id": "meetings-core-mcp-clickup",
+      "name": "MCP ClickUp Tool (Meetings)",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        2600,
+        -320
+      ],
+      "credentials": {
+        "httpMultipleHeadersAuth": {
+          "id": "KwXGwudCwIvTFfoJ",
+          "name": "Multiple Headers Auth account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Normalize Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Envelope": {
+      "main": [
+        [
+          {
+            "node": "Classify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Request": {
+      "main": [
+        [
+          {
+            "node": "Transcript Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcript Valid?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Transcript Extraction)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent (Intake + Validation)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Intake + Validation)": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Transcript Extraction)": {
+      "main": [
+        [
+          {
+            "node": "Parse Extraction JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Extraction JSON": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Artifact Composer)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Artifact Composer)": {
+      "main": [
+        [
+          {
+            "node": "Parse Artifacts JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Artifacts JSON": {
+      "main": [
+        [
+          {
+            "node": "External Actions Enabled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "External Actions Enabled?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (MCP Actions)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (MCP Actions)": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model (Intake)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Intake + Validation)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model (Extraction)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Transcript Extraction)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model (Artifacts)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Artifact Composer)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model (Actions)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (MCP Actions)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Chat Memory (Meetings)": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent (Intake + Validation)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Google Calendar Tool (Meetings)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (MCP Actions)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Google Docs Tool (Meetings)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (MCP Actions)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Gmail Tool (Meetings)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (MCP Actions)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP ClickUp Tool (Meetings)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent (MCP Actions)",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "versionId": "34ed165a-d3a1-4050-9ab0-bc75bd12b36a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5884bef4e55de9055aac9badc39acc7412aa3809fde913cf95ebd084e6c2ffc2"
+  },
+  "id": "yMhnGt1bBWUjBTZ5",
+  "tags": [
+    {
+      "updatedAt": "2026-05-08T21:30:34.339Z",
+      "createdAt": "2026-05-08T21:30:34.339Z",
+      "id": "SMtmIfRxXN9z2WhK",
+      "name": "lev-innovation"
+    },
+    {
+      "updatedAt": "2026-05-08T21:30:34.413Z",
+      "createdAt": "2026-05-08T21:30:34.413Z",
+      "id": "myapC2p0YHywiUyP",
+      "name": "meetings-agent"
+    }
+  ]
+}
