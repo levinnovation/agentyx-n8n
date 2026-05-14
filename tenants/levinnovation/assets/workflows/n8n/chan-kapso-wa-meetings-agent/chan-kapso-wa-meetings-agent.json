@@ -1,0 +1,343 @@
+{
+  "name": "Channel Adapter - Kapso WA Meetings Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kapso/meetings-agent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "meetings-kapso-webhook",
+      "name": "Kapso Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        240
+      ],
+      "webhookId": "kapso-meetings-agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\nlet messageText = '';\nlet attachments = [];\nlet meetingUrl = '';\n\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n  const urlMatch = messageText.match(/https?:\\/\\/\\S+/);\n  if (urlMatch) meetingUrl = urlMatch[0];\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Imagen recibida]';\n  attachments.push({ type: 'image', url: msg.image.link || '', mime_type: msg.image.mime_type || 'image/jpeg' });\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Documento recibido]';\n  attachments.push({ type: 'document', url: msg.document.link || '', mime_type: msg.document.mime_type || 'application/pdf' });\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Mensaje de voz recibido]';\n  attachments.push({ type: 'voice', url: msg.voice.link || '', mime_type: msg.voice.mime_type || 'audio/ogg' });\n} else if (msg.type === 'audio' && msg.audio) {\n  messageText = '[Audio recibido]';\n  attachments.push({ type: 'audio', url: msg.audio.link || '', mime_type: msg.audio.mime_type || 'audio/mpeg' });\n}\n\nconst phoneNumber = conv.phone_number ? '+' + conv.phone_number : (msg.from ? '+' + msg.from : '');\nconst conversationId = String(conv.id || msg.from || '');\n\nreturn [{\n  json: {\n    core_workflow_id: 'MEETINGS_AGENT_CORE_ID',\n    trigger_source: 'kapso-wa',\n    channel: 'kapso-wa',\n    meeting_id: 'wa-' + conversationId,\n    meeting_url: meetingUrl,\n    meeting_title: 'Solicitud via WhatsApp',\n    meeting_date: new Date().toISOString(),\n    message: messageText,\n    transcript_text: '',\n    attendees_hint: [],\n    conversation_id: conversationId,\n    user_id: String(phoneNumber || ''),\n    attachments: attachments,\n    metadata: {\n      message_id: msg.id || '',\n      contact_name: conv.contact_name || '',\n      phone: phoneNumber,\n      phone_number_id: conv.phone_number_id || '',\n      source: 'kapso-wa'\n    }\n  }\n}];"
+      },
+      "id": "meetings-kapso-normalize",
+      "name": "Validate + Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "yMhnGt1bBWUjBTZ5",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "meetings-kapso-execute-core",
+      "name": "Execute Meetings Agent Core",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        940,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (() => { const rawBase = String($env.KAPSO_BASE_URL || 'https://api.kapso.ai').replace(/\\/+$/, ''); const hasVersionPath = /\\/meta\\/whatsapp\\/v\\d+\\.\\d+$/i.test(rawBase); const apiBase = hasVersionPath ? rawBase : `${rawBase}/meta/whatsapp/v24.0`; const phoneNumberId = (((String(($('Validate + Normalize').item.json.metadata.phone_number_id || $env.KAPSO_PHONE_NUMBER_ID || '1169330222921278')).match(/\\d+/g) || []).join('')) || '1169330222921278'); return `${apiBase}/${phoneNumberId}/messages`; })() }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const coreOutput = $('Execute Meetings Agent Core').item.json || {}; const userMessage = coreOutput.user_message || ''; const fallbackText = coreOutput.status === 'pending' ? 'Recibido. Procesare la reunion cuando tengas la transcripcion lista.' : 'Recibido. Estoy procesando la informacion de la reunion.'; return { messaging_product: 'whatsapp', to: ((String($('Validate + Normalize').item.json.user_id || '').match(/\\d+/g) || []).join('')), type: 'text', text: { body: String(userMessage || fallbackText).slice(0, 4096) } }; })() }}",
+        "options": {}
+      },
+      "id": "meetings-kapso-send-reply",
+      "name": "Send Reply via Kapso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "QgENg20F5GeZ8lf4",
+          "name": "Kapso Header Auth LEV Personal Assistant"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, reply_sent: true, reply_text: ($('Execute Meetings Agent Core').item.json.user_message || '') } }}",
+        "options": {}
+      },
+      "id": "meetings-kapso-respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1420,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst blob = JSON.stringify(item).toLowerCase();\nconst isOutside24h = blob.includes('outside the 24-hour window') || blob.includes('outside the 24h window');\nreturn [{ json: { ...item, is_outside_24h_window: isOutside24h } }];"
+      },
+      "id": "meetings-kapso-detect-24h-window",
+      "name": "Detect 24h Window Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "meetings-kapso-is-24h-true",
+              "leftValue": "={{ $json.is_outside_24h_window }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "meetings-kapso-if-24h-window",
+      "name": "Is Outside 24h Window?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (() => { const rawBase = String($env.KAPSO_BASE_URL || 'https://api.kapso.ai').replace(/\\/+$/, ''); const hasVersionPath = /\\/meta\\/whatsapp\\/v\\d+\\.\\d+$/i.test(rawBase); const apiBase = hasVersionPath ? rawBase : `${rawBase}/meta/whatsapp/v24.0`; const phoneNumberId = (((String(($('Validate + Normalize').item.json.metadata.phone_number_id || $env.KAPSO_PHONE_NUMBER_ID || '1169330222921278')).match(/\\d+/g) || []).join('')) || '1169330222921278'); return `${apiBase}/${phoneNumberId}/messages`; })() }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { messaging_product: 'whatsapp', to: ((String($('Validate + Normalize').item.json.user_id || '').match(/\\d+/g) || []).join('')), type: 'template', template: { name: ($env.KAPSO_FALLBACK_TEMPLATE_NAME || 'hello_world'), language: { code: 'en_US' } } } }}",
+        "options": {}
+      },
+      "id": "meetings-kapso-send-template-fallback",
+      "name": "Send Template Fallback via Kapso",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1860,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "QgENg20F5GeZ8lf4",
+          "name": "Kapso Header Auth LEV Personal Assistant"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, reply_sent: false, fallback_template_sent: true, template_name: $env.KAPSO_FALLBACK_TEMPLATE_NAME || 'hello_world' } }}",
+        "options": {}
+      },
+      "id": "meetings-kapso-respond-template-ok",
+      "name": "Respond Template Fallback OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        2080,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, reply_sent: false, error: 'whatsapp_send_failed', details: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "meetings-kapso-respond-send-error",
+      "name": "Respond Send Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1860,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Kapso Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate + Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate + Normalize": {
+      "main": [
+        [
+          {
+            "node": "Execute Meetings Agent Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Meetings Agent Core": {
+      "main": [
+        [
+          {
+            "node": "Send Reply via Kapso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reply via Kapso": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Detect 24h Window Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect 24h Window Error": {
+      "main": [
+        [
+          {
+            "node": "Is Outside 24h Window?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Outside 24h Window?": {
+      "main": [
+        [
+          {
+            "node": "Send Template Fallback via Kapso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Send Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Template Fallback via Kapso": {
+      "main": [
+        [
+          {
+            "node": "Respond Template Fallback OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Send Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "levinnovation"
+    },
+    {
+      "name": "kapso"
+    },
+    {
+      "name": "whatsapp"
+    },
+    {
+      "name": "meetings-agent"
+    }
+  ]
+}

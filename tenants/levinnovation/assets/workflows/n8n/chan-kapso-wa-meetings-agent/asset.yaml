@@ -1,0 +1,34 @@
+asset:
+  name: chan-kapso-wa-meetings-agent
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: internal-operations
+  capability: meeting-minutes-and-followups
+
+  description: |
+    Kapso WhatsApp channel adapter for the LEV Innovation Sofer meetings agent.
+    Receives Kapso inbound webhook events, normalizes payload into meetings
+    envelope, calls meetings-agent-core, and sends Sofer's user_message reply
+    through Kapso outbound WhatsApp.
+    Supports text, image, document, voice, and audio messages.
+    Auto-detects meeting URLs from inbound message text.
+
+  inputs:
+    - kapso inbound webhook payload
+
+  outputs:
+    - kapso outbound whatsapp reply
+    - webhook acknowledgment
+
+  dependencies:
+    - service: kapso
+      endpoint: ${KAPSO_BASE_URL}
+      auth: x-api-key
+    - service: n8n-main
+      endpoint: https://levinnovation.n8n.agentyx.one
+
+  files:
+    - chan-kapso-wa-meetings-agent.json
+    - README.md
+    - asset.yaml
+    - .env.example
