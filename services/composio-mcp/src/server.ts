@@ -500,12 +500,15 @@ app.post('/mcp', async (req, res) => {
 		typeof accountHeader === 'string' && accountHeader.trim() ? accountHeader.trim() : undefined;
 	const userPrompt = extractUserPrompt(req, req.body);
 	const toolkitsHeader = req.headers['x-allowed-toolkits'];
+	const toolkitsQueryParam = req.query['toolkits'];
 	const allowedToolkits =
 		typeof toolkitsHeader === 'string'
 			? toolkitsHeader.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
 			: Array.isArray(toolkitsHeader)
 				? toolkitsHeader.flatMap((item) => item.split(',').map((s) => s.trim().toLowerCase())).filter(Boolean)
-				: [];
+				: typeof toolkitsQueryParam === 'string'
+					? toolkitsQueryParam.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+					: [];
 	const compressedHeader = req.headers['x-compressed-tools'];
 	const compressedToolsMode =
 		typeof compressedHeader === 'string'
