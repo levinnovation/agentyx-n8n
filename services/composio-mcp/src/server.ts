@@ -593,6 +593,67 @@ app.delete('/mcp', (_req, res) => {
 	);
 });
 
+// Per-toolkit sub-paths — each endpoint pre-sets allowedToolkits so n8n MCP nodes
+// can use a single httpHeaderAuth credential (Bearer token only) per node, one per app.
+// e.g. /mcp/gmail  →  only Gmail tools
+//      /mcp/googlecalendar  →  only Google Calendar tools
+const TOOLKIT_ROUTE_MAP: Record<string, string[]> = {
+	gmail:           ['gmail'],
+	googlecalendar:  ['googlecalendar'],
+	googledrive:     ['googledrive'],
+	googlesheets:    ['googlesheets'],
+	googledocs:      ['googledocs'],
+	slack:           ['slack'],
+	tavily:          ['tavily'],
+	clickup:         ['clickup'],
+	facebook:        ['facebook'],
+};
+
+for (const [slug, toolkits] of Object.entries(TOOLKIT_ROUTE_MAP)) {
+	app.post(`/mcp/${slug}`, async (req, res) => {
+		const cid = (req as Request & { correlationId: string }).correlationId;
+		const client = getComposioClient();
+		// Merge per-route toolkit filter with any optional request-level override
+		const reqToolkitsHeader = req.headers['x-allowed-toolkits'];
+		const reqToolkits: string[] =
+			typeof reqToolkitsHeader === 'string'
+				? reqToolkitsHeader.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+				: [];
+		// Route-level toolkits take priority; request header can further narrow but not expand
+		const allowedToolkits = reqToolkits.length > 0
+			? toolkits.filter((t) => reqToolkits.includes(t))
+			: toolkits;
+
+		const mcp = createMcpServer(client, cid, { allowedToolkits });
+		try {
+			const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+			await mcp.connect(transport);
+			await transport.handleRequest(req, res, req.body);
+			res.on('close', () => {
+				void transport.close();
+				void mcp.close();
+			});
+		} catch (error) {
+			logLine('error', 'mcp_toolkit_transport_error', {
+				correlationId: cid,
+				toolkit: slug,
+				error: error instanceof Error ? error.message : String(error),
+			});
+			if (!res.headersSent) {
+				res.status(500).json({
+					jsonrpc: '2.0',
+					error: { code: -32603, message: 'Internal server error' },
+					id: null,
+				});
+			}
+		}
+	});
+
+	app.get(`/mcp/${slug}`, (_req, res) => {
+		res.writeHead(405).end(JSON.stringify({ jsonrpc: '2.0', error: { code: -32000, message: 'Method not allowed' }, id: null }));
+	});
+}
+
 app.listen(PORT, '0.0.0.0', () => {
 	logLine('info', 'server_listen', { port: PORT });
 });
