@@ -920,7 +920,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const crm = $input.first().json || {};\nconst prepared = $('Prepare CRM Subworkflow Payload').item.json || {};\nconst replyText = String(crm.reply_text || prepared.output || prepared.reply_text || '').trim();\nconst metadata = { ...(prepared.metadata || {}), ...(crm.metadata || {}) };\nconst attachmentUrl = String(prepared.attachment_url || '').trim();\nconst baseReplyAttachments = Array.isArray(crm.reply_attachments) ? crm.reply_attachments : [];\nconst mergedReplyAttachments = attachmentUrl\n  ? [{ type: 'document', url: attachmentUrl, caption: String(prepared.attachment_caption || 'Adjunto solicitado por el usuario.') }]\n  : baseReplyAttachments;\nreturn [{\n  json: {\n    reply_text: replyText,\n    reply_attachments: mergedReplyAttachments,\n    end_session: Boolean(crm.end_session || false),\n    metadata\n  }\n}];"
+        "jsCode": "const ai = $input.first().json || {};\nconst replyText = String(ai.reply_text || ai.output || ai.text || '').trim();\n\nreturn [{\n  json: {\n    reply_text: replyText,\n    reply_attachments: Array.isArray(ai.reply_attachments) ? ai.reply_attachments : [],\n    ok: true\n  }\n}];"
       },
       "id": "cs-core-finalize-response-envelope",
       "name": "Finalize Response Envelope",
@@ -2221,7 +2221,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const crm = $input.first().json || {};\nconst prepared = $('Prepare CRM Subworkflow Payload').item.json || {};\nconst replyText = String(crm.reply_text || prepared.output || prepared.reply_text || '').trim();\nconst metadata = { ...(prepared.metadata || {}), ...(crm.metadata || {}) };\nconst attachmentUrl = String(prepared.attachment_url || '').trim();\nconst baseReplyAttachments = Array.isArray(crm.reply_attachments) ? crm.reply_attachments : [];\nconst mergedReplyAttachments = attachmentUrl\n  ? [{ type: 'document', url: attachmentUrl, caption: String(prepared.attachment_caption || 'Adjunto solicitado por el usuario.') }]\n  : baseReplyAttachments;\nreturn [{\n  json: {\n    reply_text: replyText,\n    reply_attachments: mergedReplyAttachments,\n    end_session: Boolean(crm.end_session || false),\n    metadata\n  }\n}];"
+          "jsCode": "const ai = $input.first().json || {};\nconst replyText = String(ai.reply_text || ai.output || ai.text || '').trim();\n\nreturn [{\n  json: {\n    reply_text: replyText,\n    reply_attachments: Array.isArray(ai.reply_attachments) ? ai.reply_attachments : [],\n    ok: true\n  }\n}];"
         },
         "id": "cs-core-finalize-response-envelope",
         "name": "Finalize Response Envelope",
