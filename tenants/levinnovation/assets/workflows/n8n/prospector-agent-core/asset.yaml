@@ -1,0 +1,50 @@
+apiVersion: agentyx.dev/v1
+kind: Workflow
+metadata:
+  name: prospector-agent-core
+  tenant: levinnovation
+  domain: sales
+  capability: outbound-prospecting
+spec:
+  runtime: n8n
+  entrypoint: prospector-agent-core.json
+  workflow_id: i06Dfr3BkClgMgT2
+  trigger:
+    - type: subworkflow
+      input_envelope:
+        linkedin_query: string?
+        leads_per_run: number?
+        fit_threshold: number?
+        dry_run: boolean?
+        test_leads: array?
+  subworkflows:
+    - id: d6VSkkNoCIxolaFM
+      name: Twenty CRM Read Context (Levinnovation)
+      purpose: dedup-check
+    - id: 8DwIA1gB946zMl7B
+      name: Twenty CRM Write Actions (Levinnovation)
+      purpose: upsert person + company + opportunity
+    - id: 2YgexGoZiHnGwGUi
+      name: Customer Service Core (Levinnovation)
+      purpose: conversational engine for outreach
+  integrations:
+    - linkedin (RapidAPI)
+    - twenty-crm
+    - tavily (web scraping)
+    - google-calendar
+    - gmail
+    - openrouter (gemini-2.5-flash)
+    - slack (webhook)
+  env_required:
+    - RAPIDAPI_KEY
+    - RAPIDAPI_LINKEDIN_HOST
+    - RAPIDAPI_LINKEDIN_URL
+    - LINKEDIN_SEARCH_QUERY
+    - LEADS_PER_RUN
+    - LEAD_FIT_THRESHOLD
+    - TAVILY_API_KEY
+    - TWENTY_API_KEY
+    - GOOGLE_CALENDAR_ID
+    - SLACK_WEBHOOK_URL
+    - SLACK_CHANNEL
+    - MEETING_SCHEDULER_URL

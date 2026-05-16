@@ -1,0 +1,25 @@
+apiVersion: agentyx.dev/v1
+kind: Workflow
+metadata:
+  name: prospector-agent-scheduler
+  tenant: levinnovation
+  domain: sales
+  capability: outbound-prospecting
+spec:
+  runtime: n8n
+  entrypoint: prospector-agent-scheduler.json
+  workflow_id: x6UEapkGLMDXxXuv
+  trigger:
+    - type: manual
+    - type: schedule
+      cron: "0 * * * *"
+      timezone: America/Costa_Rica
+  subworkflows:
+    - id: i06Dfr3BkClgMgT2
+      name: Prospector Agent Core (Levinnovation)
+      purpose: actual prospecting pipeline
+  env_optional:
+    - LINKEDIN_SEARCH_QUERY
+    - LEADS_PER_RUN
+    - LEAD_FIT_THRESHOLD
+    - PROSPECTOR_DRY_RUN
