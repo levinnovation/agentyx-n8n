@@ -5,7 +5,8 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "kapso/customer-service",
-        "responseMode": "responseNode",
+        "authentication": "none",
+        "responseMode": "onReceived",
         "options": {}
       },
       "id": "cs-kapso-webhook",
@@ -20,7 +21,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\nlet messageText = '';\nlet attachments = [];\n\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Imagen recibida]';\n  attachments.push({ type: 'image', url: msg.image.link || '', mime_type: msg.image.mime_type || 'image/jpeg' });\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Documento recibido]';\n  attachments.push({ type: 'document', url: msg.document.link || '', mime_type: msg.document.mime_type || 'application/pdf' });\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Mensaje de voz recibido]';\n  attachments.push({ type: 'voice', url: msg.voice.link || '', mime_type: msg.voice.mime_type || 'audio/ogg' });\n} else if (msg.type === 'audio' && msg.audio) {\n  messageText = '[Audio recibido]';\n  attachments.push({ type: 'audio', url: msg.audio.link || '', mime_type: msg.audio.mime_type || 'audio/mpeg' });\n}\n\nconst phoneNumber = conv.phone_number ? '+' + conv.phone_number : (msg.from ? '+' + msg.from : '');\n\nreturn [{\n  json: {\n    core_workflow_id: 'CUSTOMER_SERVICE_CORE_ID',\n    channel: 'kapso-wa',\n    conversation_id: String(conv.id || msg.from || ''),\n    user_id: String(phoneNumber || ''),\n    message: messageText,\n    attachments: attachments,\n    metadata: {\n      message_id: msg.id || '',\n      contact_name: conv.contact_name || '',\n      phone: phoneNumber,\n      phone_number_id: conv.phone_number_id || ''\n    }\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\n\n// Kapso sends payload directly (not wrapped in .body)\nconst body = input.body || input || {};\nconst msg = body.message || {};\nconst conv = body.conversation || {};\n\nlet messageText = '';\nlet attachments = [];\n\nif (msg.type === 'text' && msg.text) {\n  messageText = msg.text.body || '';\n} else if (msg.type === 'image' && msg.image) {\n  messageText = msg.image.caption || '[Imagen recibida]';\n  attachments.push({ type: 'image', url: msg.image.link || '', mime_type: msg.image.mime_type || 'image/jpeg' });\n} else if (msg.type === 'document' && msg.document) {\n  messageText = msg.document.caption || '[Documento recibido]';\n  attachments.push({ type: 'document', url: msg.document.link || '', mime_type: msg.document.mime_type || 'application/pdf' });\n} else if (msg.type === 'voice' && msg.voice) {\n  messageText = '[Mensaje de voz recibido]';\n  attachments.push({ type: 'voice', url: msg.voice.link || '', mime_type: msg.voice.mime_type || 'audio/ogg' });\n} else if (msg.type === 'audio' && msg.audio) {\n  messageText = '[Audio recibido]';\n  attachments.push({ type: 'audio', url: msg.audio.link || '', mime_type: msg.audio.mime_type || 'audio/mpeg' });\n}\n\nconst phoneNumber = conv.phone_number ? '+' + conv.phone_number : (msg.from ? '+' + msg.from : '');\n\nreturn [{\n  json: {\n    core_workflow_id: 'n0mTwpONyCbbyn2E',\n    channel: 'kapso-wa',\n    conversation_id: String(conv.id || msg.from || ''),\n    user_id: String(phoneNumber || ''),\n    message: messageText,\n    attachments: attachments,\n    metadata: {\n      message_id: msg.id || '',\n      contact_name: conv.contact_name || '',\n      phone: phoneNumber,\n      phone_number_id: conv.phone_number_id || ''\n    }\n  }\n}];"
       },
       "id": "cs-kapso-normalize",
       "name": "Validate + Normalize",
@@ -36,7 +37,7 @@
         "source": "database",
         "workflowId": {
           "__rl": true,
-          "value": "fM29GJKgwpCujakW",
+          "value": "n0mTwpONyCbbyn2E",
           "mode": "id"
         },
         "options": {}
@@ -54,14 +55,16 @@
       "parameters": {
         "method": "POST",
         "url": "={{ (() => { const rawBase = String($env.KAPSO_BASE_URL || 'https://api.kapso.ai').replace(/\\/+$/, ''); const hasVersionPath = /\\/meta\\/whatsapp\\/v\\d+\\.\\d+$/i.test(rawBase); const apiBase = hasVersionPath ? rawBase : `${rawBase}/meta/whatsapp/v24.0`; const phoneNumberId = (((String(($('Validate + Normalize').item.json.metadata.phone_number_id || $env.KAPSO_PHONE_NUMBER_ID || '1169330222921278')).match(/\\d+/g) || []).join('')) || '1169330222921278'); return `${apiBase}/${phoneNumberId}/messages`; })() }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "X-API-Key",
+              "value": "3cb13a3196ca71e4f40adf9553c296e21eb828db6294184b451d384bb7d7ca09"
             }
           ]
         },
@@ -78,24 +81,35 @@
         1180,
         160
       ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "QgENg20F5GeZ8lf4",
-          "name": "Kapso Header Auth LEV Personal Assistant"
-        }
-      },
       "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"ok\": true, \"reply_sent\": true, \"reply_text\": $('Execute Customer Service Core').item.json.reply_text || '' } }}",
+        "assignments": {
+          "assignments": [
+            {
+              "name": "ok",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "name": "reply_sent",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "name": "reply_text",
+              "value": "={{ $json.reply_text || '' }}",
+              "type": "string"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "cs-kapso-respond",
       "name": "Respond OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.3,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         1420,
         160
@@ -152,14 +166,16 @@
       "parameters": {
         "method": "POST",
         "url": "={{ (() => { const rawBase = String($env.KAPSO_BASE_URL || 'https://api.kapso.ai').replace(/\\/+$/, ''); const hasVersionPath = /\\/meta\\/whatsapp\\/v\\d+\\.\\d+$/i.test(rawBase); const apiBase = hasVersionPath ? rawBase : `${rawBase}/meta/whatsapp/v24.0`; const phoneNumberId = (((String(($('Validate + Normalize').item.json.metadata.phone_number_id || $env.KAPSO_PHONE_NUMBER_ID || '1169330222921278')).match(/\\d+/g) || []).join('')) || '1169330222921278'); return `${apiBase}/${phoneNumberId}/messages`; })() }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "X-API-Key",
+              "value": "3cb13a3196ca71e4f40adf9553c296e21eb828db6294184b451d384bb7d7ca09"
             }
           ]
         },
@@ -176,24 +192,35 @@
         1860,
         240
       ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "QgENg20F5GeZ8lf4",
-          "name": "Kapso Header Auth LEV Personal Assistant"
-        }
-      },
       "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"ok\": true, \"reply_sent\": false, \"fallback_template_sent\": true, \"template_name\": $env.KAPSO_FALLBACK_TEMPLATE_NAME || 'hello_world' } }}",
+        "assignments": {
+          "assignments": [
+            {
+              "name": "ok",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "name": "reply_sent",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "name": "fallback_template_sent",
+              "value": "={{ true }}",
+              "type": "boolean"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "cs-kapso-respond-template-ok",
       "name": "Respond Template Fallback OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.3,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         2080,
         240
@@ -201,16 +228,31 @@
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { \"ok\": false, \"reply_sent\": false, \"error\": \"whatsapp_send_failed\", \"details\": $json } }}",
-        "options": {
-          "responseCode": 200
-        }
+        "assignments": {
+          "assignments": [
+            {
+              "name": "ok",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "name": "reply_sent",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "name": "error",
+              "value": "whatsapp_send_failed",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "cs-kapso-respond-send-error",
       "name": "Respond Send Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.3,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [
         1860,
         400
