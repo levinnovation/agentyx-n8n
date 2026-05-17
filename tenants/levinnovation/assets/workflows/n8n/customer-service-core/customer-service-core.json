@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-05-11T22:03:46.923Z",
+  "updatedAt": "2026-05-17T21:43:59.676Z",
   "createdAt": "2026-05-11T17:43:04.730Z",
   "id": "n0mTwpONyCbbyn2E",
   "name": "Customer Service Core (Levinnovation)",
-  "description": null,
-  "active": false,
+  "description": "",
+  "active": true,
   "isArchived": false,
   "nodes": [
     {
@@ -1172,14 +1172,94 @@
         ]
       ]
     },
-    "Twenty CRM Native Tool (Workflow)": {},
-    "Twenty CRM Read Context (Workflow Tool)": {},
-    "Twenty CRM Write Actions (Workflow Tool)": {},
-    "MCP Slack Tool": {},
-    "MCP Gmail Tool": {},
-    "MCP Google Calendar Tool": {},
-    "MCP Google Drive Tool": {},
-    "MCP Tavily Tool": {},
+    "Twenty CRM Native Tool (Workflow)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty CRM Read Context (Workflow Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twenty CRM Write Actions (Workflow Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Slack Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Gmail Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Google Calendar Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Google Drive Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Tavily Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Compose Prompt Context": {
       "main": [
         [
@@ -1273,22 +1353,25 @@
     }
   },
   "settings": {
+    "timezone": "America/Costa_Rica",
+    "binaryMode": "separate",
     "executionOrder": "v1",
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all",
     "saveManualExecutions": true,
     "saveExecutionProgress": true,
-    "timezone": "America/Costa_Rica",
-    "binaryMode": "separate"
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
   },
   "staticData": null,
   "meta": {
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "55deac82-5150-41f4-8f3a-af2a87e4a751",
-  "activeVersionId": "55deac82-5150-41f4-8f3a-af2a87e4a751",
-  "versionCounter": 499,
+  "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
+  "activeVersionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
+  "versionCounter": 926,
   "triggerCount": 0,
   "shared": [
     {
@@ -1311,9 +1394,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-05-11T22:04:02.702Z",
-    "createdAt": "2026-05-11T22:03:46.930Z",
-    "versionId": "55deac82-5150-41f4-8f3a-af2a87e4a751",
+    "updatedAt": "2026-05-17T21:43:59.682Z",
+    "createdAt": "2026-05-17T21:43:59.682Z",
+    "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
     "workflowId": "n0mTwpONyCbbyn2E",
     "nodes": [
       {
@@ -2481,14 +2564,94 @@
           ]
         ]
       },
-      "Twenty CRM Native Tool (Workflow)": {},
-      "Twenty CRM Read Context (Workflow Tool)": {},
-      "Twenty CRM Write Actions (Workflow Tool)": {},
-      "MCP Slack Tool": {},
-      "MCP Gmail Tool": {},
-      "MCP Google Calendar Tool": {},
-      "MCP Google Drive Tool": {},
-      "MCP Tavily Tool": {},
+      "Twenty CRM Native Tool (Workflow)": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Twenty CRM Read Context (Workflow Tool)": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Twenty CRM Write Actions (Workflow Tool)": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MCP Slack Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MCP Gmail Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MCP Google Calendar Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MCP Google Drive Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MCP Tavily Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
       "Compose Prompt Context": {
         "main": [
           [
@@ -2582,27 +2745,26 @@
       }
     },
     "authors": "Vinicio Flores",
-    "name": "Version 9e70bc44",
-    "description": "",
-    "autosaved": true,
+    "name": null,
+    "description": null,
+    "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-05-11T22:04:02.694Z",
-        "id": 500,
+        "createdAt": "2026-05-17T21:43:59.812Z",
+        "id": 1192,
         "workflowId": "n0mTwpONyCbbyn2E",
-        "versionId": "9e70bc44-23c1-45a7-b8a1-3f59b0159142",
+        "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
+        "event": "deactivated",
+        "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
+      },
+      {
+        "createdAt": "2026-05-17T21:43:59.870Z",
+        "id": 1193,
+        "workflowId": "n0mTwpONyCbbyn2E",
+        "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
         "event": "activated",
         "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
       }
-    ],
-    "settings": {
-      "executionOrder": "v1",
-      "saveDataErrorExecution": "all",
-      "saveDataSuccessExecution": "all",
-      "saveManualExecutions": true,
-      "saveExecutionProgress": true,
-      "timezone": "America/Costa_Rica",
-      "binaryMode": "separate"
-    }
+    ]
   }
 }
