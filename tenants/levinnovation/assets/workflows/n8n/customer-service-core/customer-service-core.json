@@ -339,7 +339,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.message }}",
+        "text": "={{ $json.enriched_message || $json.message }}",
         "options": {
           "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nFLUJO:\n1. Saluda y pregunta qué los trajo hoy\n2. Responde con valor real antes de calificar\n3. Consulta documentos disponibles para información específica sobre LEV\n4. Si es lead calificado (necesidad, presupuesto, timeline), ofrece agendar reunión\n\nTOOLS: Gmail, Google Calendar, Slack, búsqueda web, Google Drive. Solo usar cuando el usuario lo solicita explícitamente.\n\nPRODUCTOS LEV: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión' → DEBES llamar la tool de Calendar para crear evento\n3. Si usuario dice 'Busca información sobre X' → DEBES llamar Tavily\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
         }
@@ -1648,7 +1648,7 @@
       {
         "parameters": {
           "promptType": "define",
-          "text": "={{ $json.message }}",
+          "text": "={{ $json.enriched_message || $json.message }}",
           "options": {
             "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nFLUJO:\n1. Saluda y pregunta qué los trajo hoy\n2. Responde con valor real antes de calificar\n3. Consulta documentos disponibles para información específica sobre LEV\n4. Si es lead calificado (necesidad, presupuesto, timeline), ofrece agendar reunión\n\nTOOLS: Gmail, Google Calendar, Slack, búsqueda web, Google Drive. Solo usar cuando el usuario lo solicita explícitamente.\n\nPRODUCTOS LEV: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión' → DEBES llamar la tool de Calendar para crear evento\n3. Si usuario dice 'Busca información sobre X' → DEBES llamar Tavily\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
           }
@@ -2481,94 +2481,14 @@
           ]
         ]
       },
-      "Twenty CRM Native Tool (Workflow)": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Twenty CRM Read Context (Workflow Tool)": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Twenty CRM Write Actions (Workflow Tool)": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "MCP Slack Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "MCP Gmail Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "MCP Google Calendar Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "MCP Google Drive Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "MCP Tavily Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
+      "Twenty CRM Native Tool (Workflow)": {},
+      "Twenty CRM Read Context (Workflow Tool)": {},
+      "Twenty CRM Write Actions (Workflow Tool)": {},
+      "MCP Slack Tool": {},
+      "MCP Gmail Tool": {},
+      "MCP Google Calendar Tool": {},
+      "MCP Google Drive Tool": {},
+      "MCP Tavily Tool": {},
       "Compose Prompt Context": {
         "main": [
           [
