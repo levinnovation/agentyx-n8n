@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-17T21:43:59.676Z",
+  "updatedAt": "2026-05-17T23:19:52.062Z",
   "createdAt": "2026-05-11T17:43:04.730Z",
   "id": "n0mTwpONyCbbyn2E",
   "name": "Customer Service Core (Levinnovation)",
@@ -341,7 +341,7 @@
         "promptType": "define",
         "text": "={{ $json.enriched_message || $json.message }}",
         "options": {
-          "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE.\n3. Si el usuario pregunta sobre productos de LEV → PRIMERO revisa si tienes contexto KB en el prompt. Si no, consulta la base de conocimiento interna.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión' → DEBES llamar la tool de Calendar para crear evento\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
+          "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE.\n3. Si el usuario pregunta sobre productos de LEV → DEBES usar KB Search Tool para buscar en la base de conocimiento ANTES de responder.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión' → DEBES llamar la tool de Calendar INMEDIATAMENTE. NO pidas confirmación ni detalles adicionales.\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
         }
       },
       "id": "cs-core-ai-agent",
@@ -800,17 +800,7 @@
         "options": {},
         "include": "selected",
         "includeTools": [
-          "TAVILY_SEARCH",
-          "TAVILY_RESEARCH",
-          "TAVILY_CRAWL",
-          "TAVILY_EXTRACT",
-          "TAVILY_MAP",
-          "TAVILY_MCP_TAVILY_SEARCH",
-          "TAVILY_MCP_TAVILY_RESEARCH",
-          "TAVILY_MCP_TAVILY_CRAWL",
-          "TAVILY_MCP_TAVILY_EXTRACT",
-          "TAVILY_MCP_TAVILY_MAP",
-          "TAVILY_TAVILY_SEARCH"
+          "TAVILY_MCP_TAVILY_SEARCH"
         ]
       },
       "id": "cs-core-mcp-tavily",
@@ -971,6 +961,44 @@
       "position": [
         2940,
         112
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vgrNzGIncURMyYAC",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/vgrNzGIncURMyYAC"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            ""
+          ],
+          "schema": [
+            {
+              "id": "",
+              "displayName": "",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "cs-core-kb-search-tool",
+      "name": "KB Search Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2736,
+        600
       ]
     }
   ],
@@ -1350,6 +1378,39 @@
           }
         ]
       ]
+    },
+    "Redis Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Twenty CRM On-Update Interactions'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KB Search Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1369,9 +1430,9 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
-  "activeVersionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
-  "versionCounter": 926,
+  "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
+  "activeVersionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
+  "versionCounter": 972,
   "triggerCount": 0,
   "shared": [
     {
@@ -1394,9 +1455,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-05-17T21:43:59.682Z",
-    "createdAt": "2026-05-17T21:43:59.682Z",
-    "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
+    "updatedAt": "2026-05-17T23:19:52.065Z",
+    "createdAt": "2026-05-17T23:19:52.065Z",
+    "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
     "workflowId": "n0mTwpONyCbbyn2E",
     "nodes": [
       {
@@ -1733,7 +1794,7 @@
           "promptType": "define",
           "text": "={{ $json.enriched_message || $json.message }}",
           "options": {
-            "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE.\n3. Si el usuario pregunta sobre productos de LEV → PRIMERO revisa si tienes contexto KB en el prompt. Si no, consulta la base de conocimiento interna.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión' → DEBES llamar la tool de Calendar para crear evento\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
+            "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE.\n3. Si el usuario pregunta sobre productos de LEV → DEBES usar KB Search Tool para buscar en la base de conocimiento ANTES de responder.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión' → DEBES llamar la tool de Calendar INMEDIATAMENTE. NO pidas confirmación ni detalles adicionales.\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
           }
         },
         "id": "cs-core-ai-agent",
@@ -2192,17 +2253,7 @@
           "options": {},
           "include": "selected",
           "includeTools": [
-            "TAVILY_SEARCH",
-            "TAVILY_RESEARCH",
-            "TAVILY_CRAWL",
-            "TAVILY_EXTRACT",
-            "TAVILY_MAP",
-            "TAVILY_MCP_TAVILY_SEARCH",
-            "TAVILY_MCP_TAVILY_RESEARCH",
-            "TAVILY_MCP_TAVILY_CRAWL",
-            "TAVILY_MCP_TAVILY_EXTRACT",
-            "TAVILY_MCP_TAVILY_MAP",
-            "TAVILY_TAVILY_SEARCH"
+            "TAVILY_MCP_TAVILY_SEARCH"
           ]
         },
         "id": "cs-core-mcp-tavily",
@@ -2363,6 +2414,44 @@
         "position": [
           2940,
           112
+        ]
+      },
+      {
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "vgrNzGIncURMyYAC",
+            "mode": "id",
+            "cachedResultUrl": "/workflow/vgrNzGIncURMyYAC"
+          },
+          "workflowInputs": {
+            "mappingMode": "defineBelow",
+            "value": {},
+            "matchingColumns": [
+              ""
+            ],
+            "schema": [
+              {
+                "id": "",
+                "displayName": "",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "canBeUsedToMatch": true,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          }
+        },
+        "id": "cs-core-kb-search-tool",
+        "name": "KB Search Tool",
+        "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "typeVersion": 2.2,
+        "position": [
+          2736,
+          600
         ]
       }
     ],
@@ -2742,6 +2831,39 @@
             }
           ]
         ]
+      },
+      "Redis Chat Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Call 'Twenty CRM On-Update Interactions'": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "KB Search Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "authors": "Vinicio Flores",
@@ -2750,33 +2872,37 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-05-17T21:43:59.812Z",
-        "id": 1192,
+        "createdAt": "2026-05-17T23:19:52.126Z",
+        "id": 1200,
         "workflowId": "n0mTwpONyCbbyn2E",
-        "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
+        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
         "event": "deactivated",
         "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
       },
       {
-        "createdAt": "2026-05-17T21:43:59.870Z",
-        "id": 1193,
+        "createdAt": "2026-05-17T23:19:52.155Z",
+        "id": 1201,
         "workflowId": "n0mTwpONyCbbyn2E",
-        "versionId": "e76bcfbf-f5da-42fe-84bf-08a9733fa714",
+        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
+        "event": "activated",
+        "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
+      },
+      {
+        "createdAt": "2026-05-17T23:21:02.805Z",
+        "id": 1202,
+        "workflowId": "n0mTwpONyCbbyn2E",
+        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
+        "event": "deactivated",
+        "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
+      },
+      {
+        "createdAt": "2026-05-17T23:21:03.431Z",
+        "id": 1203,
+        "workflowId": "n0mTwpONyCbbyn2E",
+        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
         "event": "activated",
         "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
       }
-    ],
-    "settings": {
-      "timezone": "America/Costa_Rica",
-      "binaryMode": "separate",
-      "executionOrder": "v1",
-      "saveManualExecutions": true,
-      "saveExecutionProgress": true,
-      "saveDataErrorExecution": "all",
-      "saveDataSuccessExecution": "all",
-      "timeSavedMode": "fixed",
-      "callerPolicy": "workflowsFromSameOwner",
-      "availableInMCP": true
-    }
+    ]
   }
 }
