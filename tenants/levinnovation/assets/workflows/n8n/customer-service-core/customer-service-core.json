@@ -158,10 +158,19 @@
                 "type": "string",
                 "operation": "equals"
               }
+            },
+            {
+              "id": "rule-none",
+              "value1": "={{ $json._attachment_type }}",
+              "value2": "none",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ]
         },
-        "fallbackOutput": 3
+        "fallbackOutput": "extra"
       },
       "id": "cs-core-switch",
       "name": "Switch Attachment Type",
@@ -1458,10 +1467,19 @@
                   "type": "string",
                   "operation": "equals"
                 }
+              },
+              {
+                "id": "rule-none",
+                "value1": "={{ $json._attachment_type }}",
+                "value2": "none",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
               }
             ]
           },
-          "fallbackOutput": 3
+          "fallbackOutput": "extra"
         },
         "id": "cs-core-switch",
         "name": "Switch Attachment Type",
