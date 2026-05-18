@@ -33,6 +33,78 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Boolean($json.meeting_url && String($json.meeting_url).trim().length > 0) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "sofer-tg-has-url",
+      "name": "Has Meeting URL?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        680,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://recallai-bot-orchestrator-72608706210.us-east4.run.app/bot/create",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ meeting_url: $json.meeting_url, google_login_group_id: $env.RECALL_GOOGLE_LOGIN_GROUP_ID || '', metadata: { source: 'telegram', chat_id: $json.metadata.chat_id, conversation_id: $json.conversation_id, meeting_id: $json.meeting_id } }) }}",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "sofer-tg-dispatch-bot",
+      "name": "Dispatch Recall.ai Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst dispatch = item.body || item;\nconst chatId = item.metadata?.chat_id || item.conversation_id || '';\nreturn [{ json: {\n  status: 'bot_dispatched',\n  user_message: 'Estoy enviando a Sofer a tu reunion. Te aviso cuando tenga la transcripcion lista. \ud83c\udf99\ufe0f',\n  channel: 'telegram',\n  metadata: { chat_id: chatId, dispatch_response: dispatch }\n} }];"
+      },
+      "id": "sofer-tg-build-dispatch-reply",
+      "name": "Build Dispatch Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        140
+      ]
+    },
+    {
+      "parameters": {
         "source": "database",
         "workflowId": {
           "__rl": true,
@@ -172,7 +244,7 @@
       "main": [
         [
           {
-            "node": "Execute Meetings Agent Core",
+            "node": "Has Meeting URL?",
             "type": "main",
             "index": 0
           }
@@ -207,6 +279,46 @@
         [
           {
             "node": "Send Reply via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Meeting URL?": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Recall.ai Bot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Meetings Agent Core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Recall.ai Bot": {
+      "main": [
+        [
+          {
+            "node": "Build Dispatch Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dispatch Reply": {
+      "main": [
+        [
+          {
+            "node": "Has Reply Text?",
             "type": "main",
             "index": 0
           }

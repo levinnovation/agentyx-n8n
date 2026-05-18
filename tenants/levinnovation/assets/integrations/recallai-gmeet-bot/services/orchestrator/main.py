@@ -59,14 +59,26 @@ async def create_bot(req: CreateBotRequest):
     payload = {
         "meeting_url": req.meeting_url,
         "bot_name": req.bot_name,
-        "transcription_options": {"provider": req.transcription_provider},
         "metadata": {
             "source": "levinnovation-gcp-orchestrator",
             "meeting_title": req.meeting_title,
             "meeting_date": req.meeting_date,
             "tenant": "levinnovation",
+            # Include any caller-provided metadata (e.g. chat_id for Telegram reply routing)
+            **((req.metadata or {}) if hasattr(req, 'metadata') and req.metadata else {}),
         },
     }
+
+    # Move transcription options into recording_config if provided in metadata
+    tx_provider = req.transcription_provider or "default"
+    if tx_provider and tx_provider != "default":
+        payload["recording_config"] = {
+            "transcript": {
+                "provider": {tx_provider: {}}
+            }
+        }
+    else:
+        payload["transcription_options"] = {"provider": tx_provider}
 
     if req.google_login_group_id:
         payload["google_meet"] = {"google_login_group_id": req.google_login_group_id}
