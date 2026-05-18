@@ -95,7 +95,7 @@
     {
       "parameters": {
         "sessionIdType": "customKey",
-        "sessionKey": "={{ 'cs:' + ($json.channel || 'unknown') + ':' + ($json.conversation_id || $json.user_id || 'session:default') }}",
+        "sessionKey": "={{ 'cs:v2:' + ($json.channel || 'unknown') + ':' + ($json.conversation_id || $json.user_id || 'session:default') }}",
         "contextWindowLength": 6
       },
       "id": "cs-core-redis-memory",
@@ -1447,7 +1447,7 @@
       {
         "parameters": {
           "sessionIdType": "customKey",
-          "sessionKey": "={{ 'cs:' + ($json.channel || 'unknown') + ':' + ($json.conversation_id || $json.user_id || 'session:default') }}",
+          "sessionKey": "={{ 'cs:v2:' + ($json.channel || 'unknown') + ':' + ($json.conversation_id || $json.user_id || 'session:default') }}",
           "contextWindowLength": 6
         },
         "id": "cs-core-redis-memory",
