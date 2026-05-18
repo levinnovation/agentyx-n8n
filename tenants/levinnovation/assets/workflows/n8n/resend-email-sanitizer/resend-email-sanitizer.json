@@ -1,0 +1,76 @@
+{
+  "name": "Resend Email Sanitizer",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [224, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\n\nconst clean = {};\nif (item.to !== undefined && item.to !== null && item.to !== '') clean.to = item.to;\nif (item.from !== undefined && item.from !== null && item.from !== '') clean.from = item.from;\nif (item.subject !== undefined && item.subject !== null && item.subject !== '') clean.subject = item.subject;\nif (item.html !== undefined && item.html !== null && item.html !== '') clean.html = item.html;\nif (item.cc !== undefined && item.cc !== null && item.cc !== '') clean.cc = item.cc;\n\nreturn [{ json: clean }];"
+      },
+      "id": "sanitize",
+      "name": "Sanitize Inputs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [464, 240]
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://levinnovation.mcp.agentyx.one/mcp",
+        "authentication": "multipleHeadersAuth",
+        "credentials": {
+          "httpBearerAuth": {
+            "id": "MCP_BEARER_AUTH_CREDENTIAL_ID",
+            "name": "MCP Bearer Auth"
+          }
+        },
+        "include": "selected",
+        "includeTools": ["RESEND_SEND_EMAIL"],
+        "options": {}
+      },
+      "id": "mcp-resend",
+      "name": "MCP Resend Tool",
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [704, 240],
+      "credentials": {
+        "httpMultipleHeadersAuth": {
+          "id": "9udywSKQmBfbGfkw",
+          "name": "Multiple Headers Auth account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sanitize Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize Inputs": {
+      "main": [
+        [
+          {
+            "node": "MCP Resend Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
