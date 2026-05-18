@@ -1,8 +1,13 @@
+# Railway build context is the repo root (not services/linkedin-mcp/).
+# All COPY paths must be fully qualified from repo root.
+
 # Stage 1: build
 FROM node:22-alpine AS builder
 WORKDIR /app
-COPY . .
+COPY services/linkedin-mcp/package.json ./
 RUN npm install --ignore-scripts
+COPY services/linkedin-mcp/tsconfig.json ./
+COPY services/linkedin-mcp/src ./src
 RUN npm run build && npm prune --omit=dev
 
 # Stage 2: runtime
