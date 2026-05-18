@@ -587,6 +587,28 @@ async function hardenGmailSendArgs(
 		});
 	}
 
+	// Sanitize known hallucinated / deprecated keys that Composio schema rejects
+	if ('from_email' in next) {
+		logLine('warn', 'gmail_send_from_email_stripped', {
+			correlationId,
+			slug: normalizedSlug,
+			value: String(next.from_email ?? '').slice(0, 200),
+		});
+		delete next.from_email;
+	}
+	if ('attachments' in next) {
+		logLine('warn', 'gmail_send_attachments_plural_stripped', {
+			correlationId,
+			slug: normalizedSlug,
+			hasAttachmentSingular: 'attachment' in next,
+		});
+		delete next.attachments;
+	}
+	// Normalize user_id default if missing
+	if (!('user_id' in next)) {
+		next.user_id = 'me';
+	}
+
 	return next;
 }
 
