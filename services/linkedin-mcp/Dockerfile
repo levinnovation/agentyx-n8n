@@ -1,10 +1,8 @@
 # Stage 1: build
 FROM node:22-alpine AS builder
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY . .
 RUN npm ci --ignore-scripts
-COPY tsconfig.json ./
-COPY src ./src
 RUN npm run build && npm prune --omit=dev
 
 # Stage 2: runtime
