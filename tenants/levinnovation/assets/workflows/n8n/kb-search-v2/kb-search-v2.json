@@ -1,0 +1,410 @@
+{
+  "name": "Customer Service KB Search v2 (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kb/search",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "kb-search-v2-webhook",
+      "name": "KB Search Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        260
+      ],
+      "webhookId": "kb-search-levinnovation"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "kb-search-v2-execute-trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "query",
+              "value": "={{ ($json.body && $json.body.query) || $json.query || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "product",
+              "value": "={{ ($json.body && $json.body.product) || $json.product || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "top_k",
+              "value": "={{ ($json.body && $json.body.top_k) || $json.top_k || 6 }}",
+              "type": "number"
+            },
+            {
+              "name": "tenant_slug",
+              "value": "={{ ($json.body && ($json.body.tenant_slug || $json.body.tenant)) || $json.tenant_slug || $json.tenant || 'levinnovation' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "kb-search-v2-normalize",
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: ($env.KB_EMBEDDING_MODEL || 'text-embedding-3-small'), input: $json.query } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "kb-search-v2-embed",
+      "name": "Embed Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        260
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "1s2rxxG7tkEeB7UH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition"
+      },
+      "id": "kb-search-merge",
+      "name": "Merge Embed + Query",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        820,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emb = Array.isArray($json.data) && $json.data[0] ? ($json.data[0].embedding || []) : [];\nconst embLit = '[' + emb.join(',') + ']';\nconst input = $input.first().json || {};\nconst query = input.query || '';\nconst product = input.product || '';\nconst top_k = input.top_k || 6;\nconst tenant = String(input.tenant_slug || 'levinnovation').trim().toLowerCase().replace(/[^a-z0-9-_]/g, '') || 'levinnovation';\n\nconst safeProduct = product ? \"'\" + product.replace(/'/g, \"''\") + \"'\" : \"NULL\";\nconst safeQuery = query.replace(/'/g, \"''\");\nconst safeTenant = tenant.replace(/'/g, \"''\");\nconst safeEmb = embLit;\n\nconst sql = `WITH params AS (\n  SELECT '${safeEmb}'::vector AS qvec,\n         '${safeQuery}'::text AS qtext,\n         ${safeProduct}::text AS product,\n         '${safeTenant}'::text AS tenant,\n         ${top_k}::int AS k\n),\nv AS (\n  SELECT c.id, c.text,\n         c.metadata || jsonb_build_object(\n           'doc_id', d.id::text,\n           'title', COALESCE(d.title, c.metadata->>'title', c.metadata->>'source_name', 'doc'),\n           'url', COALESCE(d.url, c.metadata->>'url', ''),\n           'mime', COALESCE(d.mime, c.metadata->>'mime', ''),\n           'visibility', COALESCE(d.visibility, 'context_only'),\n           'tenant_slug', d.tenant_slug\n         ) AS metadata,\n         1 - (c.embedding <=> p.qvec) AS vscore,\n         row_number() OVER (ORDER BY c.embedding <=> p.qvec) AS vrank\n  FROM cs_knowledge_chunks c\n  JOIN cs_documents d ON d.id = c.doc_id\n  CROSS JOIN params p\n  WHERE d.tenant_slug = p.tenant\n    AND (p.product IS NULL OR c.metadata->>'product' = p.product)\n  ORDER BY c.embedding <=> p.qvec\n  LIMIT 30\n),\nf AS (\n  SELECT c.id, c.text,\n         c.metadata || jsonb_build_object(\n           'doc_id', d.id::text,\n           'title', COALESCE(d.title, c.metadata->>'title', c.metadata->>'source_name', 'doc'),\n           'url', COALESCE(d.url, c.metadata->>'url', ''),\n           'mime', COALESCE(d.mime, c.metadata->>'mime', ''),\n           'visibility', COALESCE(d.visibility, 'context_only'),\n           'tenant_slug', d.tenant_slug\n         ) AS metadata,\n         ts_rank_cd(c.tsv, websearch_to_tsquery('spanish', p.qtext)) AS fscore,\n         row_number() OVER (ORDER BY ts_rank_cd(c.tsv, websearch_to_tsquery('spanish', p.qtext)) DESC) AS frank\n  FROM cs_knowledge_chunks c\n  JOIN cs_documents d ON d.id = c.doc_id\n  CROSS JOIN params p\n  WHERE d.tenant_slug = p.tenant\n    AND (p.product IS NULL OR c.metadata->>'product' = p.product)\n    AND c.tsv @@ websearch_to_tsquery('spanish', p.qtext)\n  LIMIT 30\n),\nfused AS (\n  SELECT u.id, u.text, u.metadata,\n         COALESCE(1.0/(60+MAX(u.vrank)),0) + COALESCE(1.0/(60+MAX(u.frank)),0)\n         - CASE WHEN u.metadata->>'source' = 'static' THEN 0.05 ELSE 0 END AS score\n  FROM (\n    SELECT id, text, metadata, vrank, NULL::int AS frank FROM v\n    UNION ALL\n    SELECT id, text, metadata, NULL::int, frank FROM f\n  ) u\n  GROUP BY u.id, u.text, u.metadata\n)\nSELECT id, text, metadata, score\nFROM fused\nORDER BY score DESC\nLIMIT (SELECT k FROM params);`;\n\nreturn [{ json: { embedding_literal: embLit, query, product, top_k, tenant_slug: tenant, sql_query: sql } }];"
+      },
+      "id": "kb-search-v2-prep",
+      "name": "Prepare SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sql_query }}"
+      },
+      "id": "kb-search-v2-rrf",
+      "name": "Hybrid Search RRF",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1180,
+        260
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sFReUGjhi6Ox1tYR",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json || {});\nconst snippets = rows.filter(r => r.text).map(r => ({\n  id: r.id,\n  doc_id: (r.metadata && r.metadata.doc_id) || '',\n  product: (r.metadata && r.metadata.product) || 'General',\n  title: (r.metadata && r.metadata.title) || (r.metadata && r.metadata.source_name) || 'doc',\n  url: (r.metadata && r.metadata.url) || '',\n  source: (r.metadata && r.metadata.source) || '',\n  mime: (r.metadata && r.metadata.mime) || '',\n  visibility: (r.metadata && r.metadata.visibility) || 'context_only',\n  tenant_slug: (r.metadata && r.metadata.tenant_slug) || 'levinnovation',\n  text: String(r.text || '').slice(0, 800),\n  score: Math.round((r.score || 0) * 1000) / 1000\n}));\nconst kbContext = snippets.map((s, idx) => `#${idx + 1} [${s.product}] ${s.title} ${s.url ? '('+s.url+')' : ''}\\n${s.text}`).join('\\n\\n');\nreturn [{ json: { kb_context: kbContext, snippets, hit_count: snippets.length } }];"
+      },
+      "id": "kb-search-v2-format",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, kb_context: $json.kb_context || '', snippets: $json.snippets || [], hit_count: $json.hit_count || 0 } }}",
+        "options": {}
+      },
+      "id": "kb-search-v2-respond",
+      "name": "Respond KB",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1660,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "documents/download",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "kb-doc-download-webhook",
+      "name": "Documents Download Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        520
+      ],
+      "webhookId": "kb-doc-download-levinnovation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = $json.query || {};\nconst tenantRaw = String(q.tenant || q.tenant_slug || 'levinnovation').trim().toLowerCase();\nconst docIdRaw = String(q.doc_id || '').trim();\nconst tenant = tenantRaw.replace(/[^a-z0-9-_]/g, '') || 'levinnovation';\nconst docId = docIdRaw.replace(/[^a-zA-Z0-9-]/g, '');\nreturn [{ json: { tenant, doc_id: docId } }];"
+      },
+      "id": "kb-doc-download-normalize",
+      "name": "Normalize Download Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.doc_id ? `SELECT id, title, raw_text, url, mime, visibility FROM public.cs_documents WHERE tenant_slug = '${$json.tenant.replace(/'/g, \"''\")}' AND id = '${$json.doc_id.replace(/'/g, \"''\")}' AND visibility = 'shareable' LIMIT 1` : `SELECT id, title, raw_text, url, mime, visibility FROM public.cs_documents WHERE tenant_slug = '${$json.tenant.replace(/'/g, \"''\")}' AND visibility = 'shareable' ORDER BY updated_at DESC LIMIT 1` }}"
+      },
+      "id": "kb-doc-download-query",
+      "name": "Fetch Shareable Document",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        700,
+        520
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "sFReUGjhi6Ox1tYR",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = ($input.first() || {}).json || {};\nconst hasRow = Boolean(row.id);\nif (!hasRow) {\n  return [{ json: { status_code: 404, download_body: 'Document not found or not shareable.' } }];\n}\nconst title = String(row.title || 'document');\nconst content = String(row.raw_text || '').trim();\nconst header = `LEV Innovation Document: ${title}\\n\\n`;\nconst body = (header + content).slice(0, 200000);\nreturn [{ json: { status_code: 200, download_body: body } }];"
+      },
+      "id": "kb-doc-download-build",
+      "name": "Build Download Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.download_body || 'Document not found.' }}",
+        "options": {
+          "responseCode": "={{ Number($json.status_code || 200) }}"
+        }
+      },
+      "id": "kb-doc-download-respond",
+      "name": "Respond Download",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.3,
+      "position": [
+        1180,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "KB Search Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Embed Query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Embed + Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Query": {
+      "main": [
+        [
+          {
+            "node": "Merge Embed + Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare SQL": {
+      "main": [
+        [
+          {
+            "node": "Hybrid Search RRF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hybrid Search RRF": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond KB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Documents Download Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Download Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Download Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch Shareable Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Shareable Document": {
+      "main": [
+        [
+          {
+            "node": "Build Download Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Download Body": {
+      "main": [
+        [
+          {
+            "node": "Respond Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Embed + Query": {
+      "main": [
+        [
+          {
+            "node": "Prepare SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Costa_Rica",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  }
+}
