@@ -2157,7 +2157,6 @@
             ]
           },
           "includeTools": [
-            "GOOGLECALENDAR_EVENTS_LIST",
             "GOOGLECALENDAR_CREATE_EVENT"
           ]
         },
