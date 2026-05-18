@@ -560,7 +560,7 @@
             },
             {
               "name": "x-compressed-tools",
-              "value": "1"
+              "value": "0"
             },
             {
               "name": "x-tool-verbosity",
@@ -691,7 +691,7 @@
             },
             {
               "name": "x-compressed-tools",
-              "value": "1"
+              "value": "0"
             },
             {
               "name": "x-tool-verbosity",
@@ -756,7 +756,7 @@
             },
             {
               "name": "x-compressed-tools",
-              "value": "1"
+              "value": "0"
             },
             {
               "name": "x-tool-verbosity",
@@ -2013,7 +2013,7 @@
               },
               {
                 "name": "x-compressed-tools",
-                "value": "1"
+                "value": "0"
               },
               {
                 "name": "x-tool-verbosity",
@@ -2144,7 +2144,7 @@
               },
               {
                 "name": "x-compressed-tools",
-                "value": "1"
+                "value": "0"
               },
               {
                 "name": "x-tool-verbosity",
@@ -2209,7 +2209,7 @@
               },
               {
                 "name": "x-compressed-tools",
-                "value": "1"
+                "value": "0"
               },
               {
                 "name": "x-tool-verbosity",
