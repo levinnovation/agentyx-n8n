@@ -1,0 +1,265 @@
+{
+  "name": "Customer Service KB Search Pinecone (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kb/search-pinecone",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "KB Search Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 260],
+      "webhookId": "kb-search-pinecone-levinnovation"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "query",
+              "value": "={{ ($json.body && $json.body.query) || $json.query || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "product",
+              "value": "={{ ($json.body && $json.body.product) || $json.product || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "top_k",
+              "value": "={{ ($json.body && $json.body.top_k) || $json.top_k || 6 }}",
+              "type": "number"
+            },
+            {
+              "name": "tenant_slug",
+              "value": "={{ ($json.body && ($json.body.tenant_slug || $json.body.tenant)) || $json.tenant_slug || $json.tenant || 'levinnovation' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { model: ($env.KB_EMBEDDING_MODEL || 'text-embedding-3-small'), input: $json.query } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Embed Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 260],
+      "credentials": {
+        "openAiApi": {
+          "id": "1s2rxxG7tkEeB7UH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const emb = ($json.data && $json.data[0] && $json.data[0].embedding) || [];\nconst topK = Number($json.top_k || 6);\nconst tenant = $json.tenant_slug || 'levinnovation';\nconst product = $json.product || '';\nconst filter = { tenant_slug: { $eq: tenant } };\nif (product) filter.product = { $eq: product };\nreturn [{ json: { body: { vector: emb, topK: topK, includeMetadata: true, namespace: 'default', filter: filter } } }];"
+      },
+      "name": "Build Pinecone Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://levinnovation-kb-i5orcls.svc.aped-4627-b74a.pinecone.io/query",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "pcsk_5eyNUV_RfAX261NvTzrAshfGeaUxLnTUK7q1hGPZtcyqLtcSMdfGRSYce65k92gAaxcFa7"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Project-Id",
+              "value": "845c1353-adb5-4d2a-a948-2b7622ea9cea"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Query Pinecone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const matches = ($json.matches || []);\nconst snippets = matches.map((m, idx) => ({\n  id: m.id || '',\n  doc_id: (m.metadata && m.metadata.doc_id) || '',\n  product: (m.metadata && m.metadata.product) || 'General',\n  title: (m.metadata && m.metadata.title) || (m.metadata && m.metadata.source_name) || 'doc',\n  url: (m.metadata && m.metadata.url) || '',\n  source: (m.metadata && m.metadata.source) || '',\n  mime: (m.metadata && m.metadata.mime) || '',\n  visibility: (m.metadata && m.metadata.visibility) || 'context_only',\n  tenant_slug: (m.metadata && m.metadata.tenant_slug) || 'levinnovation',\n  text: String((m.metadata && m.metadata.text) || '').slice(0, 800),\n  score: Math.round((m.score || 0) * 1000) / 1000\n}));\nconst kbContext = snippets.map((s, idx) => `#${idx + 1} [${s.product}] ${s.title} ${s.url ? '('+s.url+')' : ''}\\n${s.text}`).join('\\n\\n');\nreturn [{ json: { kb_context: kbContext, snippets, hit_count: snippets.length } }];"
+      },
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 260]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "ok",
+              "value": "={{ true }}",
+              "type": "boolean"
+            },
+            {
+              "name": "kb_context",
+              "value": "={{ $json.kb_context || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "snippets",
+              "value": "={{ $json.snippets || [] }}",
+              "type": "array"
+            },
+            {
+              "name": "hit_count",
+              "value": "={{ $json.hit_count || 0 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Return KB Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1540, 260]
+    }
+  ],
+  "connections": {
+    "KB Search Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Embed Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Query": {
+      "main": [
+        [
+          {
+            "node": "Build Pinecone Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pinecone Query": {
+      "main": [
+        [
+          {
+            "node": "Query Pinecone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Pinecone": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Return KB Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Costa_Rica",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true
+  }
+}

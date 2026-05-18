@@ -338,6 +338,7 @@
     },
     {
       "parameters": {
+        "agent": "toolsAgent",
         "promptType": "define",
         "text": "={{ $json.enriched_message || $json.message }}",
         "options": {
@@ -821,30 +822,19 @@
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "vgrNzGIncURMyYAC",
+          "value": "mJc6GZvubuR1p8G5",
           "mode": "id",
-          "cachedResultUrl": "/workflow/vgrNzGIncURMyYAC"
+          "cachedResultUrl": "/workflow/mJc6GZvubuR1p8G5"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {},
-          "matchingColumns": [
-            ""
-          ],
-          "schema": [
-            {
-              "id": "",
-              "displayName": "",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
-          ],
+          "matchingColumns": [],
+          "schema": [],
           "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        }
+          "convertFieldsToString": true
+        },
+        "options": {}
       },
       "id": "cs-core-kb-search-tool",
       "name": "KB Search Tool",
@@ -2418,9 +2408,9 @@
         "parameters": {
           "workflowId": {
             "__rl": true,
-            "value": "vgrNzGIncURMyYAC",
+            "value": "mJc6GZvubuR1p8G5",
             "mode": "id",
-            "cachedResultUrl": "/workflow/vgrNzGIncURMyYAC"
+            "cachedResultUrl": "/workflow/mJc6GZvubuR1p8G5"
           },
           "workflowInputs": {
             "mappingMode": "defineBelow",
