@@ -10,140 +10,8 @@
                       "type":  "n8n-nodes-base.executeWorkflowTrigger",
                       "typeVersion":  1.1,
                       "position":  [
-                                       272,
-                                       224
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "assignments":  {
-                                                             "assignments":  [
-                                                                                 {
-                                                                                     "name":  "channel",
-                                                                                     "value":  "={{ $json.channel || \"unknown\" }}",
-                                                                                     "type":  "string"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "conversation_id",
-                                                                                     "value":  "={{ $json.conversation_id || $json.user_id || (($json.metadata || {}).message_id ? (\u0027msg:\u0027 + ($json.metadata || {}).message_id) : \u0027session:default\u0027) }}",
-                                                                                     "type":  "string"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "user_id",
-                                                                                     "value":  "={{ $json.user_id || \"\" }}",
-                                                                                     "type":  "string"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "message",
-                                                                                     "value":  "={{ $json.message || \"\" }}",
-                                                                                     "type":  "string"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "attachments",
-                                                                                     "value":  "={{ Array.isArray($json.attachments) ? $json.attachments : [] }}",
-                                                                                     "type":  "array"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "metadata",
-                                                                                     "value":  "={{ $json.metadata || {} }}",
-                                                                                     "type":  "object"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "slack_default_channel_id",
-                                                                                     "value":  "={{ \"C0AHR6GK2S0\" }}",
-                                                                                     "type":  "string"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "slack_default_channel_name",
-                                                                                     "value":  "={{ \"all-lev-innovation\" }}",
-                                                                                     "type":  "string"
-                                                                                 }
-                                                                             ]
-                                                         },
-                                         "options":  {
-
-                                                     }
-                                     },
-                      "id":  "2eb6ed26-9bc4-452b-8d2c-ec438cf84bab",
-                      "name":  "Normalize Envelope",
-                      "type":  "n8n-nodes-base.set",
-                      "typeVersion":  3.4,
-                      "position":  [
-                                       512,
-                                       224
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "url":  "={{ (($env.PORTAL_TEMPLATE_API_BASE || (\u0027https://\u0027 + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || \u0027levinnovation\u0027) + \u0027.portal.agentyx.one\u0027)) + \u0027/api/public/templates/email?tenant=\u0027 + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || \u0027levinnovation\u0027)) }}",
-                                         "sendHeaders":  true,
-                                         "headerParameters":  {
-                                                                  "parameters":  [
-                                                                                     {
-                                                                                         "name":  "x-agentyx-key",
-                                                                                         "value":  "={{ $env.AGENTYX_TEMPLATE_KEY || \u0027\u0027 }}"
-                                                                                     }
-                                                                                 ]
-                                                              },
-                                         "options":  {
-                                                         "timeout":  15000
-                                                     }
-                                     },
-                      "id":  "f9a088ee-1dcc-4348-b87b-393224ecbfd8",
-                      "name":  "Fetch Tenant Email Template",
-                      "type":  "n8n-nodes-base.httpRequest",
-                      "typeVersion":  4.2,
-                      "position":  [
-                                       880,
-                                       -16
-                                   ],
-                      "continueOnFail":  true
-                  },
-                  {
-                      "parameters":  {
-                                         "mode":  "combine",
-                                         "combinationMode":  "mergeByPosition",
-                                         "options":  {
-
-                                                     }
-                                     },
-                      "id":  "5bf1e13a-799f-4316-a97a-2cad43055700",
-                      "name":  "Merge Template Context",
-                      "type":  "n8n-nodes-base.merge",
-                      "typeVersion":  2.1,
-                      "position":  [
-                                       912,
-                                       224
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "promptType":  "define",
-                                         "text":  "={{ \u0027Channel: \u0027 + ($json.channel || \u0027unknown\u0027) + \u0027\\nConversation ID: \u0027 + ($json.conversation_id || \u0027\u0027) + \u0027\\nUser ID: \u0027 + ($json.user_id || \u0027\u0027) + \u0027\\nIntent Type: \u0027 + ($json.intent_type || \u0027general_chat\u0027) + \u0027\\nAction Target Hint: \u0027 + ($json.action_target_hint || \u0027\u0027) + \u0027\\nAction Message: \u0027 + ($json.action_message || \u0027\u0027) + \u0027\\nDefault Slack Channel ID: \u0027 + ($json.slack_default_channel_id || \u0027\u0027) + \u0027\\nDefault Slack Channel Name: \u0027 + ($json.slack_default_channel_name || \u0027\u0027) + \u0027\\n\\nUser message:\\n\u0027 + ($json.message || \u0027\u0027) + \u0027\\n\\n[EMAIL_TEMPLATE_HTML]\\n\u0027 + (($json.html || \u0027\u0027).slice(0, 6000)) + \u0027\\n\\n[EMAIL_TEMPLATE_RULE]\\nIf you call Gmail send, convert markdown body to valid HTML, inject it into template placeholder body_html, and pass the resulting HTML body with is_html=true.\u0027 }}",
-                                         "options":  {
-                                                         "systemMessage":  "You are a helpful Personal Assistant for the Levinnovation team.\n\nOperational rules:\n1) For channel=kapso-wa (WhatsApp inbound), assume this is a live chat with the current sender.\n2) In kapso-wa, default behavior is to reply directly to the same sender and same conversation.\n3) Never ask the user for phone_number_id, recipient number, or delivery channel when they are just chatting with you.\n4) Only ask for recipient details when the user explicitly asks to send a message to a different third party.\n5) If the user says generic phrases like \"send via whatsapp\" without a recipient, treat it as conversation intent and clarify content only; do not ask for sender/phone_number_id.\n\nAction execution policy (high priority):\n- If the user gives a clear action request, execute it immediately with tools in the same turn.\n- Default to DOING, not describing capabilities.\n- For intent_type=slack_send_action, run this order: resolve target from action_target_hint -\u003e send action_message -\u003e confirm delivery.\n- For Slack requests, invoke Slack tools directly.\n- If Slack target is missing or unresolved, discover channels/conversations via tools and execute without asking first.\n- Prefer channel all-lev-innovation (id C0AHR6GK2S0). If unavailable, use first writable public channel.\n- Never ask for Slack channel IDs/user IDs before attempting discovery and fuzzy matching.\n- Use exact Slack tool names from the available list; do not invent tool names.\n- Preferred Slack send tool sequence: SLACK_SEND_MESSAGE, then SLACK_SEND_ME_MESSAGE as fallback.\n- Do not claim a Slack tool is invalid until after listing tools and retrying with the closest valid Slack send tool.\n- Ask the user only one short clarification question when execution is impossible even after fallback.\n\nCalendar execution policy (strict):\n- For calendar requests, first call an events-list tool (prefer GOOGLECALENDAR_EVENTS_LIST).\n- Do NOT use GOOGLECALENDAR_GET_CURRENT_DATE_TIME as a substitute for listing events.\n- If user does not provide calendar_id, use primary calendar by default.\n- For phrases like \"today afternoon\", infer a local window 12:00-18:00 for today and query that range.\n- If user asks to email results, after listing events call Gmail send tool in the same turn.\n- If recipient email(s) are explicitly provided, send immediately in the same turn without asking for additional confirmation.\n- If no events are found, you must still send the email and clearly state that no events were found in the requested time window.\n- Never ask the user for calendar_id unless events-list call failed after trying primary.\n- If GOOGLECALENDAR_GET_CURRENT_DATE_TIME fails but GOOGLECALENDAR_EVENTS_LIST succeeds, continue and report success.\n- Never answer with \"I cannot get current date/time\" when the user asked for events/email; prioritize event retrieval + email delivery.\n\nEmail HTML policy (mandatory):\n- For any Gmail send tool call, convert markdown text into valid HTML.\n- Use the [EMAIL_TEMPLATE_HTML] payload provided in the user context.\n- Replace the body_html placeholder\n- Send the final email with is_html=true.\n- Never send raw markdown in Gmail body.\n\nGeneral tool policy:\n- For calendar/email/task/slack requests, you MUST call relevant tools before final response.\n- Never claim an action was completed unless tool output confirms success.\n- If a tool fails, report the exact failed step and provide one concrete retry path.\n\nHuman-style entity resolution policy (important):\n- Interpret person references flexibly (e.g., \"moshe\", \"Moshe Rosenstock\", \"moshe@...\").\n- Resolve names creatively like a human operator: nickname, first name, last name, email local-part, accent-insensitive.\n- For Slack and ClickUp people lookup, try multiple discovery tools and fuzzy-match candidates before asking the user.\n- If confidence is high, proceed immediately and state who was matched.\n- If ambiguous, ask one concise disambiguation question with top options.\n- Never ask end users for raw technical IDs unless every discovery path fails.\n\nTechnical-parameter UX policy (strict):\n- Prefer tool-driven discovery over asking the user for IDs.\n- If a tool needs team_id, workspace_id, calendar_id, user_id, list_id, channel_id or similar, first discover those values yourself.\n- For ClickUp requests, always run discovery first with CLICKUP_GET_AUTHORIZED_TEAMS_WORKSPACES, then continue with team tasks/users tools.\n- For Google Calendar requests, default to authenticated primary calendar if no calendar_id is provided.\n- For Slack requests, discover workspaces/channels/users via Slack tools before asking for IDs.\n- Do NOT ask for technical IDs unless discovery tool calls failed or returned empty.\n- Never ask for credentials/secrets in chat.\n\nConversation quality rules:\n- Do not repeat stale summaries from previous turns.\n- Address the latest user request directly.\n- Be concise, action-oriented, and explicit about what you executed.\n\nYou have access to Composio tools via MCP. Use tools when needed for external actions (email, calendar, tasks, Slack, outbound messages to third parties).\nGmail tool parameter schema (strict � do NOT deviate):\n- GMAIL_SEND_EMAIL accepts ONLY: recipient_email (string, required), subject (string), body (string, required), is_html (boolean), cc (string[]), bcc (string[]), extra_recipients (string[]), user_id (string, default \"me\"), attachment (object with {name, s3key, mimetype}).\n- Do NOT pass from_email � the sender is the authenticated account (use user_id=\"me\" or omit).\n- Do NOT pass attachments (plural) � use attachment (singular object) if you need ONE file. Omit if no file.\n- The attachment object requires: name (filename), s3key (S3 key), mimetype (e.g., \"application/pdf\").\n- Never send raw newlines inside JSON strings; always use escaped \\n.\n- Prefer GMAIL_SEND_DRAFT if you want to preview before sending."
-                                                     }
-                                     },
-                      "id":  "61acb131-0156-a0a2-933b-5196207253ed",
-                      "name":  "AI Agent (Tools Enabled)",
-                      "type":  "@n8n/n8n-nodes-langchain.agent",
-                      "typeVersion":  1.8,
-                      "position":  [
-                                       1200,
-                                       416
-                                   ]
-                  },
-                  {
-                      "parameters":  {
-                                         "jsCode":  "const item = $input.first().json;\nconst raw = String(item.message || \u0027\u0027).trim();\nconst lower = raw.toLowerCase();\n\nconst isSlackIntent = /\\bslack\\b/.test(lower) \u0026\u0026 /(envi|manda|mandar|post|send|mensaje|message|avisa|notifica)/.test(lower);\n\nlet targetHint = \u0027\u0027;\nlet actionMessage = \u0027\u0027;\n\nconst quoted = raw.match(/[\"“”\u0027]([^\"“”\u0027]{3,})[\"“”\u0027]/);\nif (quoted) actionMessage = quoted[1].trim();\n\nconst targetMatch = raw.match(/(?:a|to)\\s+([A-Za-zÀ-ÿ0-9._@\\-\\s]{2,60}?)(?:\\s+(?:que\\s+diga|diga|saying\\s+that|that)|\\s*:|$)/i);\nif (targetMatch) targetHint = targetMatch[1].trim();\n\nif (!actionMessage) {\n  const sayMatch = raw.match(/(?:que\\s+diga|diga|saying\\s+that|saying)\\s+(.+)$/i);\n  if (sayMatch) actionMessage = sayMatch[1].trim();\n}\n\nif (!actionMessage \u0026\u0026 isSlackIntent) actionMessage = raw;\n\nlet intentType = \u0027general_chat\u0027;\nif (isSlackIntent) intentType = \u0027slack_send_action\u0027;\nelse if (/(clickup|tarea|task|asignad|assigned)/.test(lower)) intentType = \u0027clickup_lookup\u0027;\nelse if (/(calendar|calendario|evento|eventos|meeting|reunion)/.test(lower)) intentType = \u0027calendar_lookup\u0027;\n\nreturn [{ json: { ...item, intent_type: intentType, action_target_hint: targetHint, action_message: actionMessage } }];"
-                                     },
-                      "id":  "c5f1a7ab-0fe1-43a7-a779-113994a39be8",
-                      "name":  "Intent Preprocessor",
-                      "type":  "n8n-nodes-base.code",
-                      "typeVersion":  2,
-                      "position":  [
-                                       720,
-                                       224
+                                       2064,
+                                       160
                                    ]
                   },
                   {
@@ -152,13 +20,13 @@
                                          "sessionKey":  "={{ $json.conversation_id || $json.user_id || ($json.metadata || {}).chat_id || $json.chat_id || \u0027session:default\u0027 }}",
                                          "contextWindowLength":  6
                                      },
-                      "id":  "830a7d04-dfe8-4595-b498-f3899f287739",
+                      "id":  "e7b165c2-9d89-4ad9-9640-49aee0b10b24",
                       "name":  "Redis Chat Memory (Tools)",
                       "type":  "@n8n/n8n-nodes-langchain.memoryRedisChat",
                       "typeVersion":  1.5,
                       "position":  [
-                                       1056,
-                                       720
+                                       3008,
+                                       656
                                    ],
                       "credentials":  {
                                           "redis":  {
@@ -174,13 +42,13 @@
                                                          "temperature":  0.2
                                                      }
                                      },
-                      "id":  "59c11047-d21a-8e63-1505-26aa9395c94d",
+                      "id":  "a440ad8b-a7f2-4aa2-b07f-923e32a00d2e",
                       "name":  "OpenRouter Chat Model",
                       "type":  "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
                       "typeVersion":  1,
                       "position":  [
-                                       1184,
-                                       752
+                                       3136,
+                                       688
                                    ],
                       "credentials":  {
                                           "openRouterApi":  {
@@ -191,98 +59,252 @@
                   },
                   {
                       "parameters":  {
-                                         "assignments":  {
-                                                             "assignments":  [
-                                                                                 {
-                                                                                     "name":  "reply_text",
-                                                                                     "value":  "={{ $json.output || $json.text || ($json.message ? (\u0027Assistant: \u0027 + $json.message) : \u0027Assistant ready.\u0027) }}",
-                                                                                     "type":  "string"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "reply_attachments",
-                                                                                     "value":  "={{ [] }}",
-                                                                                     "type":  "array"
-                                                                                 },
-                                                                                 {
-                                                                                     "name":  "end_session",
-                                                                                     "value":  "={{ false }}",
-                                                                                     "type":  "boolean"
-                                                                                 }
-                                                                             ]
+                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
+                                         "authentication":  "multipleHeadersAuth",
+                                         "credentials":  {
+                                                             "httpBearerAuth":  {
+                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
+                                                                                    "name":  "MCP Bearer Auth"
+                                                                                }
                                                          },
+                                         "include":  "selected",
+                                         "includeTools":  [
+                                                              "GOOGLEDRIVE_CREATE_FOLDER",
+                                                              "GOOGLEDRIVE_CREATE_FILE",
+                                                              "GOOGLEDRIVE_UPLOAD_FILE",
+                                                              "GOOGLEDRIVE_FIND_FILE",
+                                                              "GOOGLEDRIVE_FIND_FOLDER",
+                                                              "GOOGLEDRIVE_DOWNLOAD_FILE",
+                                                              "GOOGLEDRIVE_MOVE_FILE",
+                                                              "GOOGLEDRIVE_TRASH_FILE",
+                                                              "GOOGLEDRIVE_GOOGLE_DRIVE_DELETE_FOLDER_OR_FILE_ACTION",
+                                                              "GOOGLEDRIVE_GET_FILE_METADATA",
+                                                              "GOOGLEDRIVE_LIST_CHILDREN_V2",
+                                                              "GOOGLEDRIVE_CREATE_PERMISSION",
+                                                              "GOOGLEDRIVE_COPY_FILE_ADVANCED",
+                                                              "GOOGLEDRIVE_EXPORT_GOOGLE_WORKSPACE_FILE",
+                                                              "GOOGLEDRIVE_EDIT_FILE",
+                                                              "GOOGLEDRIVE_UPDATE_FILE_METADATA_PATCH",
+                                                              "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT",
+                                                              "GOOGLEDRIVE_CREATE_DRIVE",
+                                                              "GOOGLEDRIVE_CREATE_COMMENT"
+                                                          ],
                                          "options":  {
-
+                                                         "sendHeaders":  true,
+                                                         "headerParameters":  {
+                                                                                  "parameters":  [
+                                                                                                     {
+                                                                                                         "value":  "200",
+                                                                                                         "name":  "x-max-tools"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "googledrive",
+                                                                                                         "name":  "x-allowed-toolkits"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "1",
+                                                                                                         "name":  "x-compressed-tools"
+                                                                                                     }
+                                                                                                 ]
+                                                                              }
                                                      }
                                      },
-                      "id":  "5d2960e7-f0c2-4b27-bd74-6400f5998e17",
-                      "name":  "Build Response",
-                      "type":  "n8n-nodes-base.set",
-                      "typeVersion":  3.4,
+                      "id":  "fb72a143-6ac5-4630-826d-f0661a5ace9a",
+                      "name":  "MCP Client Tool (Google Drive)",
+                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
+                      "typeVersion":  1.2,
                       "position":  [
-                                       1568,
-                                       32
-                                   ]
+                                       3280,
+                                       1056
+                                   ],
+                      "credentials":  {
+                                          "httpMultipleHeadersAuth":  {
+                                                                          "id":  "9udywSKQmBfbGfkw",
+                                                                          "name":  "Multiple Headers Auth account"
+                                                                      }
+                                      }
                   },
                   {
                       "parameters":  {
-                                         "conditions":  {
-                                                            "options":  {
-                                                                            "caseSensitive":  true,
-                                                                            "leftValue":  "",
-                                                                            "typeValidation":  "strict",
-                                                                            "version":  2
-                                                                        },
-                                                            "conditions":  [
-                                                                               {
-                                                                                   "id":  "use-template-intercept-flag",
-                                                                                   "leftValue":  "={{ String(($json.env || {}).USE_TEMPLATE_INTERCEPT || $env.USE_TEMPLATE_INTERCEPT || \"false\").toLowerCase() }}",
-                                                                                   "rightValue":  "true",
-                                                                                   "operator":  {
-                                                                                                    "type":  "string",
-                                                                                                    "operation":  "equals"
-                                                                                                }
-                                                                               }
-                                                                           ],
-                                                            "combinator":  "and"
-                                                        },
+                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
+                                         "authentication":  "multipleHeadersAuth",
+                                         "credentials":  {
+                                                             "httpBearerAuth":  {
+                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
+                                                                                    "name":  "MCP Bearer Auth"
+                                                                                }
+                                                         },
+                                         "include":  "selected",
+                                         "includeTools":  [
+                                                              "GOOGLEDOCS_CREATE_DOCUMENT",
+                                                              "GOOGLEDOCS_CREATE_DOCUMENT_MARKDOWN",
+                                                              "GOOGLEDOCS_GET_DOCUMENT_BY_ID",
+                                                              "GOOGLEDOCS_SEARCH_DOCUMENTS",
+                                                              "GOOGLEDOCS_UPDATE_DOCUMENT_MARKDOWN",
+                                                              "GOOGLEDOCS_EXPORT_DOCUMENT_AS_PDF",
+                                                              "GOOGLEDOCS_COPY_DOCUMENT",
+                                                              "GOOGLEDOCS_REPLACE_ALL_TEXT",
+                                                              "GOOGLEDOCS_GET_DOCUMENT_PLAINTEXT"
+                                                          ],
                                          "options":  {
-
+                                                         "sendHeaders":  true,
+                                                         "headerParameters":  {
+                                                                                  "parameters":  [
+                                                                                                     {
+                                                                                                         "value":  "200",
+                                                                                                         "name":  "x-max-tools"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "googledocs",
+                                                                                                         "name":  "x-allowed-toolkits"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "1",
+                                                                                                         "name":  "x-compressed-tools"
+                                                                                                     }
+                                                                                                 ]
+                                                                              }
                                                      }
                                      },
-                      "id":  "use-template-intercept-personal-assistant-core",
-                      "name":  "Template Intercept Enabled?",
-                      "type":  "n8n-nodes-base.if",
-                      "typeVersion":  2.2,
+                      "id":  "bacf21f1-dfa7-4d01-b533-f3312f2fad4c",
+                      "name":  "MCP Client Tool (Google Docs)",
+                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
+                      "typeVersion":  1.2,
                       "position":  [
-                                       1248,
-                                       208
-                                   ]
+                                       3280,
+                                       928
+                                   ],
+                      "credentials":  {
+                                          "httpMultipleHeadersAuth":  {
+                                                                          "id":  "9udywSKQmBfbGfkw",
+                                                                          "name":  "Multiple Headers Auth account"
+                                                                      }
+                                      }
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "const item = $input.first();\nconst data = item.json || {};\nconst templateHtml = String(data.email_template_html || data.html || \"\").trim();\nconst markdownCandidate = String(data.generated_email_markdown || data.message || data.enriched_message || \"\").trim();\nconst fallbackBody = markdownCandidate\n  ? `\u003cp style=\"margin:0 0 12px 0;\"\u003e${markdownCandidate.replace(/\\n/g, \"\u003cbr /\u003e\")}\u003c/p\u003e`\n  : `\u003cp style=\"margin:0;\"\u003eNo body content provided.\u003c/p\u003e`;\nconst htmlBody = templateHtml \u0026\u0026 templateHtml.includes(\"{{body_html}}\")\n  ? templateHtml.replace(/\\{\\{body_html\\}\\}/g, fallbackBody)\n  : fallbackBody;\nreturn [{ json: { ...data, template_intercept_applied: true, intercepted_email_html: htmlBody, composio_email_payload: { body: htmlBody, is_html: true } } }];"
+                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
+                                         "authentication":  "multipleHeadersAuth",
+                                         "credentials":  {
+                                                             "httpBearerAuth":  {
+                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
+                                                                                    "name":  "MCP Bearer Auth"
+                                                                                }
+                                                         },
+                                         "include":  "selected",
+                                         "includeTools":  [
+                                                              "GMAIL_SEND_EMAIL",
+                                                              "GMAIL_CREATE_EMAIL_DRAFT",
+                                                              "GMAIL_FETCH_EMAILS",
+                                                              "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID",
+                                                              "GMAIL_FETCH_MESSAGE_BY_THREAD_ID",
+                                                              "GMAIL_REPLY_TO_THREAD",
+                                                              "GMAIL_FORWARD_MESSAGE",
+                                                              "GMAIL_SEARCH_PEOPLE",
+                                                              "GMAIL_GET_PEOPLE",
+                                                              "GMAIL_GET_CONTACTS",
+                                                              "GMAIL_LIST_DRAFTS",
+                                                              "GMAIL_SEND_DRAFT",
+                                                              "GMAIL_LIST_LABELS",
+                                                              "GMAIL_GET_LABEL",
+                                                              "GMAIL_GET_PROFILE",
+                                                              "GMAIL_MOVE_TO_TRASH",
+                                                              "GMAIL_DELETE_MESSAGE",
+                                                              "GMAIL_ADD_LABEL_TO_EMAIL"
+                                                          ],
+                                         "options":  {
+                                                         "sendHeaders":  true,
+                                                         "headerParameters":  {
+                                                                                  "parameters":  [
+                                                                                                     {
+                                                                                                         "value":  "200",
+                                                                                                         "name":  "x-max-tools"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "gmail",
+                                                                                                         "name":  "x-allowed-toolkits"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "1",
+                                                                                                         "name":  "x-compressed-tools"
+                                                                                                     }
+                                                                                                 ]
+                                                                              }
+                                                     }
                                      },
-                      "id":  "apply-template-intercept-personal-assistant-core",
-                      "name":  "Apply Template Intercept",
-                      "type":  "n8n-nodes-base.code",
-                      "typeVersion":  2,
+                      "id":  "1759fc32-2a21-459c-a93e-2315ab2a2f4d",
+                      "name":  "MCP Client Tool (Gmail)",
+                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
+                      "typeVersion":  1.2,
                       "position":  [
-                                       1680,
-                                       192
-                                   ]
+                                       3280,
+                                       784
+                                   ],
+                      "credentials":  {
+                                          "httpMultipleHeadersAuth":  {
+                                                                          "id":  "9udywSKQmBfbGfkw",
+                                                                          "name":  "Multiple Headers Auth account"
+                                                                      }
+                                      }
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "const item = $input.first(); return [{ json: { ...(item.json || {}), template_intercept_applied: false } }];"
+                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
+                                         "authentication":  "multipleHeadersAuth",
+                                         "credentials":  {
+                                                             "httpBearerAuth":  {
+                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
+                                                                                    "name":  "MCP Bearer Auth"
+                                                                                }
+                                                         },
+                                         "include":  "selected",
+                                         "includeTools":  [
+                                                              "GOOGLECALENDAR_CREATE_EVENT",
+                                                              "GOOGLECALENDAR_UPDATE_EVENT",
+                                                              "GOOGLECALENDAR_DELETE_EVENT",
+                                                              "GOOGLECALENDAR_EVENTS_LIST",
+                                                              "GOOGLECALENDAR_EVENTS_GET",
+                                                              "GOOGLECALENDAR_FIND_EVENT",
+                                                              "GOOGLECALENDAR_FIND_FREE_SLOTS",
+                                                              "GOOGLECALENDAR_LIST_CALENDARS",
+                                                              "GOOGLECALENDAR_GET_CALENDAR",
+                                                              "GOOGLECALENDAR_QUICK_ADD",
+                                                              "GOOGLECALENDAR_REMOVE_ATTENDEE"
+                                                          ],
+                                         "options":  {
+                                                         "sendHeaders":  true,
+                                                         "headerParameters":  {
+                                                                                  "parameters":  [
+                                                                                                     {
+                                                                                                         "value":  "200",
+                                                                                                         "name":  "x-max-tools"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "googlecalendar",
+                                                                                                         "name":  "x-allowed-toolkits"
+                                                                                                     },
+                                                                                                     {
+                                                                                                         "value":  "1",
+                                                                                                         "name":  "x-compressed-tools"
+                                                                                                     }
+                                                                                                 ]
+                                                                              }
+                                                     }
                                      },
-                      "id":  "skip-template-intercept-personal-assistant-core",
-                      "name":  "Skip Template Intercept",
-                      "type":  "n8n-nodes-base.code",
-                      "typeVersion":  2,
+                      "id":  "66d59586-8aa2-4f03-88f0-5705dec601fd",
+                      "name":  "MCP Client Tool (Composio)",
+                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
+                      "typeVersion":  1.2,
                       "position":  [
-                                       1584,
-                                       400
-                                   ]
+                                       3296,
+                                       656
+                                   ],
+                      "credentials":  {
+                                          "httpMultipleHeadersAuth":  {
+                                                                          "id":  "9udywSKQmBfbGfkw",
+                                                                          "name":  "Multiple Headers Auth account"
+                                                                      }
+                                      }
                   },
                   {
                       "parameters":  {
@@ -348,73 +370,13 @@
                                                                               }
                                                      }
                                      },
-                      "id":  "48a86a45-85f6-4a34-b719-58c6f82332d5",
+                      "id":  "0600992b-dc27-4675-a744-430c66f25b1e",
                       "name":  "MCP Client Tool (Slack)",
                       "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
                       "typeVersion":  1.2,
                       "position":  [
-                                       1456,
-                                       720
-                                   ],
-                      "credentials":  {
-                                          "httpMultipleHeadersAuth":  {
-                                                                          "id":  "9udywSKQmBfbGfkw",
-                                                                          "name":  "Multiple Headers Auth account"
-                                                                      }
-                                      },
-                      "disabled":  false
-                  },
-                  {
-                      "parameters":  {
-                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
-                                         "authentication":  "multipleHeadersAuth",
-                                         "credentials":  {
-                                                             "httpBearerAuth":  {
-                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
-                                                                                    "name":  "MCP Bearer Auth"
-                                                                                }
-                                                         },
-                                         "include":  "selected",
-                                         "includeTools":  [
-                                                              "GOOGLECALENDAR_CREATE_EVENT",
-                                                              "GOOGLECALENDAR_UPDATE_EVENT",
-                                                              "GOOGLECALENDAR_DELETE_EVENT",
-                                                              "GOOGLECALENDAR_EVENTS_LIST",
-                                                              "GOOGLECALENDAR_EVENTS_GET",
-                                                              "GOOGLECALENDAR_FIND_EVENT",
-                                                              "GOOGLECALENDAR_FIND_FREE_SLOTS",
-                                                              "GOOGLECALENDAR_LIST_CALENDARS",
-                                                              "GOOGLECALENDAR_GET_CALENDAR",
-                                                              "GOOGLECALENDAR_QUICK_ADD",
-                                                              "GOOGLECALENDAR_REMOVE_ATTENDEE"
-                                                          ],
-                                         "options":  {
-                                                         "sendHeaders":  true,
-                                                         "headerParameters":  {
-                                                                                  "parameters":  [
-                                                                                                     {
-                                                                                                         "value":  "200",
-                                                                                                         "name":  "x-max-tools"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "googlecalendar",
-                                                                                                         "name":  "x-allowed-toolkits"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "1",
-                                                                                                         "name":  "x-compressed-tools"
-                                                                                                     }
-                                                                                                 ]
-                                                                              }
-                                                     }
-                                     },
-                      "id":  "420fdf80-58af-40d2-8633-51f4c3f2345a",
-                      "name":  "MCP Client Tool (Composio)",
-                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
-                      "typeVersion":  1.2,
-                      "position":  [
-                                       1344,
-                                       720
+                                       3408,
+                                       656
                                    ],
                       "credentials":  {
                                           "httpMultipleHeadersAuth":  {
@@ -425,193 +387,230 @@
                   },
                   {
                       "parameters":  {
-                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
-                                         "authentication":  "multipleHeadersAuth",
-                                         "credentials":  {
-                                                             "httpBearerAuth":  {
-                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
-                                                                                    "name":  "MCP Bearer Auth"
-                                                                                }
-                                                         },
-                                         "include":  "selected",
-                                         "includeTools":  [
-                                                              "GMAIL_SEND_EMAIL",
-                                                              "GMAIL_CREATE_EMAIL_DRAFT",
-                                                              "GMAIL_FETCH_EMAILS",
-                                                              "GMAIL_FETCH_MESSAGE_BY_MESSAGE_ID",
-                                                              "GMAIL_FETCH_MESSAGE_BY_THREAD_ID",
-                                                              "GMAIL_REPLY_TO_THREAD",
-                                                              "GMAIL_FORWARD_MESSAGE",
-                                                              "GMAIL_SEARCH_PEOPLE",
-                                                              "GMAIL_GET_PEOPLE",
-                                                              "GMAIL_GET_CONTACTS",
-                                                              "GMAIL_LIST_DRAFTS",
-                                                              "GMAIL_SEND_DRAFT",
-                                                              "GMAIL_LIST_LABELS",
-                                                              "GMAIL_GET_LABEL",
-                                                              "GMAIL_GET_PROFILE",
-                                                              "GMAIL_MOVE_TO_TRASH",
-                                                              "GMAIL_DELETE_MESSAGE",
-                                                              "GMAIL_ADD_LABEL_TO_EMAIL"
-                                                          ],
+                                         "promptType":  "define",
+                                         "text":  "={{\n\u0027Channel: \u0027 + (\\.channel || \u0027unknown\u0027) +\n\u0027\\nConversation ID: \u0027 + (\\.conversation_id || \u0027\u0027) +\n\u0027\\nUser ID: \u0027 + (\\.user_id || \u0027\u0027) +\n\u0027\\nIntent Type: \u0027 + (\\.intent_type || \u0027general_chat\u0027) +\n\u0027\\nAction Target Hint: \u0027 + (\\.action_target_hint || \u0027\u0027) +\n\u0027\\nAction Message: \u0027 + (\\.action_message || \u0027\u0027) +\n\u0027\\nDefault Slack Channel ID: \u0027 + (\\.slack_default_channel_id || \u0027\u0027) +\n\u0027\\nDefault Slack Channel Name: \u0027 + (\\.slack_default_channel_name || \u0027\u0027) +\n\u0027\\nExtracted Email Recipient: \u0027 + (\\.email_recipient || \u0027\u0027) +\n\u0027\\nExtracted Email Subject: \u0027 + (\\.email_subject || \u0027\u0027) +\n\u0027\\nExtracted Email Body: \u0027 + (\\.email_body || \u0027\u0027) +\n\u0027\\n\\nUser message:\\n\u0027 + (\\.message || \u0027\u0027) +\n\u0027\\n\\n[EMAIL_TEMPLATE_HTML]\\n\u0027 + ((\\.html || \u0027\u0027).slice(0, 6000)) +\n\u0027\\n\\n[EMAIL_TEMPLATE_RULE]\\nIf intent_type is gmail_send_action and email_recipient is provided, call GMAIL_SEND_EMAIL immediately with: recipient_email=extracted value, subject=extracted value, body=email body converted to HTML and injected into template, is_html=true. Do NOT ask for confirmation or additional details.\u0027\n}}",
                                          "options":  {
-                                                         "sendHeaders":  true,
-                                                         "headerParameters":  {
-                                                                                  "parameters":  [
-                                                                                                     {
-                                                                                                         "value":  "200",
-                                                                                                         "name":  "x-max-tools"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "gmail",
-                                                                                                         "name":  "x-allowed-toolkits"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "1",
-                                                                                                         "name":  "x-compressed-tools"
-                                                                                                     }
-                                                                                                 ]
-                                                                              }
+                                                         "systemMessage":  "You are a helpful Personal Assistant for the Levinnovation team.\n\nOperational rules:\n1) For channel=kapso-wa (WhatsApp inbound), assume this is a live chat with the current sender.\n2) In kapso-wa, default behavior is to reply directly to the same sender and same conversation.\n3) Never ask the user for phone_number_id, recipient number, or delivery channel when they are just chatting with you.\n4) Only ask for recipient details when the user explicitly asks to send a message to a different third party.\n5) If the user says generic phrases like \"send via whatsapp\" without a recipient, treat it as conversation intent and clarify content only; do not ask for sender/phone_number_id.\n\nAction execution policy (high priority):\n- If the user gives a clear action request, execute it immediately with tools in the same turn.\n- Default to DOING, not describing capabilities.\n- For intent_type=slack_send_action, run this order: resolve target from action_target_hint -\u003e send action_message -\u003e confirm delivery.\n- For Slack requests, invoke Slack tools directly.\n- If Slack target is missing or unresolved, discover channels/conversations via tools and execute without asking first.\n- Prefer channel all-lev-innovation (id C0AHR6GK2S0). If unavailable, use first writable public channel.\n- Never ask for Slack channel IDs/user IDs before attempting discovery and fuzzy matching.\n- Use exact Slack tool names from the available list; do not invent tool names.\n- Preferred Slack send tool sequence: SLACK_SEND_MESSAGE, then SLACK_SEND_ME_MESSAGE as fallback.\n- Do not claim a Slack tool is invalid until after listing tools and retrying with the closest valid Slack send tool.\n- Ask the user only one short clarification question when execution is impossible even after fallback.\n\nCalendar execution policy (strict):\n- For calendar requests, first call an events-list tool (prefer GOOGLECALENDAR_EVENTS_LIST).\n- Do NOT use GOOGLECALENDAR_GET_CURRENT_DATE_TIME as a substitute for listing events.\n- If user does not provide calendar_id, use primary calendar by default.\n- For phrases like \"today afternoon\", infer a local window 12:00-18:00 for today and query that range.\n- If user asks to email results, after listing events call Gmail send tool in the same turn.\n- If recipient email(s) are explicitly provided, send immediately in the same turn without asking for additional confirmation.\n- If no events are found, you must still send the email and clearly state that no events were found in the requested time window.\n- Never ask the user for calendar_id unless events-list call failed after trying primary.\n- If GOOGLECALENDAR_GET_CURRENT_DATE_TIME fails but GOOGLECALENDAR_EVENTS_LIST succeeds, continue and report success.\n- Never answer with \"I cannot get current date/time\" when the user asked for events/email; prioritize event retrieval + email delivery.\n\nEmail HTML policy (mandatory):\n- For any Gmail send tool call, convert markdown text into valid HTML.\n- Use the [EMAIL_TEMPLATE_HTML] payload provided in the user context.\n- Replace the body_html placeholder\n- Send the final email with is_html=true.\n- Never send raw markdown in Gmail body.\n\nGeneral tool policy:\n- For calendar/email/task/slack requests, you MUST call relevant tools before final response.\n- Never claim an action was completed unless tool output confirms success.\n- If a tool fails, report the exact failed step and provide one concrete retry path.\n\nHuman-style entity resolution policy (important):\n- Interpret person references flexibly (e.g., \"moshe\", \"Moshe Rosenstock\", \"moshe@...\").\n- Resolve names creatively like a human operator: nickname, first name, last name, email local-part, accent-insensitive.\n- For Slack and ClickUp people lookup, try multiple discovery tools and fuzzy-match candidates before asking the user.\n- If confidence is high, proceed immediately and state who was matched.\n- If ambiguous, ask one concise disambiguation question with top options.\n- Never ask end users for raw technical IDs unless every discovery path fails.\n\nTechnical-parameter UX policy (strict):\n- Prefer tool-driven discovery over asking the user for IDs.\n- If a tool needs team_id, workspace_id, calendar_id, user_id, list_id, channel_id or similar, first discover those values yourself.\n- For ClickUp requests, always run discovery first with CLICKUP_GET_AUTHORIZED_TEAMS_WORKSPACES, then continue with team tasks/users tools.\n- For Google Calendar requests, default to authenticated primary calendar if no calendar_id is provided.\n- For Slack requests, discover workspaces/channels/users via Slack tools before asking for IDs.\n- Do NOT ask for technical IDs unless discovery tool calls failed or returned empty.\n- Never ask for credentials/secrets in chat.\n\nConversation quality rules:\n- Do not repeat stale summaries from previous turns.\n- Address the latest user request directly.\n- Be concise, action-oriented, and explicit about what you executed.\n\nYou have access to Composio tools via MCP. Use tools when needed for external actions (email, calendar, tasks, Slack, outbound messages to third parties).\nGmail tool usage (FEW-SHOT � do exactly like this):\nWhen user says \"send email to john@doe.com subject Hello body test\", call GMAIL_SEND_EMAIL with:\n{\n  \"recipient_email\": \"john@doe.com\",\n  \"subject\": \"Hello\",\n  \"body\": \"\u003cp\u003etest\u003c/p\u003e\",\n  \"is_html\": true\n}\n\nWhat YOU must do:\n1. Extract recipient, subject, body from the user\u0027s message automatically.\n2. Convert body to HTML. Wrap in \u003cp\u003e tags or use the [EMAIL_TEMPLATE_HTML] template.\n3. Call GMAIL_SEND_EMAIL in the SAME turn. Do NOT ask for confirmation.\n\nWhat NEVER to do:\n- Do NOT include from_email. It does not exist.\n- Do NOT include attachments (plural array). It does not exist.\n- Do NOT include attachment unless you have a real file to upload.\n- Do NOT ask \"what is the recipient?\" if it is stated in the message."
                                                      }
                                      },
-                      "id":  "59f5f513-c49a-4de5-9973-6a1b43ac499a",
-                      "name":  "MCP Client Tool (Gmail)",
-                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
-                      "typeVersion":  1.2,
+                      "id":  "556e2175-b9cd-46ef-b197-492f51fc759b",
+                      "name":  "AI Agent (Tools Enabled)",
+                      "type":  "@n8n/n8n-nodes-langchain.agent",
+                      "typeVersion":  1.8,
                       "position":  [
-                                       1328,
-                                       848
-                                   ],
-                      "credentials":  {
-                                          "httpMultipleHeadersAuth":  {
-                                                                          "id":  "9udywSKQmBfbGfkw",
-                                                                          "name":  "Multiple Headers Auth account"
-                                                                      }
-                                      }
+                                       3152,
+                                       352
+                                   ]
                   },
                   {
                       "parameters":  {
-                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
-                                         "authentication":  "multipleHeadersAuth",
-                                         "credentials":  {
-                                                             "httpBearerAuth":  {
-                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
-                                                                                    "name":  "MCP Bearer Auth"
-                                                                                }
-                                                         },
-                                         "include":  "selected",
-                                         "includeTools":  [
-                                                              "GOOGLEDRIVE_CREATE_FOLDER",
-                                                              "GOOGLEDRIVE_CREATE_FILE",
-                                                              "GOOGLEDRIVE_UPLOAD_FILE",
-                                                              "GOOGLEDRIVE_FIND_FILE",
-                                                              "GOOGLEDRIVE_FIND_FOLDER",
-                                                              "GOOGLEDRIVE_DOWNLOAD_FILE",
-                                                              "GOOGLEDRIVE_MOVE_FILE",
-                                                              "GOOGLEDRIVE_TRASH_FILE",
-                                                              "GOOGLEDRIVE_GOOGLE_DRIVE_DELETE_FOLDER_OR_FILE_ACTION",
-                                                              "GOOGLEDRIVE_GET_FILE_METADATA",
-                                                              "GOOGLEDRIVE_LIST_CHILDREN_V2",
-                                                              "GOOGLEDRIVE_CREATE_PERMISSION",
-                                                              "GOOGLEDRIVE_COPY_FILE_ADVANCED",
-                                                              "GOOGLEDRIVE_EXPORT_GOOGLE_WORKSPACE_FILE",
-                                                              "GOOGLEDRIVE_EDIT_FILE",
-                                                              "GOOGLEDRIVE_UPDATE_FILE_METADATA_PATCH",
-                                                              "GOOGLEDRIVE_CREATE_FILE_FROM_TEXT",
-                                                              "GOOGLEDRIVE_CREATE_DRIVE",
-                                                              "GOOGLEDRIVE_CREATE_COMMENT"
-                                                          ],
-                                         "options":  {
-                                                         "sendHeaders":  true,
-                                                         "headerParameters":  {
-                                                                                  "parameters":  [
-                                                                                                     {
-                                                                                                         "value":  "200",
-                                                                                                         "name":  "x-max-tools"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "googledrive",
-                                                                                                         "name":  "x-allowed-toolkits"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "1",
-                                                                                                         "name":  "x-compressed-tools"
-                                                                                                     }
-                                                                                                 ]
-                                                                              }
-                                                     }
+                                         "jsCode":  "const item = $input.first(); return [{ json: { ...(item.json || {}), template_intercept_applied: false } }];"
                                      },
-                      "id":  "3b282866-a265-42a0-ad47-bb3de1529f2b",
-                      "name":  "MCP Client Tool (Google Drive)",
-                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
-                      "typeVersion":  1.2,
+                      "id":  "f8b6cdc6-f7ff-4de0-bd47-f0a49d8765fb",
+                      "name":  "Skip Template Intercept",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
                       "position":  [
-                                       1328,
-                                       1120
-                                   ],
-                      "credentials":  {
-                                          "httpMultipleHeadersAuth":  {
-                                                                          "id":  "9udywSKQmBfbGfkw",
-                                                                          "name":  "Multiple Headers Auth account"
-                                                                      }
-                                      }
+                                       3536,
+                                       336
+                                   ]
                   },
                   {
                       "parameters":  {
-                                         "endpointUrl":  "https://levinnovation.mcp.agentyx.one/mcp",
-                                         "authentication":  "multipleHeadersAuth",
-                                         "credentials":  {
-                                                             "httpBearerAuth":  {
-                                                                                    "id":  "MCP_BEARER_AUTH_CREDENTIAL_ID",
-                                                                                    "name":  "MCP Bearer Auth"
-                                                                                }
-                                                         },
-                                         "include":  "selected",
-                                         "includeTools":  [
-                                                              "GOOGLEDOCS_CREATE_DOCUMENT",
-                                                              "GOOGLEDOCS_CREATE_DOCUMENT_MARKDOWN",
-                                                              "GOOGLEDOCS_GET_DOCUMENT_BY_ID",
-                                                              "GOOGLEDOCS_SEARCH_DOCUMENTS",
-                                                              "GOOGLEDOCS_UPDATE_DOCUMENT_MARKDOWN",
-                                                              "GOOGLEDOCS_EXPORT_DOCUMENT_AS_PDF",
-                                                              "GOOGLEDOCS_COPY_DOCUMENT",
-                                                              "GOOGLEDOCS_REPLACE_ALL_TEXT",
-                                                              "GOOGLEDOCS_GET_DOCUMENT_PLAINTEXT"
-                                                          ],
+                                         "jsCode":  "const item = $input.first();\nconst data = item.json || {};\nconst templateHtml = String(data.email_template_html || data.html || \"\").trim();\nconst markdownCandidate = String(data.generated_email_markdown || data.message || data.enriched_message || \"\").trim();\nconst fallbackBody = markdownCandidate\n  ? `\u003cp style=\"margin:0 0 12px 0;\"\u003e${markdownCandidate.replace(/\\n/g, \"\u003cbr /\u003e\")}\u003c/p\u003e`\n  : `\u003cp style=\"margin:0;\"\u003eNo body content provided.\u003c/p\u003e`;\nconst htmlBody = templateHtml \u0026\u0026 templateHtml.includes(\"{{body_html}}\")\n  ? templateHtml.replace(/\\{\\{body_html\\}\\}/g, fallbackBody)\n  : fallbackBody;\nreturn [{ json: { ...data, template_intercept_applied: true, intercepted_email_html: htmlBody, composio_email_payload: { body: htmlBody, is_html: true } } }];"
+                                     },
+                      "id":  "0696d0f7-3ff5-4762-ae29-89b647c1848b",
+                      "name":  "Apply Template Intercept",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       3632,
+                                       128
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "conditions":  {
+                                                            "options":  {
+                                                                            "caseSensitive":  true,
+                                                                            "leftValue":  "",
+                                                                            "typeValidation":  "strict",
+                                                                            "version":  2
+                                                                        },
+                                                            "conditions":  [
+                                                                               {
+                                                                                   "id":  "use-template-intercept-flag",
+                                                                                   "leftValue":  "={{ String(($json.env || {}).USE_TEMPLATE_INTERCEPT || $env.USE_TEMPLATE_INTERCEPT || \"false\").toLowerCase() }}",
+                                                                                   "rightValue":  "true",
+                                                                                   "operator":  {
+                                                                                                    "type":  "string",
+                                                                                                    "operation":  "equals"
+                                                                                                }
+                                                                               }
+                                                                           ],
+                                                            "combinator":  "and"
+                                                        },
                                          "options":  {
-                                                         "sendHeaders":  true,
-                                                         "headerParameters":  {
-                                                                                  "parameters":  [
-                                                                                                     {
-                                                                                                         "value":  "200",
-                                                                                                         "name":  "x-max-tools"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "googledocs",
-                                                                                                         "name":  "x-allowed-toolkits"
-                                                                                                     },
-                                                                                                     {
-                                                                                                         "value":  "1",
-                                                                                                         "name":  "x-compressed-tools"
-                                                                                                     }
-                                                                                                 ]
-                                                                              }
+
                                                      }
                                      },
-                      "id":  "32fe0e12-77ed-4d32-9a1b-2d0ffef5a3c0",
-                      "name":  "MCP Client Tool (Google Docs)",
-                      "type":  "@n8n/n8n-nodes-langchain.mcpClientTool",
-                      "typeVersion":  1.2,
+                      "id":  "936cee7e-bdb1-4b87-a8d0-846bf3f29bf8",
+                      "name":  "Template Intercept Enabled?",
+                      "type":  "n8n-nodes-base.if",
+                      "typeVersion":  2.2,
                       "position":  [
-                                       1328,
-                                       992
+                                       3200,
+                                       144
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "mode":  "combine",
+                                         "combinationMode":  "mergeByPosition",
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "39c83b90-991b-479a-a0e8-f4ece2ef4808",
+                      "name":  "Merge Template Context",
+                      "type":  "n8n-nodes-base.merge",
+                      "typeVersion":  2.1,
+                      "position":  [
+                                       2864,
+                                       160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "jsCode":  "const item = \\.first().json;\nconst raw = String(item.message || \u0027\u0027).trim();\nconst lower = raw.toLowerCase();\n\nconst isSlackIntent = /\\bslack\\b/.test(lower) \u0026\u0026 /(envi|manda|mandar|post|send|mensaje|message|avisa|notifica)/.test(lower);\nconst isGmailIntent = /\\b(gmail|email|correo|e-mail|enviar mail|send mail|send an email|send email)\\b/.test(lower);\nconst isCalendarIntent = /(calendar|calendario|evento|eventos|meeting|reunion)/.test(lower);\n\nlet targetHint = \u0027\u0027;\nlet actionMessage = \u0027\u0027;\nlet emailRecipient = \u0027\u0027;\nlet emailSubject = \u0027\u0027;\nlet emailBody = \u0027\u0027;\n\n// Extract quoted text\nconst quoted = raw.match(/[\"\"\"\u0027\u0027]([^\"\"\"\u0027\u0027]{3,})[\"\"\"\u0027\u0027]/);\nif (quoted) actionMessage = quoted[1].trim();\n\n// Slack target extraction\nconst targetMatch = raw.match(/(?:a|to)\\s+([A-Za-z\\u00C0-\\u00FF0-9._@\\-\\s]{2,60}?)(?:\\s+(?:que\\s+diga|diga|saying\\s+that|that)|\\s*:|\\$)/i);\nif (targetMatch) targetHint = targetMatch[1].trim();\n\nif (!actionMessage) {\n  const sayMatch = raw.match(/(?:que\\s+diga|diga|saying\\s+that|saying)\\s+(.+)\\$/i);\n  if (sayMatch) actionMessage = sayMatch[1].trim();\n}\n\nif (!actionMessage \u0026\u0026 isSlackIntent) actionMessage = raw;\n\n// Email field extraction (structured text from user)\nconst recipientMatch = raw.match(/(?:recipient|to|para|destinatario)[\\s:]*([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})/i);\nif (recipientMatch) emailRecipient = recipientMatch[1].trim().toLowerCase();\n\nconst subjectMatch = raw.match(/(?:subject|asunto|tema)[\\s:]*(.{2,200}?)(?:\\n|\\$|email body|body|mensaje|contenido)/i);\nif (subjectMatch) emailSubject = subjectMatch[1].trim();\n\nconst bodyMatch = raw.match(/(?:email body|body|mensaje|contenido)[\\s:]*(.{2,2000})/i);\nif (bodyMatch) emailBody = bodyMatch[1].trim();\n\n// Fallback: if structured fields missing but email intent detected, try to find raw email\nif (isGmailIntent \u0026\u0026 !emailRecipient) {\n  const rawEmail = raw.match(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})/i);\n  if (rawEmail) emailRecipient = rawEmail[1].trim().toLowerCase();\n}\n\nlet intentType = \u0027general_chat\u0027;\nif (isSlackIntent) intentType = \u0027slack_send_action\u0027;\nelse if (isGmailIntent) intentType = \u0027gmail_send_action\u0027;\nelse if (/(clickup|tarea|task|asignad|assigned)/.test(lower)) intentType = \u0027clickup_lookup\u0027;\nelse if (isCalendarIntent) intentType = \u0027calendar_lookup\u0027;\n\nreturn [{ json: { \n  ...item, \n  intent_type: intentType, \n  action_target_hint: targetHint, \n  action_message: actionMessage,\n  email_recipient: emailRecipient,\n  email_subject: emailSubject,\n  email_body: emailBody\n} }];"
+                                     },
+                      "id":  "60f87f30-5de1-4ea3-8da6-c6fffc9ffb45",
+                      "name":  "Intent Preprocessor",
+                      "type":  "n8n-nodes-base.code",
+                      "typeVersion":  2,
+                      "position":  [
+                                       2672,
+                                       160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "assignments":  {
+                                                             "assignments":  [
+                                                                                 {
+                                                                                     "name":  "channel",
+                                                                                     "value":  "={{ $json.channel || \"unknown\" }}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "conversation_id",
+                                                                                     "value":  "={{ $json.conversation_id || $json.user_id || (($json.metadata || {}).message_id ? (\u0027msg:\u0027 + ($json.metadata || {}).message_id) : \u0027session:default\u0027) }}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "user_id",
+                                                                                     "value":  "={{ $json.user_id || \"\" }}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "message",
+                                                                                     "value":  "={{ $json.message || \"\" }}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "attachments",
+                                                                                     "value":  "={{ Array.isArray($json.attachments) ? $json.attachments : [] }}",
+                                                                                     "type":  "array"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "metadata",
+                                                                                     "value":  "={{ $json.metadata || {} }}",
+                                                                                     "type":  "object"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "slack_default_channel_id",
+                                                                                     "value":  "={{ \"C0AHR6GK2S0\" }}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "slack_default_channel_name",
+                                                                                     "value":  "={{ \"all-lev-innovation\" }}",
+                                                                                     "type":  "string"
+                                                                                 }
+                                                                             ]
+                                                         },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "1f333cb2-83e8-4f63-97e9-d94a70e33d11",
+                      "name":  "Normalize Envelope",
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  3.4,
+                      "position":  [
+                                       2464,
+                                       160
+                                   ]
+                  },
+                  {
+                      "parameters":  {
+                                         "url":  "={{ (($env.PORTAL_TEMPLATE_API_BASE || (\u0027https://\u0027 + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || \u0027levinnovation\u0027) + \u0027.portal.agentyx.one\u0027)) + \u0027/api/public/templates/email?tenant=\u0027 + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || \u0027levinnovation\u0027)) }}",
+                                         "sendHeaders":  true,
+                                         "headerParameters":  {
+                                                                  "parameters":  [
+                                                                                     {
+                                                                                         "name":  "x-agentyx-key",
+                                                                                         "value":  "={{ $env.AGENTYX_TEMPLATE_KEY || \u0027\u0027 }}"
+                                                                                     }
+                                                                                 ]
+                                                              },
+                                         "options":  {
+                                                         "timeout":  15000
+                                                     }
+                                     },
+                      "id":  "7d35a18b-a8b2-4c23-88f6-b1e4d3552a50",
+                      "name":  "Fetch Tenant Email Template",
+                      "type":  "n8n-nodes-base.httpRequest",
+                      "typeVersion":  4.2,
+                      "position":  [
+                                       2832,
+                                       -80
                                    ],
-                      "credentials":  {
-                                          "httpMultipleHeadersAuth":  {
-                                                                          "id":  "9udywSKQmBfbGfkw",
-                                                                          "name":  "Multiple Headers Auth account"
-                                                                      }
-                                      }
+                      "continueOnFail":  true
+                  },
+                  {
+                      "parameters":  {
+                                         "assignments":  {
+                                                             "assignments":  [
+                                                                                 {
+                                                                                     "name":  "reply_text",
+                                                                                     "value":  "={{ $json.output || $json.text || ($json.message ? (\u0027Assistant: \u0027 + $json.message) : \u0027Assistant ready.\u0027) }}",
+                                                                                     "type":  "string"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "reply_attachments",
+                                                                                     "value":  "={{ [] }}",
+                                                                                     "type":  "array"
+                                                                                 },
+                                                                                 {
+                                                                                     "name":  "end_session",
+                                                                                     "value":  "={{ false }}",
+                                                                                     "type":  "boolean"
+                                                                                 }
+                                                                             ]
+                                                         },
+                                         "options":  {
+
+                                                     }
+                                     },
+                      "id":  "521f29bc-af8d-4101-858d-37f6407d20ec",
+                      "name":  "Build Response",
+                      "type":  "n8n-nodes-base.set",
+                      "typeVersion":  3.4,
+                      "position":  [
+                                       3520,
+                                       -32
+                                   ]
                   }
               ],
     "pinData":  {
@@ -629,77 +628,6 @@
                                                                       ]
                                                                   ]
                                                      },
-                        "Normalize Envelope":  {
-                                                   "main":  [
-                                                                [
-                                                                    {
-                                                                        "node":  "Intent Preprocessor",
-                                                                        "type":  "main",
-                                                                        "index":  0
-                                                                    }
-                                                                ]
-                                                            ]
-                                               },
-                        "Intent Preprocessor":  {
-                                                    "main":  [
-                                                                 [
-                                                                     {
-                                                                         "node":  "Fetch Tenant Email Template",
-                                                                         "type":  "main",
-                                                                         "index":  0
-                                                                     },
-                                                                     {
-                                                                         "node":  "Merge Template Context",
-                                                                         "type":  "main",
-                                                                         "index":  0
-                                                                     }
-                                                                 ]
-                                                             ]
-                                                },
-                        "Fetch Tenant Email Template":  {
-                                                            "main":  [
-                                                                         [
-                                                                             {
-                                                                                 "node":  "Merge Template Context",
-                                                                                 "type":  "main",
-                                                                                 "index":  1
-                                                                             }
-                                                                         ]
-                                                                     ]
-                                                        },
-                        "Merge Template Context":  {
-                                                       "main":  [
-                                                                    [
-                                                                        {
-                                                                            "node":  "Template Intercept Enabled?",
-                                                                            "type":  "main",
-                                                                            "index":  0
-                                                                        }
-                                                                    ]
-                                                                ]
-                                                   },
-                        "AI Agent (Tools Enabled)":  {
-                                                         "main":  [
-                                                                      [
-                                                                          {
-                                                                              "node":  "Build Response",
-                                                                              "type":  "main",
-                                                                              "index":  0
-                                                                          }
-                                                                      ]
-                                                                  ]
-                                                     },
-                        "OpenRouter Chat Model":  {
-                                                      "ai_languageModel":  [
-                                                                               [
-                                                                                   {
-                                                                                       "node":  "AI Agent (Tools Enabled)",
-                                                                                       "type":  "ai_languageModel",
-                                                                                       "index":  0
-                                                                                   }
-                                                                               ]
-                                                                           ]
-                                                  },
                         "Redis Chat Memory (Tools)":  {
                                                           "ai_memory":  [
                                                                             [
@@ -711,79 +639,17 @@
                                                                             ]
                                                                         ]
                                                       },
-                        "Template Intercept Enabled?":  {
-                                                            "main":  [
-                                                                         [
-                                                                             {
-                                                                                 "node":  "Apply Template Intercept",
-                                                                                 "type":  "main",
-                                                                                 "index":  0
-                                                                             }
-                                                                         ],
-                                                                         [
-                                                                             {
-                                                                                 "node":  "Skip Template Intercept",
-                                                                                 "type":  "main",
-                                                                                 "index":  0
-                                                                             }
-                                                                         ]
-                                                                     ]
-                                                        },
-                        "Apply Template Intercept":  {
-                                                         "main":  [
-                                                                      [
-                                                                          {
-                                                                              "node":  "AI Agent (Tools Enabled)",
-                                                                              "type":  "main",
-                                                                              "index":  0
-                                                                          }
-                                                                      ]
-                                                                  ]
-                                                     },
-                        "Skip Template Intercept":  {
-                                                        "main":  [
-                                                                     [
-                                                                         {
-                                                                             "node":  "AI Agent (Tools Enabled)",
-                                                                             "type":  "main",
-                                                                             "index":  0
-                                                                         }
-                                                                     ]
-                                                                 ]
-                                                    },
-                        "MCP Client Tool (Slack)":  {
-                                                        "ai_tool":  [
-                                                                        [
-                                                                            {
-                                                                                "node":  "AI Agent (Tools Enabled)",
-                                                                                "type":  "ai_tool",
-                                                                                "index":  0
-                                                                            }
-                                                                        ]
-                                                                    ]
-                                                    },
-                        "MCP Client Tool (Composio)":  {
-                                                           "ai_tool":  [
-                                                                           [
-                                                                               {
-                                                                                   "node":  "AI Agent (Tools Enabled)",
-                                                                                   "type":  "ai_tool",
-                                                                                   "index":  0
-                                                                               }
+                        "OpenRouter Chat Model":  {
+                                                      "ai_languageModel":  [
+                                                                               [
+                                                                                   {
+                                                                                       "node":  "AI Agent (Tools Enabled)",
+                                                                                       "type":  "ai_languageModel",
+                                                                                       "index":  0
+                                                                                   }
+                                                                               ]
                                                                            ]
-                                                                       ]
-                                                       },
-                        "MCP Client Tool (Gmail)":  {
-                                                        "ai_tool":  [
-                                                                        [
-                                                                            {
-                                                                                "node":  "AI Agent (Tools Enabled)",
-                                                                                "type":  "ai_tool",
-                                                                                "index":  0
-                                                                            }
-                                                                        ]
-                                                                    ]
-                                                    },
+                                                  },
                         "MCP Client Tool (Google Drive)":  {
                                                                "ai_tool":  [
                                                                                [
@@ -805,7 +671,140 @@
                                                                                   }
                                                                               ]
                                                                           ]
-                                                          }
+                                                          },
+                        "MCP Client Tool (Gmail)":  {
+                                                        "ai_tool":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "AI Agent (Tools Enabled)",
+                                                                                "type":  "ai_tool",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                    },
+                        "MCP Client Tool (Composio)":  {
+                                                           "ai_tool":  [
+                                                                           [
+                                                                               {
+                                                                                   "node":  "AI Agent (Tools Enabled)",
+                                                                                   "type":  "ai_tool",
+                                                                                   "index":  0
+                                                                               }
+                                                                           ]
+                                                                       ]
+                                                       },
+                        "MCP Client Tool (Slack)":  {
+                                                        "ai_tool":  [
+                                                                        [
+                                                                            {
+                                                                                "node":  "AI Agent (Tools Enabled)",
+                                                                                "type":  "ai_tool",
+                                                                                "index":  0
+                                                                            }
+                                                                        ]
+                                                                    ]
+                                                    },
+                        "AI Agent (Tools Enabled)":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "Build Response",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Skip Template Intercept":  {
+                                                        "main":  [
+                                                                     [
+                                                                         {
+                                                                             "node":  "AI Agent (Tools Enabled)",
+                                                                             "type":  "main",
+                                                                             "index":  0
+                                                                         }
+                                                                     ]
+                                                                 ]
+                                                    },
+                        "Apply Template Intercept":  {
+                                                         "main":  [
+                                                                      [
+                                                                          {
+                                                                              "node":  "AI Agent (Tools Enabled)",
+                                                                              "type":  "main",
+                                                                              "index":  0
+                                                                          }
+                                                                      ]
+                                                                  ]
+                                                     },
+                        "Template Intercept Enabled?":  {
+                                                            "main":  [
+                                                                         [
+                                                                             {
+                                                                                 "node":  "Apply Template Intercept",
+                                                                                 "type":  "main",
+                                                                                 "index":  0
+                                                                             }
+                                                                         ],
+                                                                         [
+                                                                             {
+                                                                                 "node":  "Skip Template Intercept",
+                                                                                 "type":  "main",
+                                                                                 "index":  0
+                                                                             }
+                                                                         ]
+                                                                     ]
+                                                        },
+                        "Merge Template Context":  {
+                                                       "main":  [
+                                                                    [
+                                                                        {
+                                                                            "node":  "Template Intercept Enabled?",
+                                                                            "type":  "main",
+                                                                            "index":  0
+                                                                        }
+                                                                    ]
+                                                                ]
+                                                   },
+                        "Intent Preprocessor":  {
+                                                    "main":  [
+                                                                 [
+                                                                     {
+                                                                         "node":  "Merge Template Context",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     },
+                                                                     {
+                                                                         "node":  "Fetch Tenant Email Template",
+                                                                         "type":  "main",
+                                                                         "index":  0
+                                                                     }
+                                                                 ]
+                                                             ]
+                                                },
+                        "Normalize Envelope":  {
+                                                   "main":  [
+                                                                [
+                                                                    {
+                                                                        "node":  "Intent Preprocessor",
+                                                                        "type":  "main",
+                                                                        "index":  0
+                                                                    }
+                                                                ]
+                                                            ]
+                                               },
+                        "Fetch Tenant Email Template":  {
+                                                            "main":  [
+                                                                         [
+                                                                             {
+                                                                                 "node":  "Merge Template Context",
+                                                                                 "type":  "main",
+                                                                                 "index":  1
+                                                                             }
+                                                                         ]
+                                                                     ]
+                                                        }
                     },
     "active":  true,
     "settings":  {
@@ -820,7 +819,7 @@
                      "callerPolicy":  "workflowsFromSameOwner",
                      "availableInMCP":  true
                  },
-    "versionId":  "e407d4b8-cfed-4581-ba29-34f46d1338ce",
+    "versionId":  "1409682b-3011-435d-876a-b12c36af1a43",
     "meta":  {
                  "templateCredsSetupCompleted":  true,
                  "instanceId":  "5884bef4e55de9055aac9badc39acc7412aa3809fde913cf95ebd084e6c2ffc2"
