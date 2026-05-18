@@ -13,7 +13,7 @@ RUN npm run build && npm prune --omit=dev
 # Stage 2: runtime
 FROM node:22-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production
+ENV NODE_ENV=production PORT=3000
 RUN apk add --no-cache curl \
   && addgroup -g 1001 -S nodejs \
   && adduser -S nodejs -u 1001 -G nodejs
