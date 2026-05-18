@@ -1,0 +1,121 @@
+{
+  "name": "Recall.ai Bot Orchestrator (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "trg-exec",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst inputs = $input.all().map(i => i.json || {});\nconst raw = inputs[0] || {};\nconst env = $env || {};\n\nconst payload = {\n  meeting_url: raw.meeting_url || '',\n  bot_name: raw.bot_name || env.RECALL_BOT_NAME || 'Sofer',\n  transcription_options: {\n    provider: raw.transcription_provider || env.RECALL_TRANSCRIPTION_PROVIDER || 'default'\n  },\n  google_meet: {\n    google_login_group_id: raw.google_login_group_id || env.RECALL_GOOGLE_LOGIN_GROUP_ID || ''\n  },\n  join_at: raw.join_at || null,\n  metadata: {\n    source: 'levinnovation-n8n',\n    meeting_title: raw.meeting_title || '',\n    meeting_date: raw.meeting_date || '',\n    tenant: 'levinnovation'\n  }\n};\n\n// Remove null join_at\nif (!payload.join_at) delete payload.join_at;\n\nreturn [{ json: payload }];\n"
+      },
+      "id": "build-payload",
+      "name": "Build Create Bot Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.RECALL_API_BASE || 'https://us-east-1.recall.ai/api/v1' }}/bot/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "create-bot",
+      "name": "Recall.ai Create Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        260,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "recall-api-key",
+          "name": "Recall API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $input.first().json || {};\nconst bot = raw.body || raw;\n\nreturn [{\n  json: {\n    status: 'bot_created',\n    bot_id: bot.id || null,\n    recall_status: bot.status || 'unknown',\n    meeting_url: bot.meeting_url || '',\n    join_at: bot.join_at || null,\n    raw: bot\n  }\n}];\n"
+      },
+      "id": "normalize-response",
+      "name": "Normalize Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        240
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build Create Bot Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Create Bot Payload": {
+      "main": [
+        [
+          {
+            "node": "Recall.ai Create Bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recall.ai Create Bot": {
+      "main": [
+        [
+          {
+            "node": "Normalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "recallai",
+      "id": "tag-recallai"
+    },
+    {
+      "name": "sofer",
+      "id": "tag-sofer"
+    }
+  ],
+  "staticData": null,
+  "pinData": {},
+  "versionId": "recallai-bot-orchestrator-v1"
+}

@@ -1,0 +1,41 @@
+id: recallai-gmeet-bot
+name: Recall.ai Google Meet Bot (Sofer)
+type: integration
+tenant: levinnovation
+domain: internal-operations
+capability: meeting-minutes-and-followups
+status: scaffolded
+version: "0.1.0"
+description: |
+  Recall.ai integration that sends signed-in Google Meet bots to meetings on
+  behalf of the Sofer meeting scribe. Bots join via Recall.ai API, record audio,
+  and produce transcripts that are forwarded upstream to meetings-agent-core.
+owner: "ops@levinnovation.com"
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: self-hosted
+  region: us-east-1
+
+deployment:
+  platform: gcp-cloud-run
+  region: us-east4
+  project: agentyx-493918
+
+files:
+  - asset.yaml
+  - README.md
+  - RUNBOOK.md
+  - .env.example
+  - deployment-contract.yaml
+  - recallai-bot-orchestrator.json
+  - recallai-webhook-receiver.json
+  - services/orchestrator/main.py
+  - services/orchestrator/requirements.txt
+  - services/orchestrator/Dockerfile
+  - services/orchestrator/deploy.sh
+  - services/webhook-receiver/main.py
+  - services/webhook-receiver/requirements.txt
+  - services/webhook-receiver/Dockerfile
+  - services/webhook-receiver/deploy.sh

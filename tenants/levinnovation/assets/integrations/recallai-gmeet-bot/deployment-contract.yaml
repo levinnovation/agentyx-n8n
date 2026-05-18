@@ -1,0 +1,63 @@
+deployment:
+  platform: gcp-cloud-run
+  region: us-east4
+  project: agentyx-493918
+
+  services:
+    - name: recallai-bot-orchestrator
+      type: cloud-run
+      runtime: python3.12
+      description: |
+        FastAPI service that receives meeting requests and creates Recall.ai bots.
+        Endpoint: POST /bot/create
+        Reads Recall API key from GCP Secret Manager.
+
+    - name: recallai-webhook-receiver
+      type: cloud-run
+      runtime: python3.12
+      description: |
+        FastAPI service that receives Recall.ai webhook callbacks.
+        Endpoint: POST /webhook/recallai
+        Validates X-Recall-AI-Secret, fetches transcripts, forwards to meetings-agent-core.
+
+  networking:
+    ingress:
+      - protocol: https
+        paths:
+          - /bot/create
+          - /webhook/recallai
+          - /health
+    egress:
+      - host: us-east-1.recall.ai
+        port: 443
+      - host: levinnovation.n8n.agentyx.one
+        port: 443
+
+  gcp_resources:
+    - type: secret-manager
+      secrets:
+        - recall-api-key
+        - recall-webhook-secret
+        - recall-sso-private-key
+        - recall-sso-cert
+    - type: service-account
+      name: recallai-bot-runner
+      roles:
+        - roles/secretmanager.secretAccessor
+        - roles/run.invoker
+
+  secrets:
+    required:
+      - recall-api-key
+      - recall-webhook-secret
+    optional:
+      - recall-sso-private-key
+      - recall-sso-cert
+
+  scaling:
+    min_instances: 0
+    max_instances: 10
+    note: |
+      Both services are stateless and scale automatically.
+      Bot orchestrator is lightweight (API proxy).
+      Webhook receiver may burst under high meeting load.

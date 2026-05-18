@@ -1,0 +1,220 @@
+{
+  "name": "Recall.ai Webhook Receiver (Levinnovation)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "recallai-status",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "trg-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "recallai-status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.headers['x-recall-ai-secret'] || $json.headers['X-Recall-Ai-Secret'] || '' }}",
+              "operation": "equal",
+              "value2": "={{ $env.RECALL_WEBHOOK_SECRET }}"
+            }
+          ]
+        }
+      },
+      "id": "verify-secret",
+      "name": "Webhook Secret OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $input.first().json || {};\nconst body = raw.body || raw;\n\nconst event = body.event || '';\nconst bot = body.bot || body.data || {};\n\nconst normalized = {\n  event: event,\n  bot_id: bot.id || body.bot_id || '',\n  status: bot.status || body.status || '',\n  meeting_url: bot.meeting_url || '',\n  transcript: bot.transcript || body.transcript || null,\n  recording: bot.recording || body.recording || null,\n  raw: body\n};\n\nreturn [{ json: normalized }];\n"
+      },
+      "id": "normalize-payload",
+      "name": "Normalize Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-transcript-done",
+              "leftValue": "={{ $json.event }}",
+              "rightValue": "bot.transcript_completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "has-transcript",
+      "name": "Transcript Ready?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $input.first().json || {};\nconst env = $env || {};\n\n// Fetch transcript via Recall.ai API if not present in webhook\nconst botId = raw.bot_id;\nconst apiBase = env.RECALL_API_BASE || 'https://us-east-1.recall.ai/api/v1';\n\nconst res = await $httpRequest({\n  method: 'GET',\n  url: `${apiBase}/bot/${botId}/transcript/`,\n  headers: {\n    Authorization: `Token ${env.RECALL_API_KEY}`\n  }\n});\n\nconst transcript = res.body || res;\nlet transcriptText = '';\n\nif (Array.isArray(transcript)) {\n  transcriptText = transcript.map(t => `${t.speaker}: ${t.text}`).join('\\n');\n} else if (transcript && transcript.text) {\n  transcriptText = transcript.text;\n} else {\n  transcriptText = JSON.stringify(transcript);\n}\n\nreturn [{\n  json: {\n    ...raw,\n    transcript_text: transcriptText,\n    transcript_raw: transcript\n  }\n}];\n"
+      },
+      "id": "fetch-transcript",
+      "name": "Fetch Transcript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $input.first().json || {};\nconst env = $env || {};\n\nconst forwardPayload = {\n  trigger_source: 'recallai-webhook',\n  meeting_id: raw.bot_id,\n  meeting_url: raw.meeting_url,\n  transcript_text: raw.transcript_text || '',\n  metadata: {\n    recall_bot_id: raw.bot_id,\n    recall_event: raw.event,\n    recall_status: raw.status,\n    transcript_raw: raw.transcript_raw || null\n  }\n};\n\nreturn [{ json: forwardPayload }];\n"
+      },
+      "id": "build-forward",
+      "name": "Build Forward Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.MEETINGS_AGENT_CORE_URL }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "forward-to-core",
+      "name": "Forward to meetings-agent-core",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1820,
+        160
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Webhook Secret OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Secret OK?": {
+      "main": [
+        [
+          {
+            "node": "Normalize Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Webhook": {
+      "main": [
+        [
+          {
+            "node": "Transcript Ready?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcript Ready?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Transcript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Transcript": {
+      "main": [
+        [
+          {
+            "node": "Build Forward Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Forward Payload": {
+      "main": [
+        [
+          {
+            "node": "Forward to meetings-agent-core",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "recallai",
+      "id": "tag-recallai"
+    },
+    {
+      "name": "sofer",
+      "id": "tag-sofer"
+    }
+  ],
+  "staticData": null,
+  "pinData": {},
+  "versionId": "recallai-webhook-receiver-v1"
+}
