@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-17T23:19:52.062Z",
+  "updatedAt": "2026-05-18T18:04:18.883Z",
   "createdAt": "2026-05-11T17:43:04.730Z",
   "id": "n0mTwpONyCbbyn2E",
   "name": "Customer Service Core (Levinnovation)",
@@ -133,40 +133,16 @@
         "rules": {
           "rules": [
             {
-              "id": "rule-audio",
-              "value1": "={{ $json._attachment_type }}",
-              "value2": "audio",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "value2": "audio"
             },
             {
-              "id": "rule-image",
-              "value1": "={{ $json._attachment_type }}",
-              "value2": "image",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "value2": "image"
             },
             {
-              "id": "rule-document",
-              "value1": "={{ $json._attachment_type }}",
-              "value2": "document",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "value2": "document"
             },
             {
-              "id": "rule-none",
-              "value1": "={{ $json._attachment_type }}",
-              "value2": "none",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
+              "value2": "none"
             }
           ]
         },
@@ -338,11 +314,10 @@
     },
     {
       "parameters": {
-        "agent": "toolsAgent",
         "promptType": "define",
         "text": "={{ $json.enriched_message || $json.message }}",
         "options": {
-          "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nHoy es 18 de mayo de 2026.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE. NUNCA pidas correos de asistentes. Si no te los dan, usa attendees=[]. SIEMPRE incluye location=\"\" si no te lo dan. NO pongas ningún campo en null. SIEMPRE incluye eventType=\"default\" y send_updates=\"all\". Calcula end_datetime a partir de start_datetime + duración.\n3. Si el usuario pregunta sobre productos de LEV → PRIMERO intenta usar KB Search Tool. Si la búsqueda no retorna resultados o no está disponible, usa la información de productos que ya tienes en tu contexto para responder directamente. NUNCA digas \"No encuentro información\" si tienes datos del producto en tu contexto.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión mañana a las 3pm' → DEBES llamar la tool de Calendar INMEDIATAMENTE con TODOS los campos exactos: {\"summary\":\"Reunión con equipo\",\"start_datetime\":\"2026-05-19T15:00:00\",\"end_datetime\":\"2026-05-19T16:00:00\",\"timezone\":\"America/Costa_Rica\",\"eventType\":\"default\",\"send_updates\":\"all\",\"location\":\"\",\"recurrence\":[],\"description\":\"\",\"guestsCanModify\":false,\"guestsCanInviteOthers\":false,\"guestsCanSeeOtherGuests\":false,\"extended_properties\":{},\"birthdayProperties\":null,\"focusTimeProperties\":null,\"outOfOfficeProperties\":null,\"workingLocationProperties\":null,\"attendees\":[]}. NUNCA omitas ningún campo. NUNCA pidas confirmación.\n3. Si usuario dice 'Busca información sobre X en la web' → DEBES llamar Tavily INMEDIATAMENTE con: {\"query\":\"X\",\"max_results\":3,\"search_depth\":\"advanced\",\"include_answer\":true,\"include_raw_content\":false,\"exclude_domains\":[],\"include_domains\":[]}. SIEMPRE incluye exclude_domains: [] e include_domains: [].\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
+          "systemMessage": "GROUNDING RULE (highest priority):\n1. If user asks about LEV Innovation, its products, services, or related topics → you MUST call a KB search tool FIRST (KB Search Tool or Pinecone Vector Store).\n2. If the tool returns context chunks, base your ENTIRE response on them. Do not contradict the returned context. Cite the product name.\n3. Only if tools return NO results, fall back to built-in product descriptions.\n4. NEVER say 'no tengo información' if KB context was returned — USE IT.\n\nGROUNDING RULE (highest priority):\n1. If the user asks about LEV Innovation, its products, services, or related topics → you MUST call the 'Pinecone Vector Store' KB Search tool FIRST.\n2. If the tool returns context chunks, base your ENTIRE response on those chunks. Do not contradict the returned context. Cite the product name when applicable.\n3. Only if the tool returns NO results, then fall back to the built-in product descriptions below.\n4. NEVER say 'no tengo información' if the KB tool returned snippets — use them.\n\nEres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nHoy es 18 de mayo de 2026.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE. NUNCA pidas correos de asistentes. Si no te los dan, usa attendees=[]. SIEMPRE incluye location=\"\" si no te lo dan. NO pongas ningún campo en null. SIEMPRE incluye eventType=\"default\" y send_updates=\"all\". Calcula end_datetime a partir de start_datetime + duración.\n3. Si el usuario pregunta sobre productos de LEV → PRIMERO intenta usar KB Search Tool. Si la búsqueda no retorna resultados o no está disponible, usa la información de productos que ya tienes en tu contexto para responder directamente. NUNCA digas \"No encuentro información\" si tienes datos del producto en tu contexto.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión mañana a las 3pm' → DEBES llamar la tool de Calendar INMEDIATAMENTE con TODOS los campos exactos: {\"summary\":\"Reunión con equipo\",\"start_datetime\":\"2026-05-19T15:00:00\",\"end_datetime\":\"2026-05-19T16:00:00\",\"timezone\":\"America/Costa_Rica\",\"eventType\":\"default\",\"send_updates\":\"all\",\"location\":\"\",\"recurrence\":[],\"description\":\"\",\"guestsCanModify\":false,\"guestsCanInviteOthers\":false,\"guestsCanSeeOtherGuests\":false,\"extended_properties\":{},\"birthdayProperties\":null,\"focusTimeProperties\":null,\"outOfOfficeProperties\":null,\"workingLocationProperties\":null,\"attendees\":[]}. NUNCA omitas ningún campo. NUNCA pidas confirmación.\n3. Si usuario dice 'Busca información sobre X en la web' → DEBES llamar Tavily INMEDIATAMENTE con: {\"query\":\"X\",\"max_results\":3,\"search_depth\":\"advanced\",\"include_answer\":true,\"include_raw_content\":false,\"exclude_domains\":[],\"include_domains\":[]}. SIEMPRE incluye exclude_domains: [] e include_domains: [].\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
         }
       },
       "id": "cs-core-ai-agent",
@@ -350,8 +325,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.8,
       "position": [
-        2528,
-        112
+        2480,
+        192
       ]
     },
     {
@@ -417,7 +392,6 @@
     },
     {
       "parameters": {
-        "source": "database",
         "workflowId": {
           "__rl": true,
           "value": "g44S4y2CKL2tWvQf",
@@ -462,8 +436,7 @@
           "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
-        },
-        "options": {}
+        }
       },
       "id": "cs-core-toolworkflow-twenty",
       "name": "Twenty CRM Native Tool (Workflow)",
@@ -489,8 +462,7 @@
           "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
-        },
-        "options": {}
+        }
       },
       "id": "cs-core-toolworkflow-twenty-read",
       "name": "Twenty CRM Read Context (Workflow Tool)",
@@ -516,8 +488,7 @@
           "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
-        },
-        "options": {}
+        }
       },
       "id": "cs-core-toolworkflow-twenty-write",
       "name": "Twenty CRM Write Actions (Workflow Tool)",
@@ -538,47 +509,14 @@
             "name": "MCP Bearer Auth"
           }
         },
-        "options": {},
-        "serverTransport": "httpStreamable",
         "include": "selected",
-        "headers": {
-          "values": [
-            {
-              "name": "x-entity-id",
-              "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-            },
-            {
-              "name": "x-user-prompt",
-              "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-            },
-            {
-              "name": "x-allowed-toolkits",
-              "value": "SLACK"
-            },
-            {
-              "name": "x-max-tools",
-              "value": "8"
-            },
-            {
-              "name": "x-compressed-tools",
-              "value": "0"
-            },
-            {
-              "name": "x-tool-verbosity",
-              "value": "brief"
-            },
-            {
-              "name": "x-shareable-documents",
-              "value": "{{ $json.shareable_documents || '[]' }}"
-            }
-          ]
-        },
         "includeTools": [
           "SLACK_SEND_MESSAGE",
           "SLACK_SEND_ME_MESSAGE",
           "SLACK_POST_MESSAGE",
           "SLACK_SENDS_A_MESSAGE_TO_A_SLACK_CHANNEL"
-        ]
+        ],
+        "options": {}
       },
       "id": "cs-core-mcp-slack",
       "name": "MCP Slack Tool",
@@ -605,44 +543,11 @@
             "name": "MCP Bearer Auth"
           }
         },
-        "options": {},
-        "serverTransport": "httpStreamable",
         "include": "selected",
-        "headers": {
-          "values": [
-            {
-              "name": "x-entity-id",
-              "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-            },
-            {
-              "name": "x-user-prompt",
-              "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-            },
-            {
-              "name": "x-allowed-toolkits",
-              "value": "GMAIL"
-            },
-            {
-              "name": "x-max-tools",
-              "value": "3"
-            },
-            {
-              "name": "x-compressed-tools",
-              "value": "0"
-            },
-            {
-              "name": "x-tool-verbosity",
-              "value": "brief"
-            },
-            {
-              "name": "x-shareable-documents",
-              "value": "{{ $json.shareable_documents || '[]' }}"
-            }
-          ]
-        },
         "includeTools": [
           "GMAIL_SEND_EMAIL"
-        ]
+        ],
+        "options": {}
       },
       "id": "cs-core-mcp-gmail",
       "name": "MCP Gmail Tool",
@@ -669,44 +574,11 @@
             "name": "MCP Bearer Auth"
           }
         },
-        "options": {},
-        "serverTransport": "httpStreamable",
         "include": "selected",
-        "headers": {
-          "values": [
-            {
-              "name": "x-entity-id",
-              "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-            },
-            {
-              "name": "x-user-prompt",
-              "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-            },
-            {
-              "name": "x-allowed-toolkits",
-              "value": "GOOGLECALENDAR"
-            },
-            {
-              "name": "x-max-tools",
-              "value": "12"
-            },
-            {
-              "name": "x-compressed-tools",
-              "value": "0"
-            },
-            {
-              "name": "x-tool-verbosity",
-              "value": "brief"
-            },
-            {
-              "name": "x-shareable-documents",
-              "value": "{{ $json.shareable_documents || '[]' }}"
-            }
-          ]
-        },
         "includeTools": [
           "GOOGLECALENDAR_CREATE_EVENT"
-        ]
+        ],
+        "options": {}
       },
       "id": "cs-core-mcp-googlecalendar",
       "name": "MCP Google Calendar Tool",
@@ -733,44 +605,11 @@
             "name": "MCP Bearer Auth"
           }
         },
-        "options": {},
-        "serverTransport": "httpStreamable",
         "include": "selected",
-        "headers": {
-          "values": [
-            {
-              "name": "x-entity-id",
-              "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-            },
-            {
-              "name": "x-user-prompt",
-              "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-            },
-            {
-              "name": "x-allowed-toolkits",
-              "value": "GOOGLEDRIVE"
-            },
-            {
-              "name": "x-max-tools",
-              "value": "12"
-            },
-            {
-              "name": "x-compressed-tools",
-              "value": "0"
-            },
-            {
-              "name": "x-tool-verbosity",
-              "value": "brief"
-            },
-            {
-              "name": "x-shareable-documents",
-              "value": "{{ $json.shareable_documents || '[]' }}"
-            }
-          ]
-        },
         "includeTools": [
           "GOOGLEDRIVE_GOOGLE_DRIVE_DELETE_FOLDER_OR_FILE_ACTION"
-        ]
+        ],
+        "options": {}
       },
       "id": "cs-core-mcp-googledrive",
       "name": "MCP Google Drive Tool",
@@ -797,11 +636,11 @@
             "name": "MCP Bearer Auth"
           }
         },
-        "options": {},
         "include": "selected",
         "includeTools": [
           "TAVILY_SEARCH"
-        ]
+        ],
+        "options": {}
       },
       "id": "cs-core-mcp-tavily",
       "name": "MCP Tavily Tool",
@@ -820,34 +659,6 @@
     },
     {
       "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "mJc6GZvubuR1p8G5",
-          "mode": "id",
-          "cachedResultUrl": "/workflow/mJc6GZvubuR1p8G5"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {}
-      },
-      "id": "cs-core-kb-search-tool",
-      "name": "KB Search Tool",
-      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
-      "typeVersion": 2.2,
-      "position": [
-        2736,
-        600
-      ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
         "url": "={{ (($env.PORTAL_TEMPLATE_API_BASE || ('https://' + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || 'levinnovation') + '.portal.agentyx.one')) + '/api/public/templates/email?tenant=' + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || 'levinnovation')) }}",
         "sendHeaders": true,
         "headerParameters": {
@@ -868,7 +679,7 @@
       "typeVersion": 4.2,
       "position": [
         2208,
-        88
+        96
       ],
       "continueOnFail": true
     },
@@ -914,8 +725,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2764,
-        -20
+        2768,
+        -16
       ]
     },
     {
@@ -928,7 +739,7 @@
       "typeVersion": 2,
       "position": [
         3024,
-        -140
+        -144
       ]
     },
     {
@@ -986,9 +797,86 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        2940,
+        2944,
         112
       ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "mJc6GZvubuR1p8G5",
+          "mode": "id",
+          "cachedResultUrl": "/workflow/mJc6GZvubuR1p8G5"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "cs-core-kb-search-tool-v2",
+      "name": "KB Search Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3008,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "KB Search: Query the LEV Innovation knowledge base. ALWAYS call this when user asks about LEV products/services. Pass their exact question. Returns text chunks to ground your answer.",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "levinnovation-kb",
+          "mode": "list",
+          "cachedResultName": "levinnovation-kb"
+        },
+        "topK": 6,
+        "options": {
+          "pineconeNamespace": "default"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        3008,
+        656
+      ],
+      "id": "56f16f06-ee80-42b6-9617-8a039474104e",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "mKK67qAjFKrUvKY3",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "text-embedding-3-small",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        3008,
+        800
+      ],
+      "id": "emb-openai-pinecone",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "1s2rxxG7tkEeB7UH",
+          "name": "OpenAI account"
+        }
+      }
     }
   ],
   "connections": {
@@ -1400,6 +1288,28 @@
           }
         ]
       ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1419,9 +1329,9 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
-  "activeVersionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
-  "versionCounter": 972,
+  "versionId": "54125f8e-e401-436d-b36b-dae85aa815e5",
+  "activeVersionId": "54125f8e-e401-436d-b36b-dae85aa815e5",
+  "versionCounter": 1077,
   "triggerCount": 0,
   "shared": [
     {
@@ -1444,9 +1354,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-05-17T23:19:52.065Z",
-    "createdAt": "2026-05-17T23:19:52.065Z",
-    "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
+    "updatedAt": "2026-05-18T18:04:18.886Z",
+    "createdAt": "2026-05-18T18:04:18.886Z",
+    "versionId": "54125f8e-e401-436d-b36b-dae85aa815e5",
     "workflowId": "n0mTwpONyCbbyn2E",
     "nodes": [
       {
@@ -1575,40 +1485,16 @@
           "rules": {
             "rules": [
               {
-                "id": "rule-audio",
-                "value1": "={{ $json._attachment_type }}",
-                "value2": "audio",
-                "operator": {
-                  "type": "string",
-                  "operation": "equals"
-                }
+                "value2": "audio"
               },
               {
-                "id": "rule-image",
-                "value1": "={{ $json._attachment_type }}",
-                "value2": "image",
-                "operator": {
-                  "type": "string",
-                  "operation": "equals"
-                }
+                "value2": "image"
               },
               {
-                "id": "rule-document",
-                "value1": "={{ $json._attachment_type }}",
-                "value2": "document",
-                "operator": {
-                  "type": "string",
-                  "operation": "equals"
-                }
+                "value2": "document"
               },
               {
-                "id": "rule-none",
-                "value1": "={{ $json._attachment_type }}",
-                "value2": "none",
-                "operator": {
-                  "type": "string",
-                  "operation": "equals"
-                }
+                "value2": "none"
               }
             ]
           },
@@ -1783,7 +1669,7 @@
           "promptType": "define",
           "text": "={{ $json.enriched_message || $json.message }}",
           "options": {
-            "systemMessage": "Eres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nHoy es 18 de mayo de 2026.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE. NUNCA pidas correos de asistentes. Si no te los dan, usa attendees=[]. SIEMPRE incluye location=\"\" si no te lo dan. NO pongas ningún campo en null. SIEMPRE incluye eventType=\"default\" y send_updates=\"all\". Calcula end_datetime a partir de start_datetime + duración.\n3. Si el usuario pregunta sobre productos de LEV → PRIMERO intenta usar KB Search Tool. Si la búsqueda no retorna resultados o no está disponible, usa la información de productos que ya tienes en tu contexto para responder directamente. NUNCA digas \"No encuentro información\" si tienes datos del producto en tu contexto.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión mañana a las 3pm' → DEBES llamar la tool de Calendar INMEDIATAMENTE con TODOS los campos exactos: {\"summary\":\"Reunión con equipo\",\"start_datetime\":\"2026-05-19T15:00:00\",\"end_datetime\":\"2026-05-19T16:00:00\",\"timezone\":\"America/Costa_Rica\",\"eventType\":\"default\",\"send_updates\":\"all\",\"location\":\"\",\"recurrence\":[],\"description\":\"\",\"guestsCanModify\":false,\"guestsCanInviteOthers\":false,\"guestsCanSeeOtherGuests\":false,\"extended_properties\":{},\"birthdayProperties\":null,\"focusTimeProperties\":null,\"outOfOfficeProperties\":null,\"workingLocationProperties\":null,\"attendees\":[]}. NUNCA omitas ningún campo. NUNCA pidas confirmación.\n3. Si usuario dice 'Busca información sobre X en la web' → DEBES llamar Tavily INMEDIATAMENTE con: {\"query\":\"X\",\"max_results\":3,\"search_depth\":\"advanced\",\"include_answer\":true,\"include_raw_content\":false,\"exclude_domains\":[],\"include_domains\":[]}. SIEMPRE incluye exclude_domains: [] e include_domains: [].\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
+            "systemMessage": "GROUNDING RULE (highest priority):\n1. If user asks about LEV Innovation, its products, services, or related topics → you MUST call a KB search tool FIRST (KB Search Tool or Pinecone Vector Store).\n2. If the tool returns context chunks, base your ENTIRE response on them. Do not contradict the returned context. Cite the product name.\n3. Only if tools return NO results, fall back to built-in product descriptions.\n4. NEVER say 'no tengo información' if KB context was returned — USE IT.\n\nGROUNDING RULE (highest priority):\n1. If the user asks about LEV Innovation, its products, services, or related topics → you MUST call the 'Pinecone Vector Store' KB Search tool FIRST.\n2. If the tool returns context chunks, base your ENTIRE response on those chunks. Do not contradict the returned context. Cite the product name when applicable.\n3. Only if the tool returns NO results, then fall back to the built-in product descriptions below.\n4. NEVER say 'no tengo información' if the KB tool returned snippets — use them.\n\nEres Levi, asistente virtual de LEV Innovation - automatización inteligente y transformación digital para LATAM.\n\nHoy es 18 de mayo de 2026.\n\nMISIÓN: Resolver dudas sobre LEV Innovation y ayudar a conectar prospectos con el equipo comercial.\n\nESTILO:\n- Una pregunta a la vez\n- Refleja antes de preguntar\n- Sé específico, evita frases genéricas\n- WhatsApp/Telegram: máximo 3-4 oraciones\n- Si no sabes algo, dilo y escala al equipo\n\nPRODUCTOS LEV (información autorizada):\n- Agentyx: Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales.\n- Contax: (redactado)\n- Acumatica: ERP en la nube para manufactura, distribución y servicios.\n- Oosto: Reconocimiento facial avanzado para seguridad y acceso.\n- Metropolis: Solución de análisis de video y visión computacional para ciudades inteligentes.\n- Legalink: Automatización de procesos legales y gestión documental jurídica.\n\nTOOLS: Tienes acceso DIRECTO a Gmail, Google Calendar, Slack, Tavily (búsqueda web) y Google Drive.\n\nREGLAS DE USO DE TOOLS:\n1. Si el usuario pide enviar email → USAR GMAIL_SEND_EMAIL INMEDIATAMENTE con from_email=\"me\" y attachment=[].\n2. Si el usuario pide agenda → USAR Calendar tool INMEDIATAMENTE. NUNCA pidas correos de asistentes. Si no te los dan, usa attendees=[]. SIEMPRE incluye location=\"\" si no te lo dan. NO pongas ningún campo en null. SIEMPRE incluye eventType=\"default\" y send_updates=\"all\". Calcula end_datetime a partir de start_datetime + duración.\n3. Si el usuario pregunta sobre productos de LEV → PRIMERO intenta usar KB Search Tool. Si la búsqueda no retorna resultados o no está disponible, usa la información de productos que ya tienes en tu contexto para responder directamente. NUNCA digas \"No encuentro información\" si tienes datos del producto en tu contexto.\n4. NUNCA escribas JSON como texto. Si necesitas enviar email, EJECUTA la tool, no copies el JSON como respuesta.\n5. NO intentes enviar emails sin usar la herramienta MCP Gmail Tool. Escribir el JSON no envía nada.\n\nEJEMPLOS DE USO DE HERRAMIENTAS:\n1. Si usuario dice 'Envíame un correo a test@test.com' → DEBES llamar GMAIL_SEND_EMAIL con: {\"recipient_email\":\"test@test.com\",\"subject\":\"[LEV] Asunto relevante\",\"body\":\"Contenido del correo\",\"is_html\":true,\"from_email\":\"me\",\"attachment\":[]}\n2. Si usuario dice 'Agenda una reunión mañana a las 3pm' → DEBES llamar la tool de Calendar INMEDIATAMENTE con TODOS los campos exactos: {\"summary\":\"Reunión con equipo\",\"start_datetime\":\"2026-05-19T15:00:00\",\"end_datetime\":\"2026-05-19T16:00:00\",\"timezone\":\"America/Costa_Rica\",\"eventType\":\"default\",\"send_updates\":\"all\",\"location\":\"\",\"recurrence\":[],\"description\":\"\",\"guestsCanModify\":false,\"guestsCanInviteOthers\":false,\"guestsCanSeeOtherGuests\":false,\"extended_properties\":{},\"birthdayProperties\":null,\"focusTimeProperties\":null,\"outOfOfficeProperties\":null,\"workingLocationProperties\":null,\"attendees\":[]}. NUNCA omitas ningún campo. NUNCA pidas confirmación.\n3. Si usuario dice 'Busca información sobre X en la web' → DEBES llamar Tavily INMEDIATAMENTE con: {\"query\":\"X\",\"max_results\":3,\"search_depth\":\"advanced\",\"include_answer\":true,\"include_raw_content\":false,\"exclude_domains\":[],\"include_domains\":[]}. SIEMPRE incluye exclude_domains: [] e include_domains: [].\n\nREGLA DE ORO: NUNCA respondas que 'no puedes' hacer algo que tienes tool para hacer. USA LA TOOL SIEMPRE.\n"
           }
         },
         "id": "cs-core-ai-agent",
@@ -1791,8 +1677,8 @@
         "type": "@n8n/n8n-nodes-langchain.agent",
         "typeVersion": 1.8,
         "position": [
-          2528,
-          112
+          2480,
+          192
         ]
       },
       {
@@ -1858,7 +1744,6 @@
       },
       {
         "parameters": {
-          "source": "database",
           "workflowId": {
             "__rl": true,
             "value": "g44S4y2CKL2tWvQf",
@@ -1903,8 +1788,7 @@
             "schema": [],
             "attemptToConvertTypes": false,
             "convertFieldsToString": true
-          },
-          "options": {}
+          }
         },
         "id": "cs-core-toolworkflow-twenty",
         "name": "Twenty CRM Native Tool (Workflow)",
@@ -1930,8 +1814,7 @@
             "schema": [],
             "attemptToConvertTypes": false,
             "convertFieldsToString": true
-          },
-          "options": {}
+          }
         },
         "id": "cs-core-toolworkflow-twenty-read",
         "name": "Twenty CRM Read Context (Workflow Tool)",
@@ -1957,8 +1840,7 @@
             "schema": [],
             "attemptToConvertTypes": false,
             "convertFieldsToString": true
-          },
-          "options": {}
+          }
         },
         "id": "cs-core-toolworkflow-twenty-write",
         "name": "Twenty CRM Write Actions (Workflow Tool)",
@@ -1979,47 +1861,14 @@
               "name": "MCP Bearer Auth"
             }
           },
-          "options": {},
-          "serverTransport": "httpStreamable",
           "include": "selected",
-          "headers": {
-            "values": [
-              {
-                "name": "x-entity-id",
-                "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-              },
-              {
-                "name": "x-user-prompt",
-                "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "SLACK"
-              },
-              {
-                "name": "x-max-tools",
-                "value": "8"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "0"
-              },
-              {
-                "name": "x-tool-verbosity",
-                "value": "brief"
-              },
-              {
-                "name": "x-shareable-documents",
-                "value": "{{ $json.shareable_documents || '[]' }}"
-              }
-            ]
-          },
           "includeTools": [
             "SLACK_SEND_MESSAGE",
             "SLACK_SEND_ME_MESSAGE",
             "SLACK_POST_MESSAGE",
             "SLACK_SENDS_A_MESSAGE_TO_A_SLACK_CHANNEL"
-          ]
+          ],
+          "options": {}
         },
         "id": "cs-core-mcp-slack",
         "name": "MCP Slack Tool",
@@ -2046,44 +1895,11 @@
               "name": "MCP Bearer Auth"
             }
           },
-          "options": {},
-          "serverTransport": "httpStreamable",
           "include": "selected",
-          "headers": {
-            "values": [
-              {
-                "name": "x-entity-id",
-                "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-              },
-              {
-                "name": "x-user-prompt",
-                "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "GMAIL"
-              },
-              {
-                "name": "x-max-tools",
-                "value": "3"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "0"
-              },
-              {
-                "name": "x-tool-verbosity",
-                "value": "brief"
-              },
-              {
-                "name": "x-shareable-documents",
-                "value": "{{ $json.shareable_documents || '[]' }}"
-              }
-            ]
-          },
           "includeTools": [
             "GMAIL_SEND_EMAIL"
-          ]
+          ],
+          "options": {}
         },
         "id": "cs-core-mcp-gmail",
         "name": "MCP Gmail Tool",
@@ -2110,44 +1926,11 @@
               "name": "MCP Bearer Auth"
             }
           },
-          "options": {},
-          "serverTransport": "httpStreamable",
           "include": "selected",
-          "headers": {
-            "values": [
-              {
-                "name": "x-entity-id",
-                "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-              },
-              {
-                "name": "x-user-prompt",
-                "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "GOOGLECALENDAR"
-              },
-              {
-                "name": "x-max-tools",
-                "value": "12"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "0"
-              },
-              {
-                "name": "x-tool-verbosity",
-                "value": "brief"
-              },
-              {
-                "name": "x-shareable-documents",
-                "value": "{{ $json.shareable_documents || '[]' }}"
-              }
-            ]
-          },
           "includeTools": [
             "GOOGLECALENDAR_CREATE_EVENT"
-          ]
+          ],
+          "options": {}
         },
         "id": "cs-core-mcp-googlecalendar",
         "name": "MCP Google Calendar Tool",
@@ -2174,44 +1957,11 @@
               "name": "MCP Bearer Auth"
             }
           },
-          "options": {},
-          "serverTransport": "httpStreamable",
           "include": "selected",
-          "headers": {
-            "values": [
-              {
-                "name": "x-entity-id",
-                "value": "={{ $env.COMPOSIO_ENTITY_ID || $json.composio_entity_id || $json.user_id || $json.conversation_id || 'levinnovation-user-id' }}"
-              },
-              {
-                "name": "x-user-prompt",
-                "value": "={{ $json.enriched_message || $json.message || \"\" }}"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "GOOGLEDRIVE"
-              },
-              {
-                "name": "x-max-tools",
-                "value": "12"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "0"
-              },
-              {
-                "name": "x-tool-verbosity",
-                "value": "brief"
-              },
-              {
-                "name": "x-shareable-documents",
-                "value": "{{ $json.shareable_documents || '[]' }}"
-              }
-            ]
-          },
           "includeTools": [
             "GOOGLEDRIVE_GOOGLE_DRIVE_DELETE_FOLDER_OR_FILE_ACTION"
-          ]
+          ],
+          "options": {}
         },
         "id": "cs-core-mcp-googledrive",
         "name": "MCP Google Drive Tool",
@@ -2238,11 +1988,11 @@
               "name": "MCP Bearer Auth"
             }
           },
-          "options": {},
           "include": "selected",
           "includeTools": [
             "TAVILY_SEARCH"
-          ]
+          ],
+          "options": {}
         },
         "id": "cs-core-mcp-tavily",
         "name": "MCP Tavily Tool",
@@ -2261,7 +2011,6 @@
       },
       {
         "parameters": {
-          "method": "GET",
           "url": "={{ (($env.PORTAL_TEMPLATE_API_BASE || ('https://' + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || 'levinnovation') + '.portal.agentyx.one')) + '/api/public/templates/email?tenant=' + (($json.metadata || {}).tenant_slug || $env.TENANT_SLUG || 'levinnovation')) }}",
           "sendHeaders": true,
           "headerParameters": {
@@ -2282,7 +2031,7 @@
         "typeVersion": 4.2,
         "position": [
           2208,
-          88
+          96
         ],
         "continueOnFail": true
       },
@@ -2328,8 +2077,8 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2.2,
         "position": [
-          2764,
-          -20
+          2768,
+          -16
         ]
       },
       {
@@ -2342,7 +2091,7 @@
         "typeVersion": 2,
         "position": [
           3024,
-          -140
+          -144
         ]
       },
       {
@@ -2400,7 +2149,7 @@
         "type": "n8n-nodes-base.if",
         "typeVersion": 2.2,
         "position": [
-          2940,
+          2944,
           112
         ]
       },
@@ -2415,32 +2164,71 @@
           "workflowInputs": {
             "mappingMode": "defineBelow",
             "value": {},
-            "matchingColumns": [
-              ""
-            ],
-            "schema": [
-              {
-                "id": "",
-                "displayName": "",
-                "required": false,
-                "defaultMatch": false,
-                "display": true,
-                "canBeUsedToMatch": true,
-                "removed": false
-              }
-            ],
+            "matchingColumns": [],
+            "schema": [],
             "attemptToConvertTypes": false,
-            "convertFieldsToString": false
-          }
+            "convertFieldsToString": true
+          },
+          "options": {}
         },
-        "id": "cs-core-kb-search-tool",
+        "id": "cs-core-kb-search-tool-v2",
         "name": "KB Search Tool",
         "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
         "typeVersion": 2.2,
         "position": [
-          2736,
-          600
+          3008,
+          656
         ]
+      },
+      {
+        "parameters": {
+          "mode": "retrieve-as-tool",
+          "toolDescription": "KB Search: Query the LEV Innovation knowledge base. ALWAYS call this when user asks about LEV products/services. Pass their exact question. Returns text chunks to ground your answer.",
+          "pineconeIndex": {
+            "__rl": true,
+            "value": "levinnovation-kb",
+            "mode": "list",
+            "cachedResultName": "levinnovation-kb"
+          },
+          "topK": 6,
+          "options": {
+            "pineconeNamespace": "default"
+          }
+        },
+        "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+        "typeVersion": 1.3,
+        "position": [
+          3008,
+          656
+        ],
+        "id": "56f16f06-ee80-42b6-9617-8a039474104e",
+        "name": "Pinecone Vector Store",
+        "credentials": {
+          "pineconeApi": {
+            "id": "mKK67qAjFKrUvKY3",
+            "name": "Pinecone account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "model": "text-embedding-3-small",
+          "options": {}
+        },
+        "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "typeVersion": 1.1,
+        "position": [
+          3008,
+          800
+        ],
+        "id": "emb-openai-pinecone",
+        "name": "Embeddings OpenAI",
+        "credentials": {
+          "openAiApi": {
+            "id": "1s2rxxG7tkEeB7UH",
+            "name": "OpenAI account"
+          }
+        }
       }
     ],
     "connections": {
@@ -2729,39 +2517,6 @@
           ]
         ]
       },
-      "KB Search Tool": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Redis Chat Memory": {
-        "ai_memory": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_memory",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Call 'Twenty CRM On-Update Interactions'": {
-        "ai_tool": [
-          [
-            {
-              "node": "AI Agent",
-              "type": "ai_tool",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Compose Prompt Context": {
         "main": [
           [
@@ -2852,6 +2607,61 @@
             }
           ]
         ]
+      },
+      "Redis Chat Memory": {
+        "ai_memory": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_memory",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Call 'Twenty CRM On-Update Interactions'": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "KB Search Tool": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Pinecone Vector Store": {
+        "ai_tool": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "ai_tool",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Embeddings OpenAI": {
+        "ai_embedding": [
+          [
+            {
+              "node": "Pinecone Vector Store",
+              "type": "ai_embedding",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "authors": "Vinicio Flores",
@@ -2860,34 +2670,18 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-05-17T23:19:52.126Z",
-        "id": 1200,
+        "createdAt": "2026-05-18T18:04:18.954Z",
+        "id": 1313,
         "workflowId": "n0mTwpONyCbbyn2E",
-        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
+        "versionId": "54125f8e-e401-436d-b36b-dae85aa815e5",
         "event": "deactivated",
         "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
       },
       {
-        "createdAt": "2026-05-17T23:19:52.155Z",
-        "id": 1201,
+        "createdAt": "2026-05-18T18:04:18.996Z",
+        "id": 1314,
         "workflowId": "n0mTwpONyCbbyn2E",
-        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
-        "event": "activated",
-        "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
-      },
-      {
-        "createdAt": "2026-05-17T23:21:02.805Z",
-        "id": 1202,
-        "workflowId": "n0mTwpONyCbbyn2E",
-        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
-        "event": "deactivated",
-        "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
-      },
-      {
-        "createdAt": "2026-05-17T23:21:03.431Z",
-        "id": 1203,
-        "workflowId": "n0mTwpONyCbbyn2E",
-        "versionId": "5a0ad605-f533-4741-a5da-5ac9a261ccd2",
+        "versionId": "54125f8e-e401-436d-b36b-dae85aa815e5",
         "event": "activated",
         "userId": "355a6fd1-44a8-4c9e-aa6c-b9f5439febaa"
       }
