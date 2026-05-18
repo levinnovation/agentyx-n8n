@@ -1,0 +1,16 @@
+id: levinnovation-linkedin-search-tavily
+name: LinkedIn Search via Tavily
+type: deployment
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: active
+description: |
+  n8n sub-workflow that searches LinkedIn profiles via Tavily API.
+  Called by prospector-agent-core as HTTP webhook.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: n8n
+  region: us-east-1

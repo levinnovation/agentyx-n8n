@@ -30,6 +30,7 @@
 - Customer-service channel adapters currently include Kapso WhatsApp, Telegram, and Meta comments.
 - Internal operations now include `meetings-agent-core`, a Sofer multi-agent n8n workflow for meeting minutes, artifact composition, and optional Composio MCP follow-up actions.
 - CRM orchestration uses Twenty sub-workflows (`read-context`, `write-actions`, update interactions).
+- Prospecting now has a dedicated Tavily LinkedIn search microservice (`linkedin-search-tavily`) as an alternative/supplement to RapidAPI sourcing.
 - MCP-facing integration contracts are tracked under `tenants/levinnovation/assets/integrations/composio-mcp/`.
 
 ## Customer-service RAG and document ingestion highlights
@@ -47,6 +48,7 @@ Recent critical lessons:
 
 - `knowledge/tenants/levinnovation/domain-decisions.md`
 - `knowledge/tenants/levinnovation/capability-decisions.md`
+- `knowledge/change-log/2026-05-18-linkedin-search-tavily-microservice.md`
 - `knowledge/change-log/2026-05-11-customer-service-agent.md`
 - `knowledge/change-log/2026-05-12-customer-service-rag-rebuild.md`
 - `knowledge/change-log/2026-05-12-customer-service-mcp-router-rollout.md`

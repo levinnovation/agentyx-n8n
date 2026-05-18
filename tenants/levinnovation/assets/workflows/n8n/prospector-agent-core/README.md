@@ -87,6 +87,7 @@ full pipeline. If `dry_run: true`, Gmail send is skipped (everything else still 
 | Twenty CRM Read Context (Levinnovation) | `d6VSkkNoCIxolaFM` | dedup check on email + company |
 | Twenty CRM Write Actions (Levinnovation) | `8DwIA1gB946zMl7B` | upsert_person / upsert_company / upsert_opportunity |
 | Customer Service Core (Levinnovation) | `2YgexGoZiHnGwGUi` | enrich qualified lead through conversational AI agent |
+| LinkedIn Search via Tavily (Levinnovation) | *(import via API to get ID)* | search LinkedIn profiles via Tavily instead of RapidAPI |
 
 ## Environment variables
 

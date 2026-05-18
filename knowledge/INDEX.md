@@ -48,6 +48,7 @@
 - [change-log/2026-05-14-mcp-composio-auth-fix.md](change-log/2026-05-14-mcp-composio-auth-fix.md)
 - [change-log/2026-05-14-opencode-railway-integration.md](change-log/2026-05-14-opencode-railway-integration.md)
 - [change-log/2026-05-17-autonomous-fixing-session.md](change-log/2026-05-17-autonomous-fixing-session.md)
+- [change-log/2026-05-18-linkedin-search-tavily-microservice.md](change-log/2026-05-18-linkedin-search-tavily-microservice.md)
 - [change-log/2026-05-18-tool-fixes-tavily-calendar-kb.md](change-log/2026-05-18-tool-fixes-tavily-calendar-kb.md)
 - [change-log/2026/04/2026-04-29-aurea-migration.md](change-log/2026/04/2026-04-29-aurea-migration.md)
 - [change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md](change-log/2026/04/2026-04-29-hostinger-n8n-runtime.md)
