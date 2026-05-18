@@ -15,9 +15,12 @@ const MCP_AUTH_TOKEN = process.env.MCP_AUTH_TOKEN ?? '';
 
 // ─── Startup validation ───────────────────────────────────────────────────────
 
+logLine('info', 'startup', { port: PORT, has_auth_token: !!MCP_AUTH_TOKEN, node_env: process.env.NODE_ENV });
+
 if (!MCP_AUTH_TOKEN) {
-	logLine('error', 'missing_required_env', { name: 'MCP_AUTH_TOKEN' });
-	process.exit(1);
+	logLine('warn', 'missing_required_env', { name: 'MCP_AUTH_TOKEN' });
+	// Do NOT exit — Railway needs the health endpoint up to debug variables.
+	// Auth middleware will reject all non-health requests with 401.
 }
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
@@ -35,6 +38,10 @@ function correlationIdMiddleware(req: Request, res: Response, next: NextFunction
 
 function bearerAuthMiddleware(req: Request, res: Response, next: NextFunction) {
 	if (req.path === '/healthz') return next();
+	if (!MCP_AUTH_TOKEN) {
+		res.status(503).json({ error: 'server_misconfigured', detail: 'MCP_AUTH_TOKEN not set' });
+		return;
+	}
 	const auth = req.headers.authorization;
 	if (!auth || auth !== `Bearer ${MCP_AUTH_TOKEN}`) {
 		res.status(401).json({ error: 'unauthorized' });
@@ -195,7 +202,7 @@ app.delete('/mcp', (_req, res) => res.status(405).json({ error: 'method_not_allo
 // ─── Start ─────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, '0.0.0.0', () => {
-	logLine('info', 'server_started', { port: PORT });
+	logLine('info', 'server_started', { port: PORT, host: '0.0.0.0', timestamp: new Date().toISOString() });
 });
 
 export default app;
