@@ -1,0 +1,14 @@
+id: levinnovation-linkedin-mcp-deploy
+name: LinkedIn MCP Deploy
+type: deployment
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: active
+description: Railway deployment for linkedin-mcp service.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1

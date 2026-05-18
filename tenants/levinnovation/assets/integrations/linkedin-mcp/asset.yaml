@@ -1,0 +1,17 @@
+id: levinnovation-linkedin-mcp
+name: LinkedIn MCP
+type: deployment
+tenant: levinnovation
+domain: sales-prospecting
+capability: linkedin-lead-prospecting
+status: active
+description: |
+  MCP server that searches LinkedIn profiles via Tavily/DuckDuckGo.
+  Exposes /api/search (REST) and /mcp (MCP protocol) endpoints.
+  Used by prospector-agent-core to source leads without a paid LinkedIn API.
+observability:
+  traces: none
+  metrics: none
+deployment:
+  platform: railway
+  region: us-east-1
