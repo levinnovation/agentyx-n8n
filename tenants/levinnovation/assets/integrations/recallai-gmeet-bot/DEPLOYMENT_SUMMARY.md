@@ -6,42 +6,33 @@
 
 | Service | Status | URL |
 |---------|--------|-----|
-| **recallai-bot-orchestrator** | ⚠️ Needs public access | `https://recallai-bot-orchestrator-72608706210.us-east4.run.app` |
-| **recallai-webhook-receiver** | ✅ Running + Public | `https://recallai-webhook-receiver-72608706210.us-east4.run.app` |
+| **recallai-bot-orchestrator** | ✅ Public & Running | `https://recallai-bot-orchestrator-72608706210.us-east4.run.app` |
+| **recallai-webhook-receiver** | ✅ Public & Running | `https://recallai-webhook-receiver-72608706210.us-east4.run.app` |
 
-### Action Required
+### Endpoints
 
-The orchestrator was deployed but the `--allow-unauthenticated` flag did not apply via gcloud CLI in this environment. You need to run this manually on your terminal:
-
-```bash
-gcloud run services add-iam-policy-binding recallai-bot-orchestrator \
-  --region=us-east4 --project=agentyx-493918 \
-  --member="allUsers" --role="roles/run.invoker"
-```
-
-Then verify:
-```bash
-curl https://recallai-bot-orchestrator-72608706210.us-east4.run.app/health
-```
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/bot/create` | POST | Creates a Recall.ai bot |
+| `/webhook/recallai` | POST | Receives Recall.ai webhooks |
 
 ### GCP Resources Created
 
 1. **Service Account**: `recallai-bot-runner@agentyx-493918.iam.gserviceaccount.com`
-2. **Secrets in Secret Manager**:
-   - `recall-api-key` — Your Recall.ai API key
-   - `recall-webhook-secret` — Webhook validation secret
+2. **Secrets in Secret Manager** (with versions):
+   - `recall-api-key` — Your Recall.ai API key (version 1)
+   - `recall-webhook-secret` — Webhook validation secret (version 2)
    - `recall-sso-private-key` — Pre-generated Google Workspace SSO private key
    - `recall-sso-cert` — Pre-generated Google Workspace SSO certificate
 3. **IAM**: Service account granted `roles/secretmanager.secretAccessor` at project level
+4. **Cloud Run**: Both services deployed with auto-scaling
 
 ### Next Steps
 
-1. ✅ Run the gcloud command above to make the orchestrator public
-2. 📋 Follow `RUNBOOK.md` to set up Google Workspace SSO and Recall.ai login
-3. 🔗 Register the webhook URL in Recall.ai dashboard:
-   ```
-   https://recallai-webhook-receiver-72608706210.us-east4.run.app/webhook/recallai
-   ```
+1. ✅ IAM public access configured (done by user)
+2. ✅ Webhook registered in Recall.ai dashboard (done by user)
+3. 📋 Follow `RUNBOOK.md` to set up Google Workspace SSO and Recall.ai login
 4. 🧪 Test creating a bot:
    ```bash
    curl -X POST https://recallai-bot-orchestrator-72608706210.us-east4.run.app/bot/create \

@@ -34,12 +34,11 @@ Added `recallai-gmeet-bot` as a new integration asset under the `meeting-minutes
 
 ## Next Steps
 
-1. Create a dedicated Google Workspace for bot SSO (`sso.levinnovation.com`).
-2. Copy the pre-generated PEM cert/key from `RUNBOOK.md` into Google Admin Console and Recall.ai dashboard.
-3. Create Recall.ai Google Login Group and add at least 1 active login.
-4. Import the n8n workflows (`recallai-bot-orchestrator.json` and `recallai-webhook-receiver.json`) into your n8n instance.
-5. Register the webhook URL in Recall.ai so status events route to the receiver workflow.
-6. Invite bot email to calendar events for waiting-room bypass.
+1. ✅ GCP Cloud Run services deployed
+2. ✅ IAM public access configured
+3. ✅ Webhook registered in Recall.ai
+4. 📋 Follow `RUNBOOK.md` to set up Google Workspace SSO and Recall.ai login group
+5. 🧪 Test creating a bot with a real Google Meet URL and login group ID
 
 ## Compliance
 
