@@ -2,7 +2,7 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts
 RUN npm run build && npm prune --omit=dev
 
 # Stage 2: runtime
