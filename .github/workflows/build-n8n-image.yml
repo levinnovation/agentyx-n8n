@@ -19,7 +19,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: levinnovation/agentyx-n8n
+  IMAGE_NAME: ${{ github.repository }}/agentyx-n8n
 
 jobs:
   build-nodes:
@@ -40,6 +40,13 @@ jobs:
         run: |
           cd services/n8n-node-sdk
           npm run build
+          # Copy SVG icons alongside compiled JS (tsc doesn't handle .svg)
+          for node_dir in src/nodes/*/; do
+            node_name=$(basename "$node_dir")
+            mkdir -p "dist/nodes/$node_name"
+            cp "$node_dir"*.svg "dist/nodes/$node_name/" 2>/dev/null || true
+          done
+          ls -la dist/nodes/
 
       - name: Upload built nodes
         uses: actions/upload-artifact@v4
@@ -121,12 +128,14 @@ jobs:
       - name: Verify Railway CLI
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           railway whoami
 
       - name: Link project
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           PROJECT_ID=$(printenv LEVINNOVATION_RAILWAY_PROJECT_ID)
           if [ -z "$PROJECT_ID" ]; then
@@ -138,22 +147,25 @@ jobs:
       - name: Sync variables
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           bash scripts/railway/sync-vars.sh --tenant levinnovation --service ${{ matrix.service }}
 
       - name: Deploy service
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           bash scripts/railway/deploy-service.sh \
             --tenant levinnovation \
             --service ${{ matrix.service }} \
             --env production \
-            --image ghcr.io/levinnovation/agentyx-n8n:latest
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Smoke test
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           bash scripts/railway/smoke-test.sh \
             --tenant levinnovation \
