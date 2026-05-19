@@ -1,0 +1,54 @@
+id: contax
+name: "Contax - Automatización Contable y Fiscal"
+tenant: levinnovation
+product:
+  name: Contax
+  description: "Automatización inteligente de procesos contables y fiscales. Conciliación bancaria, reportes regulatorios y compliance tributario con IA."
+
+icp:
+  linkedin_query: "accounting manager cfo tax automation contabilidad latam"
+  leads_per_run: 20
+  fit_threshold: 70
+  email_search_query_template: "{{full_name}} {{company}} email contact"
+
+outreach:
+  channel: email_only
+  max_messages_per_run: 8
+  follow_up_delay_hours: 72
+  message_template_id: "contax-outreach-v1"
+
+email:
+  from_name: "LEV Innovation"
+  from_email: "prospector@levinnovation.com"
+  reply_to: "ventas@levinnovation.com"
+  subject_template: "Automatización fiscal para {{company}} sin errores humanos"
+
+knowledge_base:
+  pinecone_index: "levinnovation-kb"
+  pinecone_namespace: "default"
+
+sales_team:
+  notification_emails:
+    - "ventas@levinnovation.com"
+  interest_keywords:
+    - "interesado"
+    - "demo"
+    - "cotización"
+    - "reunión"
+    - "precio"
+    - "quiero saber más"
+    - "contabilidad"
+    - "fiscal"
+    - "impuestos"
+    - "automatización"
+    - "compliance"
+    - "reportes"
+
+crm:
+  opportunity_stage_new: "NEW"
+  opportunity_stage_contacted: "CONTACTED"
+  opportunity_stage_interested: "INTERESTED"
+  custom_fields:
+    campaign_id: "campaign_id"
+    product_name: "product_name"
+    email_source: "email_source"

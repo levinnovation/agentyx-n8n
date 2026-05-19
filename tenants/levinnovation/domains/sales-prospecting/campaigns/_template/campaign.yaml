@@ -1,0 +1,50 @@
+id: template
+name: "Campaign Template"
+tenant: "{tenant}"
+product:
+  name: "{product_name}"
+  description: "{product_description}"
+
+icp:
+  linkedin_query: "{linkedin_query}"
+  leads_per_run: 25
+  fit_threshold: 75
+  email_search_query_template: "{{full_name}} {{company}} email contact"
+
+outreach:
+  channel: email_only
+  max_messages_per_run: 10
+  follow_up_delay_hours: 48
+  message_template_id: "{product_id}-outreach-v1"
+
+email:
+  from_name: "{tenant_name}"
+  from_email: "prospector@{tenant_domain}"
+  reply_to: "ventas@{tenant_domain}"
+  subject_template: "Transforma {{company}} con {product_name}"
+
+knowledge_base:
+  pinecone_index: "{tenant}-kb"
+  pinecone_namespace: "default"
+
+sales_team:
+  notification_emails:
+    - "ventas@{tenant_domain}"
+  interest_keywords:
+    - "interesado"
+    - "demo"
+    - "cotización"
+    - "reunión"
+    - "precio"
+    - "quiero saber más"
+    - "meeting"
+    - "agenda"
+
+crm:
+  opportunity_stage_new: "NEW"
+  opportunity_stage_contacted: "CONTACTED"
+  opportunity_stage_interested: "INTERESTED"
+  custom_fields:
+    campaign_id: "campaign_id"
+    product_name: "product_name"
+    email_source: "email_source"

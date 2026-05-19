@@ -1,0 +1,54 @@
+id: legalink
+name: "Legalink - Automatización Legal y Gestión Documental"
+tenant: levinnovation
+product:
+  name: Legalink
+  description: "Automatización de procesos legales y gestión documental jurídica. Contratos, compliance, firma electrónica y workflows legales con IA."
+
+icp:
+  linkedin_query: "legal operations manager general counsel legal tech latam"
+  leads_per_run: 15
+  fit_threshold: 75
+  email_search_query_template: "{{full_name}} {{company}} email contact"
+
+outreach:
+  channel: email_only
+  max_messages_per_run: 6
+  follow_up_delay_hours: 96
+  message_template_id: "legalink-outreach-v1"
+
+email:
+  from_name: "LEV Innovation"
+  from_email: "prospector@levinnovation.com"
+  reply_to: "ventas@levinnovation.com"
+  subject_template: "Reduce 60% del tiempo legal en {{company}} con Legalink"
+
+knowledge_base:
+  pinecone_index: "levinnovation-kb"
+  pinecone_namespace: "default"
+
+sales_team:
+  notification_emails:
+    - "ventas@levinnovation.com"
+  interest_keywords:
+    - "interesado"
+    - "demo"
+    - "cotización"
+    - "reunión"
+    - "precio"
+    - "quiero saber más"
+    - "legal"
+    - "contratos"
+    - "compliance"
+    - "gestión documental"
+    - "firma electrónica"
+    - "abogados"
+
+crm:
+  opportunity_stage_new: "NEW"
+  opportunity_stage_contacted: "CONTACTED"
+  opportunity_stage_interested: "INTERESTED"
+  custom_fields:
+    campaign_id: "campaign_id"
+    product_name: "product_name"
+    email_source: "email_source"

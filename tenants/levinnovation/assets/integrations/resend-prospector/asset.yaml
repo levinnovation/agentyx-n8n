@@ -1,0 +1,26 @@
+apiVersion: agentyx.dev/v1
+kind: Integration
+metadata:
+  id: resend-prospector
+  name: Resend Email (Prospector)
+  tenant: levinnovation
+  domain: sales-prospecting
+  capability: outbound-prospecting
+spec:
+  type: email
+  provider: resend
+  description: |
+    Email delivery for prospector outbound messages and sales-team notifications.
+    Uses Resend HTTP API (POST /emails) with Bearer token auth.
+  endpoints:
+    - https://api.resend.com/emails
+  auth:
+    type: bearer
+    env_var: RESEND_API_KEY
+  env_required:
+    - RESEND_API_KEY
+    - RESEND_FROM_EMAIL
+    - SALES_TEAM_EMAIL
+  used_by:
+    - prospector-agent-messenger
+    - prospector-inbound-handler

@@ -1,0 +1,54 @@
+id: acumatica
+name: "Acumatica - ERP en la Nube para Manufactura y Distribución"
+tenant: levinnovation
+product:
+  name: Acumatica
+  description: "ERP en la nube diseñado para manufactura, distribución y servicios. Financials, inventory, CRM y BI integrados en una plataforma moderna y escalable."
+
+icp:
+  linkedin_query: "cfo finance director erp manufacturing distribution latam"
+  leads_per_run: 20
+  fit_threshold: 70
+  email_search_query_template: "{{full_name}} {{company}} email contact"
+
+outreach:
+  channel: email_only
+  max_messages_per_run: 8
+  follow_up_delay_hours: 72
+  message_template_id: "acumatica-outreach-v1"
+
+email:
+  from_name: "LEV Innovation"
+  from_email: "prospector@levinnovation.com"
+  reply_to: "ventas@levinnovation.com"
+  subject_template: "Moderniza el ERP de {{company}} con Acumatica Cloud"
+
+knowledge_base:
+  pinecone_index: "levinnovation-kb"
+  pinecone_namespace: "default"
+
+sales_team:
+  notification_emails:
+    - "ventas@levinnovation.com"
+  interest_keywords:
+    - "interesado"
+    - "demo"
+    - "cotización"
+    - "reunión"
+    - "precio"
+    - "quiero saber más"
+    - "erp"
+    - "finanzas"
+    - "manufactura"
+    - "distribución"
+    - "inventario"
+    - "cloud"
+
+crm:
+  opportunity_stage_new: "NEW"
+  opportunity_stage_contacted: "CONTACTED"
+  opportunity_stage_interested: "INTERESTED"
+  custom_fields:
+    campaign_id: "campaign_id"
+    product_name: "product_name"
+    email_source: "email_source"

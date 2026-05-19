@@ -1,0 +1,53 @@
+id: agentyx
+name: "Agentyx - Automatización Inteligente para LATAM"
+tenant: levinnovation
+product:
+  name: Agentyx
+  description: "Plataforma de automatización inteligente de procesos empresariales con IA y agentes digitales. Reduce costos operativos hasta 40% en 90 días."
+
+icp:
+  linkedin_query: "operations manager ai automation latam"
+  leads_per_run: 25
+  fit_threshold: 75
+  email_search_query_template: "{{full_name}} {{company}} email contact"
+
+outreach:
+  channel: email_only
+  max_messages_per_run: 10
+  follow_up_delay_hours: 48
+  message_template_id: "agentyx-outreach-v1"
+
+email:
+  from_name: "LEV Innovation"
+  from_email: "prospector@levinnovation.com"
+  reply_to: "ventas@levinnovation.com"
+  subject_template: "{{company}} + IA = 40% menos costos operativos"
+
+knowledge_base:
+  pinecone_index: "levinnovation-kb"
+  pinecone_namespace: "default"
+
+sales_team:
+  notification_emails:
+    - "ventas@levinnovation.com"
+  interest_keywords:
+    - "interesado"
+    - "demo"
+    - "cotización"
+    - "reunión"
+    - "precio"
+    - "quiero saber más"
+    - "meeting"
+    - "agenda"
+    - "automatización"
+    - "eficiencia"
+    - "procesos"
+
+crm:
+  opportunity_stage_new: "NEW"
+  opportunity_stage_contacted: "CONTACTED"
+  opportunity_stage_interested: "INTERESTED"
+  custom_fields:
+    campaign_id: "campaign_id"
+    product_name: "product_name"
+    email_source: "email_source"
