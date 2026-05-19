@@ -20,7 +20,7 @@ RUN npm install -g n8n-nodes-mcp
 # Copy the n8n-node-sdk source and build custom nodes
 COPY services/n8n-node-sdk /tmp/n8n-node-sdk
 RUN cd /tmp/n8n-node-sdk && \
-    npm ci && \
+    npm install && \
     npm run build && \
     for node_dir in src/nodes/*/; do \
       cp "$node_dir"*.svg "dist/nodes/$(basename $node_dir)/" 2>/dev/null || true; \
