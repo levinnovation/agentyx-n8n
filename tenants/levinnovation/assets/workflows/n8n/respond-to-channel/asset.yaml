@@ -1,0 +1,9 @@
+id: levinnovation-respond-to-channel
+name: respond-to-channel
+type: n8n-workflow
+tenant: levinnovation
+description: respond to channel — core pipeline sub-workflow
+tags:
+- sub-workflow
+- core-pipeline
+- levinnovation

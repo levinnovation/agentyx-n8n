@@ -1,0 +1,49 @@
+name: call-agent-http
+description: >
+  Call the AI agent and return a response. Uses Agentyx AI Agent Basic node with
+  configurable model, system prompt, and memory. Retry logic and error formatting
+  are built in.
+
+trigger:
+  type: webhook
+  httpMethod: POST
+
+nodes:
+  - name: Webhook Trigger
+    type: n8n-nodes-base.webhook
+    parameters:
+      httpMethod: POST
+      path: call-agent
+      responseMode: lastNode
+
+  - name: AI Agent
+    type: "@levinnovation/n8n-nodes-agentyx.agentyxAIAgentBasicNode"
+    parameters:
+      model: "={{ $json.model || 'openai/gpt-4o-mini' }}"
+      temperature: "={{ $json.temperature || 0.3 }}"
+      maxTokens: "={{ $json.max_tokens || 1024 }}"
+      systemPrompt: "={{ $json.system_prompt || 'You are a helpful AI assistant.' }}"
+      userMessage: "={{ $json.message }}"
+      memoryEnabled: "={{ $json.memory_enabled || false }}"
+      timeout: "={{ $json.timeout || 15000 }}"
+
+  - name: Format Response
+    type: n8n-nodes-base.code
+    parameters:
+      jsCode: |
+        const agentOutput = $input.all()[0].json;
+        return {
+          json: {
+            reply_text: agentOutput.reply_text || agentOutput.response || agentOutput.output || '',
+            agent_metadata: agentOutput.metadata || {},
+            tokens_used: agentOutput.tokens_used || 0,
+            model_used: agentOutput.model_used || $json.model || 'unknown',
+            _agent_called_at: new Date().toISOString(),
+          }
+        };
+
+connections:
+  - from: Webhook Trigger
+    to: AI Agent
+  - from: AI Agent
+    to: Format Response

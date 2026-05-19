@@ -1,0 +1,9 @@
+id: levinnovation-normalize-channel-payload
+name: normalize-channel-payload
+type: n8n-workflow
+tenant: levinnovation
+description: normalize channel payload — core pipeline sub-workflow
+tags:
+- sub-workflow
+- core-pipeline
+- levinnovation

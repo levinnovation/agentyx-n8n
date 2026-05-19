@@ -348,9 +348,20 @@ export class AgentyxChannelFormattedInputNode implements INodeType {
         }
       }
 
+      const atts = (envelope.attachments || []) as Array<Record<string, string>>;
+      const env = envelope as Record<string, any>;
+
       returnData.push({
         json: {
           ...envelope,
+          // Standard data contract (Agentyx Sub-Workflow Library v2)
+          sender: env.user_id,
+          thread_id: env.conversation_id,
+          has_image: atts.length > 0 && atts.some((a) => ["image", "photo"].includes(a.type)),
+          image_url: atts.find((a) => ["image", "photo"].includes(a.type))?.url || null,
+          transcript: atts.some((a) => ["voice", "audio"].includes(a.type))
+            ? atts.find((a) => ["voice", "audio"].includes(a.type))?.url || null
+            : null,
           duplicate_message: duplicateMessage,
         },
         pairedItem: { item: i },

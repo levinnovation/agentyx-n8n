@@ -1,0 +1,31 @@
+name: respond-to-channel
+description: >
+  Send the agent's reply back to the correct channel. Uses Agentyx Channel Output
+  node to format and deliver responses to Kapso WA, Telegram, Slack, or email.
+
+trigger:
+  type: webhook
+  httpMethod: POST
+
+nodes:
+  - name: Webhook Trigger
+    type: n8n-nodes-base.webhook
+    parameters:
+      httpMethod: POST
+      path: respond-channel
+      responseMode: lastNode
+
+  - name: Channel Output
+    type: "@levinnovation/n8n-nodes-agentyx.agentyxChannelFormattedOutputNode"
+    parameters:
+      channel: "={{ $json.channel || 'generic' }}"
+      replyText: "={{ $json.reply_text || $json.message }}"
+      recipientId: "={{ $json.recipient_id || $json.sender || $json.user_id }}"
+      replyAttachments: "={{ JSON.stringify($json.attachments || []) }}"
+      parseMode: "={{ $json.parse_mode || 'HTML' }}"
+      sendMethod: "={{ $json.send_method || 'api' }}"
+      timeout: "={{ $json.timeout || 15000 }}"
+
+connections:
+  - from: Webhook Trigger
+    to: Channel Output

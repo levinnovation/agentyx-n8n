@@ -1,0 +1,9 @@
+id: levinnovation-log-to-audit
+name: log-to-audit
+type: n8n-workflow
+tenant: levinnovation
+description: log to audit — core pipeline sub-workflow
+tags:
+- sub-workflow
+- core-pipeline
+- levinnovation
