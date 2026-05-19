@@ -31,6 +31,7 @@
     ],
     "nodes": [
       "dist/nodes/AgentyxTenantContext/AgentyxTenantContext.node.js",
+      "dist/nodes/AgentyxAuditLogger/AgentyxAuditLogger.node.js",
       "dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.node.js",
       "dist/nodes/AgentyxComposioMcpToolNode/AgentyxComposioMcpToolNode.node.js",
       "dist/nodes/AgentyxChannelFormattedInputNode/AgentyxChannelFormattedInputNode.node.js",
