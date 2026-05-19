@@ -1,0 +1,20 @@
+{
+  "name": "@levinnovation/n8n-nodes-agentyx",
+  "version": "1.0.0",
+  "description": "Custom n8n community nodes for Agentyx",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "n8n-workflow": "^1.84.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  }
+}
