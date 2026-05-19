@@ -19,7 +19,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: levinnovation/agentyx-n8n
+  IMAGE_NAME: ${{ github.repository }}/agentyx-n8n
 
 jobs:
   build-nodes:
@@ -156,7 +156,7 @@ jobs:
             --tenant levinnovation \
             --service ${{ matrix.service }} \
             --env production \
-            --image ghcr.io/levinnovation/agentyx-n8n:latest
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Smoke test
         env:
