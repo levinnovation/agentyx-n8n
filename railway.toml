@@ -1,0 +1,5 @@
+# Build n8n with the Agentyx SSO patch from local agentyx-n8n repo
+# Deployed via `railway up` from the agentyx-n8n directory
+
+[build]
+builder = "DOCKERFILE"

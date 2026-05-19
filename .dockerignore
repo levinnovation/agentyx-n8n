@@ -1,0 +1,8 @@
+# Exclude everything by default
+**
+
+# Only include files needed by the Dockerfile
+!Dockerfile
+!patch-auth-runtime.js
+!docker-entrypoint-wrapper.sh
+!n8n-sso-patch.js
