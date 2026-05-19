@@ -33,15 +33,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Build agentyx CLI
+      - name: Install agentyx CLI dependencies
         run: |
           cd cli/agentyx
           npm install
-          npm run build
 
       - name: Compile n8n assets
         run: |
-          AGENTYX="node cli/agentyx/dist/index.js"
+          AGENTYX="npx tsx cli/agentyx/src/index.ts"
           if [ -n "${{ inputs.asset }}" ]; then
             $AGENTYX n8n compile --tenant ${{ inputs.tenant }} --asset ${{ inputs.asset }}
           else
@@ -75,15 +74,14 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Build agentyx CLI
+      - name: Install agentyx CLI dependencies
         run: |
           cd cli/agentyx
           npm install
-          npm run build
 
       - name: Deploy to n8n compiler
         run: |
-          AGENTYX="node cli/agentyx/dist/index.js"
+          AGENTYX="npx tsx cli/agentyx/src/index.ts"
           $AGENTYX n8n deploy \
             --tenant ${{ inputs.tenant }} \
             --env ${{ inputs.environment }} \
@@ -97,7 +95,7 @@ jobs:
 
       - name: Verify audit entries
         run: |
-          AGENTYX="node cli/agentyx/dist/index.js"
+          AGENTYX="npx tsx cli/agentyx/src/index.ts"
           $AGENTYX n8n audit \
             --tenant ${{ inputs.tenant }} \
             --since $(date +%Y-%m-%d) \
