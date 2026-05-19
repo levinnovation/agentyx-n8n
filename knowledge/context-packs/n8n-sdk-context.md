@@ -83,17 +83,40 @@ agentyx n8n credentials encrypt --tenant <t> --file <f>
 agentyx n8n audit --tenant <t> --since <date>
 ```
 
-## Custom Node SDK (v1)
+## Custom Node SDK (v1) — Implemented Nodes
 
-Planned nodes:
-- `AgentyxTenantContext` — Injects tenant/domain/capability into execution
-- `AgentyxCredential` — Reads credential YAML from repo path
-- `AgentyxAuditQuery` — Queries audit table
-- `AgentyxComposioTool` — Composio MCP wrapper with auto-account selection
+All nodes live under `services/n8n-node-sdk/src/nodes/`. They are baked into the custom n8n Docker image (`ghcr.io/levinnovation/agentyx-n8n:latest`) built by `.github/workflows/build-n8n-image.yml`.
 
-## Migration Status
+| Node | Type | Replaces |
+|------|------|----------|
+| `AgentyxTenantContext` | transform | Manual `Set` node with tenant fields |
+| `AgentyxAIAgentBasicNode` | AI | `AI Agent` + `OpenRouter Chat Model` + `Redis Chat Memory` combo |
+| `AgentyxComposioMcpToolNode` | AI | Generic `MCP Client Tool` with manual headers |
+| `AgentyxChannelFormattedInputNode` | transform | 50-200 line JS code nodes for channel normalization |
+| `AgentyxChannelFormattedOutputNode` | transform | 100-300 line JS code nodes for reply formatting + HTTP sending |
+| `AgentyxCRMQuery` | transform | Manual `HTTP Request` nodes for Twenty CRM reads |
+| `AgentyxCRMUpdate` | transform | Manual `HTTP Request` nodes for Twenty CRM writes |
 
-As of 2026-05-19, the deterministic SDLC is **in implementation** (Phase 1). Live workflows exist in the repo as JSON exports but are not yet driven by YAML. The migration playbook (`knowledge/operations/n8n-migration-playbook.md`) will be used to convert them.
+### Credential Types
+
+| Credential | Used By |
+|------------|---------|
+| `openrouterApi` | `AgentyxAIAgentBasicNode` |
+| `composioMcp` | `AgentyxComposioMcpToolNode` |
+| `kapsoApi` | `AgentyxChannelFormattedOutputNode` (WhatsApp) |
+| `telegramBot` | `AgentyxChannelFormattedOutputNode` (Telegram) |
+| `twentyCrmApi` | `AgentyxCRMQuery`, `AgentyxCRMUpdate` |
+| `redisAccount` | `AgentyxAIAgentBasicNode` (memory) |
+
+## Node Preference Policy
+
+**Coding agents MUST prefer Agentyx nodes over generic n8n nodes.** See `standards/policies/n8n-node-preference.md` for the full matrix.
+
+Deprecated patterns (do not use in new workflows):
+- Inline JS code nodes > 20 lines for channel normalization
+- Manual `AI Agent` + `OpenRouter Chat Model` + `Redis Chat Memory` wiring
+- Generic `MCP Client Tool` with hardcoded headers
+- Manual `HTTP Request` nodes for Twenty CRM operations
 
 ## When Editing This Area
 
