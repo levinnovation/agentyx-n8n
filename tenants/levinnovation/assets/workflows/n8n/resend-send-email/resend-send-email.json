@@ -13,6 +13,16 @@
     },
     {
       "parameters": {
+        "jsCode": "const raw = $input.first().json || {};\nlet item = raw;\n\n// AI Agent passes tool arguments as 'query' (sometimes JSON string)\nif (raw.query) {\n  if (typeof raw.query === 'string') {\n    try {\n      item = JSON.parse(raw.query);\n    } catch (e) {\n      item = raw;\n    }\n  } else if (typeof raw.query === 'object') {\n    item = raw.query;\n  }\n}\n\n// Build clean payload\nconst payload = {};\n\nconst to = item.to || item.recipient_email || item.to_email || '';\nconst from_addr = item.from || item.from_email || 'me';\nconst subject = item.subject || item.email_subject || '';\nconst html = item.html || item.body || item.text || item.content || '<p>No content</p>';\n\nif (!to) throw new Error('Missing required field: to');\nif (!subject) throw new Error('Missing required field: subject');\n\npayload.to = to;\npayload.from = from_addr;\npayload.subject = subject;\npayload.html = html;\n\nconst cc = item.cc || item.cc_emails || [];\nif (cc && (Array.isArray(cc) ? cc.length > 0 : String(cc).trim().length > 0)) {\n  payload.cc = cc;\n}\n\nreturn [{ json: payload }];"
+      },
+      "id": "parse",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [464, 240]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://api.resend.com/emails",
         "sendHeaders": true,
@@ -30,7 +40,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"to\":\"{{ $json.to }}\",\"from\":\"{{ $json.from || 'me' }}\",\"subject\":\"{{ $json.subject }}\",\"html\":\"{{ $json.html || $json.body || $json.text || '<p>No content</p>' }}\",\"cc\":{{ JSON.stringify($json.cc || []) }}}",
+        "jsonBody": "={{ JSON.stringify($json) }}",
         "options": {
           "timeout": 30000
         }
@@ -39,11 +49,22 @@
       "name": "Send via Resend API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [464, 240]
+      "position": [704, 240]
     }
   ],
   "connections": {
     "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
       "main": [
         [
           {
