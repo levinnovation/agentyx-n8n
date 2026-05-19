@@ -1,0 +1,42 @@
+{
+  "name": "@levinnovation/n8n-nodes-agentyx",
+  "version": "1.0.0",
+  "description": "Custom n8n community nodes for Agentyx deterministic SDLC",
+  "keywords": ["n8n-community-node-package"],
+  "files": ["dist"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "dependencies": {
+    "n8n-workflow": "^1.84.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/AgentyxApiCredential.credentials.js",
+      "dist/credentials/OpenRouterApiCredential.credentials.js",
+      "dist/credentials/ComposioMcpCredential.credentials.js",
+      "dist/credentials/KapsoApiCredential.credentials.js",
+      "dist/credentials/TelegramBotCredential.credentials.js",
+      "dist/credentials/TwentyCrmApiCredential.credentials.js",
+      "dist/credentials/RedisCredential.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/AgentyxTenantContext/AgentyxTenantContext.node.js",
+      "dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.node.js",
+      "dist/nodes/AgentyxComposioMcpToolNode/AgentyxComposioMcpToolNode.node.js",
+      "dist/nodes/AgentyxChannelFormattedInputNode/AgentyxChannelFormattedInputNode.node.js",
+      "dist/nodes/AgentyxChannelFormattedOutputNode/AgentyxChannelFormattedOutputNode.node.js",
+      "dist/nodes/AgentyxCRMQuery/AgentyxCRMQuery.node.js",
+      "dist/nodes/AgentyxCRMUpdate/AgentyxCRMUpdate.node.js"
+    ]
+  }
+}

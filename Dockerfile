@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
-# Thin custom layer on top of custom Agentyx n8n image with SSO runtime patch.
-# The base image (ghcr.io/levinnovation/agentyx-n8n) has the custom nodes baked in.
-FROM ghcr.io/levinnovation/agentyx-n8n:latest
+# Thin custom layer on top of upstream n8n image with Agentyx SSO runtime patch
+# and Agentyx community nodes baked in.
+ARG N8N_VERSION=2.21.2
+FROM n8nio/n8n:${N8N_VERSION}
 
 USER root
 
@@ -14,6 +15,25 @@ RUN chmod +x /patch-auth-runtime.js /docker-entrypoint-wrapper.sh
 # The upstream image stores compiled JS under /usr/local/lib/node_modules/n8n
 RUN node /patch-auth-runtime.js
 RUN npm install -g n8n-nodes-mcp
+
+# --- Agentyx custom community nodes ---
+# Copy the n8n-node-sdk source and build custom nodes
+COPY services/n8n-node-sdk /tmp/n8n-node-sdk
+RUN cd /tmp/n8n-node-sdk && \
+    npm ci && \
+    npm run build && \
+    for node_dir in src/nodes/*/; do \
+      cp "$node_dir"*.svg "dist/nodes/$(basename $node_dir)/" 2>/dev/null || true; \
+    done && \
+    mkdir -p /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx && \
+    cp -r dist /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist && \
+    cp package.json /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/package.json && \
+    rm -rf /tmp/n8n-node-sdk && \
+    echo "Custom nodes installed successfully"
+
+# Verify the custom nodes are installed correctly
+RUN test -f /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.node.js
+# --- End custom nodes ---
 
 RUN chown -R node:node /home/node
 USER node
