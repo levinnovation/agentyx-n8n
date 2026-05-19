@@ -33,23 +33,22 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Build and install agentyx CLI from source
+      - name: Build agentyx CLI
         run: |
           cd cli/agentyx
           npm install
           npm run build
-          npm link
 
       - name: Compile n8n assets
         run: |
+          AGENTYX="node cli/agentyx/dist/index.js"
           if [ -n "${{ inputs.asset }}" ]; then
-            agentyx n8n compile --tenant ${{ inputs.tenant }} --asset ${{ inputs.asset }}
+            $AGENTYX n8n compile --tenant ${{ inputs.tenant }} --asset ${{ inputs.asset }}
           else
-            # Compile all n8n workflow assets for tenant
             for dir in tenants/${{ inputs.tenant }}/assets/workflows/n8n/*/; do
               asset=$(basename "$dir")
               echo "Compiling $asset"
-              agentyx n8n compile --tenant ${{ inputs.tenant }} --asset "$asset"
+              $AGENTYX n8n compile --tenant ${{ inputs.tenant }} --asset "$asset"
             done
           fi
 
@@ -76,16 +75,16 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Build and install agentyx CLI from source
+      - name: Build agentyx CLI
         run: |
           cd cli/agentyx
           npm install
           npm run build
-          npm link
 
       - name: Deploy to n8n compiler
         run: |
-          agentyx n8n deploy \
+          AGENTYX="node cli/agentyx/dist/index.js"
+          $AGENTYX n8n deploy \
             --tenant ${{ inputs.tenant }} \
             --env ${{ inputs.environment }} \
             ${{ inputs.asset && format('--asset {0}', inputs.asset) || '--all' }} \
@@ -98,7 +97,8 @@ jobs:
 
       - name: Verify audit entries
         run: |
-          agentyx n8n audit \
+          AGENTYX="node cli/agentyx/dist/index.js"
+          $AGENTYX n8n audit \
             --tenant ${{ inputs.tenant }} \
             --since $(date +%Y-%m-%d) \
             --limit 50
