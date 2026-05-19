@@ -6,8 +6,6 @@
 !patch-auth-runtime.js
 !docker-entrypoint-wrapper.sh
 !n8n-sso-patch.js
-!services/n8n-node-sdk/**
-!services/n8n-node-sdk/
-
-# Exclude node_modules from SDK to keep build context small
-services/n8n-node-sdk/node_modules
+!railway.toml
+!custom-nodes/**
+!custom-nodes/
