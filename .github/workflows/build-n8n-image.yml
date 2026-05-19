@@ -103,38 +103,57 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-railway-main:
+  deploy-railway:
     needs: build-image
     if: ${{ inputs.deploy_to_railway != false }}
-    uses: ./.github/workflows/railway-deploy.yml
-    with:
-      tenant: levinnovation
-      service: n8n-main
-      image_ref: ghcr.io/levinnovation/agentyx-n8n:latest
-      environment: production
-    secrets:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [n8n-main, n8n-worker, n8n-webhook]
+    steps:
+      - uses: actions/checkout@v4
 
-  deploy-railway-worker:
-    needs: build-image
-    if: ${{ inputs.deploy_to_railway != false }}
-    uses: ./.github/workflows/railway-deploy.yml
-    with:
-      tenant: levinnovation
-      service: n8n-worker
-      image_ref: ghcr.io/levinnovation/agentyx-n8n:latest
-      environment: production
-    secrets:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Install Railway CLI
+        run: curl -fsSL https://railway.app/install.sh | sh
 
-  deploy-railway-webhook:
-    needs: build-image
-    if: ${{ inputs.deploy_to_railway != false }}
-    uses: ./.github/workflows/railway-deploy.yml
-    with:
-      tenant: levinnovation
-      service: n8n-webhook
-      image_ref: ghcr.io/levinnovation/agentyx-n8n:latest
-      environment: production
-    secrets:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Verify Railway CLI
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway whoami
+
+      - name: Link project
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          PROJECT_ID=$(printenv LEVINNOVATION_RAILWAY_PROJECT_ID)
+          if [ -z "$PROJECT_ID" ]; then
+            echo "ERROR: LEVINNOVATION_RAILWAY_PROJECT_ID is not set."
+            exit 1
+          fi
+          railway link --project "$PROJECT_ID" --environment production
+
+      - name: Sync variables
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/sync-vars.sh --tenant levinnovation --service ${{ matrix.service }}
+
+      - name: Deploy service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/deploy-service.sh \
+            --tenant levinnovation \
+            --service ${{ matrix.service }} \
+            --env production \
+            --image ghcr.io/levinnovation/agentyx-n8n:latest
+
+      - name: Smoke test
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/smoke-test.sh \
+            --tenant levinnovation \
+            --service ${{ matrix.service }} \
+            --env production
