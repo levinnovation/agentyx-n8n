@@ -12,6 +12,10 @@ on:
         description: 'Upstream n8n version tag'
         required: true
         default: '2.21.2'
+      deploy_to_railway:
+        description: 'Deploy to Railway after build'
+        type: boolean
+        default: true
 
 env:
   REGISTRY: ghcr.io
@@ -98,3 +102,18 @@ jobs:
             N8N_VERSION=${{ inputs.n8n_version || '2.21.2' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-railway:
+    needs: build-image
+    if: ${{ inputs.deploy_to_railway != false }}
+    strategy:
+      matrix:
+        service: [n8n-main, n8n-worker, n8n-webhook]
+    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    with:
+      tenant: levinnovation
+      service: ${{ matrix.service }}
+      image_ref: ghcr.io/levinnovation/agentyx-n8n:latest
+      environment: production
+    secrets:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
