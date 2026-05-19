@@ -1,0 +1,105 @@
+name: n8n Deterministic Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tenants/**/assets/workflows/n8n/**'
+      - 'tenants/**/assets/credentials/**'
+      - 'services/n8n-yaml-compiler/**'
+  workflow_dispatch:
+    inputs:
+      tenant:
+        required: true
+        type: choice
+        options: [euromobilia, levinnovation]
+      environment:
+        required: true
+        type: choice
+        options: [dev, prod]
+      dry_run:
+        type: boolean
+        default: true
+      asset:
+        type: string
+        description: 'Specific asset name (optional, blank = all)'
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install agentyx CLI
+        run: npm install -g @levinnovation/agentyx-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compile n8n assets
+        run: |
+          if [ -n "${{ inputs.asset }}" ]; then
+            agentyx n8n compile --tenant ${{ inputs.tenant }} --asset ${{ inputs.asset }}
+          else
+            # Compile all n8n workflow assets for tenant
+            for dir in tenants/${{ inputs.tenant }}/assets/workflows/n8n/*/; do
+              asset=$(basename "$dir")
+              echo "Compiling $asset"
+              agentyx n8n compile --tenant ${{ inputs.tenant }} --asset "$asset"
+            done
+          fi
+
+      - name: Upload compiled artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-n8n-${{ inputs.tenant }}
+          path: |
+            tenants/${{ inputs.tenant }}/assets/workflows/n8n/**/workflow.json
+            tenants/${{ inputs.tenant }}/assets/credentials/**
+
+  deploy:
+    needs: compile
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: compiled-n8n-${{ inputs.tenant }}
+          path: ./compiled/
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://npm.pkg.github.com'
+
+      - name: Install agentyx CLI
+        run: npm install -g @levinnovation/agentyx-cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy to n8n compiler
+        run: |
+          agentyx n8n deploy \
+            --tenant ${{ inputs.tenant }} \
+            --env ${{ inputs.environment }} \
+            ${{ inputs.asset && format('--asset {0}', inputs.asset) || '--all' }} \
+            --commit ${{ github.sha }} \
+            --author "${{ github.actor }}" \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+        env:
+          AGENTYX_COMPILER_URL: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_URL_PROD || secrets.N8N_COMPILER_URL_DEV }}
+          AGENTYX_COMPILER_TOKEN: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_TOKEN_PROD || secrets.N8N_COMPILER_TOKEN_DEV }}
+
+      - name: Verify audit entries
+        run: |
+          agentyx n8n audit \
+            --tenant ${{ inputs.tenant }} \
+            --since $(date +%Y-%m-%d) \
+            --limit 50
+        env:
+          AGENTYX_COMPILER_URL: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_URL_PROD || secrets.N8N_COMPILER_URL_DEV }}
+          AGENTYX_COMPILER_TOKEN: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_TOKEN_PROD || secrets.N8N_COMPILER_TOKEN_DEV }}
