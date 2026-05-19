@@ -1,0 +1,36 @@
+apiVersion: agentyx.dev/v1
+kind: Workflow
+metadata:
+  name: prospector-agent-messenger
+  tenant: levinnovation
+  domain: sales-prospecting
+  capability: outbound-prospecting
+spec:
+  runtime: n8n
+  entrypoint: prospector-agent-messenger.json
+  trigger:
+    - type: subworkflow
+      input_envelope:
+        dry_run: boolean?
+  subworkflows:
+    - id: 8DwIA1gB946zMl7B
+      name: Twenty CRM Write Actions (Levinnovation)
+      purpose: update opportunity stage to CONTACTED
+  integrations:
+    - twenty-crm
+    - pinecone (levinnovation-kb)
+    - openrouter (gpt-4o)
+    - resend (email delivery)
+    - slack (notifications)
+  env_required:
+    - TWENTY_API_BASE
+    - TWENTY_API_KEY
+    - PINECONE_API_KEY
+    - OPENROUTER_API_KEY
+    - RESEND_API_KEY
+    - RESEND_FROM_EMAIL
+    - SALES_TEAM_EMAIL
+    - SLACK_WEBHOOK_URL
+    - SLACK_CHANNEL
+    - CAMPAIGNS_API_BASE
+    - DEFAULT_CAMPAIGN_ID
