@@ -29,26 +29,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install agentyx CLI dependencies
-        run: |
-          cd cli/agentyx
-          npm install
 
       - name: Compile n8n assets
         run: |
-          AGENTYX="npx tsx cli/agentyx/src/index.ts"
           if [ -n "${{ inputs.asset }}" ]; then
-            $AGENTYX n8n compile --tenant ${{ inputs.tenant }} --asset ${{ inputs.asset }}
+            python3 scripts/compile_n8n_asset.py \
+              --tenant ${{ inputs.tenant }} \
+              --domain '*' \
+              --capability '*' \
+              --asset ${{ inputs.asset }}
           else
-            for dir in tenants/${{ inputs.tenant }}/assets/workflows/n8n/*/; do
-              asset=$(basename "$dir")
-              echo "Compiling $asset"
-              $AGENTYX n8n compile --tenant ${{ inputs.tenant }} --asset "$asset"
-            done
+            python3 scripts/compile_n8n_asset.py \
+              --tenant ${{ inputs.tenant }} \
+              --all
           fi
 
       - name: Upload compiled artifacts
@@ -70,36 +63,21 @@ jobs:
           name: compiled-n8n-${{ inputs.tenant }}
           path: ./compiled/
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install agentyx CLI dependencies
+      - name: Deploy to n8n
         run: |
-          cd cli/agentyx
-          npm install
-
-      - name: Deploy to n8n compiler
-        run: |
-          AGENTYX="npx tsx cli/agentyx/src/index.ts"
-          $AGENTYX n8n deploy \
+          N8N_URL="${{ inputs.environment == 'prod' && secrets.N8N_URL_PROD || secrets.N8N_URL_DEV }}"
+          N8N_API_KEY="${{ inputs.environment == 'prod' && secrets.N8N_API_KEY_PROD || secrets.N8N_API_KEY_DEV }}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "DRY RUN: would deploy to $N8N_URL"
+            exit 0
+          fi
+          if [ -z "$N8N_URL" ] || [ -z "$N8N_API_KEY" ]; then
+            echo "ERROR: N8N_URL or N8N_API_KEY secret not set for ${{ inputs.environment }}"
+            exit 1
+          fi
+          python3 scripts/deploy_n8n_workflows.py \
             --tenant ${{ inputs.tenant }} \
             --env ${{ inputs.environment }} \
-            ${{ inputs.asset && format('--asset {0}', inputs.asset) || '--all' }} \
-            --commit ${{ github.sha }} \
-            --author "${{ github.actor }}" \
-            ${{ inputs.dry_run && '--dry-run' || '' }}
-        env:
-          AGENTYX_COMPILER_URL: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_URL_PROD || secrets.N8N_COMPILER_URL_DEV }}
-          AGENTYX_COMPILER_TOKEN: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_TOKEN_PROD || secrets.N8N_COMPILER_TOKEN_DEV }}
-
-      - name: Verify audit entries
-        run: |
-          AGENTYX="npx tsx cli/agentyx/src/index.ts"
-          $AGENTYX n8n audit \
-            --tenant ${{ inputs.tenant }} \
-            --since $(date +%Y-%m-%d) \
-            --limit 50
-        env:
-          AGENTYX_COMPILER_URL: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_URL_PROD || secrets.N8N_COMPILER_URL_DEV }}
-          AGENTYX_COMPILER_TOKEN: ${{ inputs.environment == 'prod' && secrets.N8N_COMPILER_TOKEN_PROD || secrets.N8N_COMPILER_TOKEN_DEV }}
+            --n8n-url "$N8N_URL" \
+            --api-key "$N8N_API_KEY" \
+            ${{ inputs.asset && format('--assets {0}', inputs.asset) || '--all' }}
