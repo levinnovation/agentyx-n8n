@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
-# Thin custom layer on top of upstream n8n image with Agentyx SSO runtime patch.
-ARG N8N_VERSION=2.21.2
-FROM n8nio/n8n:${N8N_VERSION}
+# Thin custom layer on top of custom Agentyx n8n image with SSO runtime patch.
+# The base image (ghcr.io/levinnovation/agentyx-n8n) has the custom nodes baked in.
+FROM ghcr.io/levinnovation/agentyx-n8n:latest
 
 USER root
 
