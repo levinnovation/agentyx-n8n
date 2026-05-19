@@ -32,12 +32,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://npm.pkg.github.com'
 
-      - name: Install agentyx CLI
-        run: npm install -g @levinnovation/agentyx-cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and install agentyx CLI from source
+        run: |
+          cd cli/agentyx
+          npm ci
+          npm run build
+          npm link
 
       - name: Compile n8n assets
         run: |
@@ -74,12 +75,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          registry-url: 'https://npm.pkg.github.com'
 
-      - name: Install agentyx CLI
-        run: npm install -g @levinnovation/agentyx-cli
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and install agentyx CLI from source
+        run: |
+          cd cli/agentyx
+          npm ci
+          npm run build
+          npm link
 
       - name: Deploy to n8n compiler
         run: |
