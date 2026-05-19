@@ -4,7 +4,8 @@
   <path d="M12 2v10"/>
   <path d="M12 12l-8.66 5"/>
   <path d="M12 12l8.66 5"/>
-  <!-- MCP/tool connector indicator -->
-  <circle cx="18" cy="6" r="2" fill="#2563eb" stroke="none"/>
-  <line x1="16.5" y1="7" x2="14" y2="9"/>
+  <!-- Tenant context indicator: building/org icon -->
+  <path d="M8 16v4"/>
+  <path d="M16 16v4"/>
+  <path d="M12 18v2"/>
 </svg>
