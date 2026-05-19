@@ -36,7 +36,7 @@ jobs:
       - name: Build and install agentyx CLI from source
         run: |
           cd cli/agentyx
-          npm ci
+          npm install
           npm run build
           npm link
 
@@ -79,7 +79,7 @@ jobs:
       - name: Build and install agentyx CLI from source
         run: |
           cd cli/agentyx
-          npm ci
+          npm install
           npm run build
           npm link
 
