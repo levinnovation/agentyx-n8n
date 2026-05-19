@@ -3,7 +3,7 @@ kind: Workflow
 metadata:
   name: prospector-agent-scheduler
   tenant: levinnovation
-  domain: sales
+  domain: sales-prospecting
   capability: outbound-prospecting
 spec:
   runtime: n8n
@@ -16,10 +16,14 @@ spec:
       timezone: America/Costa_Rica
   subworkflows:
     - id: i06Dfr3BkClgMgT2
-      name: Prospector Agent Core (Levinnovation)
+      name: Prospector Agent Core v2 (Levinnovation)
       purpose: actual prospecting pipeline
+    - id: TBD
+      name: Prospector Agent Messenger (Levinnovation)
+      purpose: email outreach to qualified leads
+    - id: TBD
+      name: Prospector Inbound Handler (Levinnovation)
+      purpose: analyze replies and notify sales
   env_optional:
-    - LINKEDIN_SEARCH_QUERY
-    - LEADS_PER_RUN
-    - LEAD_FIT_THRESHOLD
+    - DEFAULT_CAMPAIGN_ID
     - PROSPECTOR_DRY_RUN
