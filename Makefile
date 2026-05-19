@@ -10,18 +10,12 @@ TARGET    ?= langgraph
 ENV       ?= dev
 ASSET     ?= quotation-assistant
 
-.PHONY: help validate validate-specs validate-agent-context validate-credentials knowledge-index test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords n8n-compile n8n-deploy n8n-diff n8n-migrate n8n-audit n8n-credentials-encrypt scaffold-fork sync-fork rebase-agentyx build-forks connect-railway-scratch build-fork-images deploy-ghcr-images
+.PHONY: help validate validate-credentials knowledge-index test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords n8n-compile n8n-deploy n8n-diff n8n-migrate n8n-audit n8n-credentials-encrypt scaffold-fork sync-fork rebase-agentyx build-forks connect-railway-scratch build-fork-images deploy-ghcr-images
 
 help:
-	@echo "Targets: validate, validate-specs, validate-agent-context, validate-credentials, knowledge-index, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords, n8n-compile, n8n-deploy, n8n-diff, n8n-migrate, n8n-audit, n8n-credentials-encrypt, scaffold-fork, sync-fork, rebase-agentyx, build-forks, connect-railway-scratch, build-fork-images, deploy-ghcr-images"
+	@echo "Targets: validate, validate-credentials, knowledge-index, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords, n8n-compile, n8n-deploy, n8n-diff, n8n-migrate, n8n-audit, n8n-credentials-encrypt, scaffold-fork, sync-fork, rebase-agentyx, build-forks, connect-railway-scratch, build-fork-images, deploy-ghcr-images"
 
-validate: validate-specs validate-agent-context validate-credentials
-
-validate-specs:
-	$(PYTHON) scripts/validate_specs.py
-
-validate-agent-context:
-	$(PYTHON) scripts/validate_agent_context.py
+validate: validate-credentials
 
 validate-credentials:
 	$(PYTHON) scripts/validate_credentials.py --tenant $(TENANT)

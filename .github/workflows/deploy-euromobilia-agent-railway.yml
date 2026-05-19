@@ -23,7 +23,7 @@ jobs:
 
   deploy:
     needs: build
-    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    uses: ./.github/workflows/railway-deploy.yml
     with:
       tenant: euromobilia
       service: agent

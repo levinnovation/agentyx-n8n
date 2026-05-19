@@ -12,6 +12,10 @@ on:
         description: 'Upstream n8n version tag'
         required: true
         default: '2.21.2'
+      deploy_to_railway:
+        description: 'Deploy to Railway after build'
+        type: boolean
+        default: true
 
 env:
   REGISTRY: ghcr.io
@@ -98,3 +102,60 @@ jobs:
             N8N_VERSION=${{ inputs.n8n_version || '2.21.2' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-railway:
+    needs: build-image
+    if: ${{ inputs.deploy_to_railway != false }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [n8n-main, n8n-worker, n8n-webhook]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | bash
+          echo "$HOME/.railway/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Railway CLI
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway whoami
+
+      - name: Link project
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          PROJECT_ID=$(printenv LEVINNOVATION_RAILWAY_PROJECT_ID)
+          if [ -z "$PROJECT_ID" ]; then
+            echo "ERROR: LEVINNOVATION_RAILWAY_PROJECT_ID is not set."
+            exit 1
+          fi
+          railway link --project "$PROJECT_ID" --environment production
+
+      - name: Sync variables
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/sync-vars.sh --tenant levinnovation --service ${{ matrix.service }}
+
+      - name: Deploy service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/deploy-service.sh \
+            --tenant levinnovation \
+            --service ${{ matrix.service }} \
+            --env production \
+            --image ghcr.io/levinnovation/agentyx-n8n:latest
+
+      - name: Smoke test
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          bash scripts/railway/smoke-test.sh \
+            --tenant levinnovation \
+            --service ${{ matrix.service }} \
+            --env production

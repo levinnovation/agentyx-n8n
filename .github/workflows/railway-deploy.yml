@@ -28,7 +28,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Railway CLI
-        run: curl -fsSL https://railway.app/install.sh | sh
+        run: |
+          curl -fsSL https://railway.app/install.sh | bash
+          echo "$HOME/.railway/bin" >> "$GITHUB_PATH"
 
       - name: Verify Railway CLI
         env:
@@ -41,8 +43,8 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           PROJECT_VAR="${{ inputs.tenant }}_RAILWAY_PROJECT_ID"
-          PROJECT_ID="${!PROJECT_VAR}"
-          if [[ -z "$PROJECT_ID" ]]; then
+          PROJECT_ID=$(printenv "$PROJECT_VAR")
+          if [ -z "$PROJECT_ID" ]; then
             echo "ERROR: Project ID variable ${PROJECT_VAR} is not set."
             exit 1
           fi
@@ -59,7 +61,7 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           IMAGE_ARG=""
-          if [[ -n "${{ inputs.image_ref }}" ]]; then
+          if [ -n "${{ inputs.image_ref }}" ]; then
             IMAGE_ARG="--image ${{ inputs.image_ref }}"
           fi
           bash scripts/railway/deploy-service.sh \
