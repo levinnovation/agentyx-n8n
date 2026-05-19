@@ -604,6 +604,39 @@ async function hardenGmailSendArgs(
 		});
 		delete next.attachments;
 	}
+	// Strip empty/null attachment object — Composio requires {name, s3key, mimetype}
+	if ('attachment' in next && (!next.attachment || (typeof next.attachment === 'object' && !next.attachment?.s3key))) {
+		logLine('warn', 'gmail_send_empty_attachment_stripped', {
+			correlationId,
+			slug: normalizedSlug,
+			kind: next.attachment === null ? 'null' : typeof next.attachment,
+		});
+		delete next.attachment;
+	}
+	// Normalize user_id default if missing
+	if (!('user_id' in next)) {
+		next.user_id = 'me';
+	}
+
+	return next;
+}
+	if ('attachments' in next) {
+		logLine('warn', 'gmail_send_attachments_plural_stripped', {
+			correlationId,
+			slug: normalizedSlug,
+			hasAttachmentSingular: 'attachment' in next,
+		});
+		delete next.attachments;
+	}
+	// Strip empty/null attachment object — Composio requires {name, s3key, mimetype}
+	if ('attachment' in next && (!next.attachment || (typeof next.attachment === 'object' && !next.attachment?.s3key))) {
+		logLine('warn', 'gmail_send_empty_attachment_stripped', {
+			correlationId,
+			slug: normalizedSlug,
+			kind: next.attachment === null ? 'null' : typeof next.attachment,
+		});
+		delete next.attachment;
+	}
 	// Normalize user_id default if missing
 	if (!('user_id' in next)) {
 		next.user_id = 'me';
