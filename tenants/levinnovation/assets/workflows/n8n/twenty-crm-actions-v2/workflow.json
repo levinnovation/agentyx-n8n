@@ -1,0 +1,166 @@
+{
+  "name": "twenty-crm-actions-v2",
+  "id": "twenty-crm-actions-v2",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-0",
+      "name": "Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "searchPeopleByEmail",
+        "query": "={{ $json.email }}",
+        "limit": 1
+      },
+      "id": "node-1",
+      "name": "Search Person",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxCRMQuery",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "={{ $json.data && $json.data.length > 0 ? 'updatePerson' : 'createPerson' }}",
+        "recordId": "={{ $json.data && $json.data[0] ? $json.data[0].id : '' }}",
+        "payload": "={{ JSON.stringify($json.personData || {}) }}"
+      },
+      "id": "node-2",
+      "name": "Create or Update Person",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxCRMUpdate",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "searchCompaniesByName",
+        "query": "={{ $json.companyData ? $json.companyData.name : '' }}",
+        "limit": 1
+      },
+      "id": "node-3",
+      "name": "Search Company",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxCRMQuery",
+      "typeVersion": 1,
+      "position": [
+        440,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "={{ $json.data && $json.data.length > 0 ? 'updateCompany' : 'createCompany' }}",
+        "recordId": "={{ $json.data && $json.data[0] ? $json.data[0].id : '' }}",
+        "payload": "={{ JSON.stringify($json.companyData || {}) }}"
+      },
+      "id": "node-4",
+      "name": "Create Company",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxCRMUpdate",
+      "typeVersion": 1,
+      "position": [
+        640,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "linkPersonToCompany",
+        "recordId": "={{ $('Create or Update Person').item.json.id }}",
+        "payload": "={{ JSON.stringify({ companyId: $('Create Company').item.json.id }) }}"
+      },
+      "id": "node-5",
+      "name": "Link Person to Company",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxCRMUpdate",
+      "typeVersion": 1,
+      "position": [
+        840,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search Person",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Person": {
+      "main": [
+        [
+          {
+            "node": "Create or Update Person",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Company": {
+      "main": [
+        [
+          {
+            "node": "Create Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create or Update Person": {
+      "main": [
+        [
+          {
+            "node": "Link Person to Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Company": {
+      "main": [
+        [
+          {
+            "node": "Link Person to Company",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [
+    "crm",
+    "twenty",
+    "automation",
+    "v2"
+  ],
+  "active": false,
+  "versionId": null
+}

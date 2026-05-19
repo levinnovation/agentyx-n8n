@@ -1,0 +1,150 @@
+{
+  "name": "customer-service-core-v2",
+  "id": "customer-service-core-v2",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-0",
+      "name": "Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "tenant": "levinnovation",
+        "domain": "customer-service",
+        "capability": "lead-qualification"
+      },
+      "id": "node-1",
+      "name": "Tenant Context",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxTenantContext",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4o",
+        "temperature": 0.3,
+        "maxTokens": 4096,
+        "systemPrompt": "You are Levi, the AI assistant for LEV Innovation.\nRules:\n- Always call KB search first via Pinecone Vector Store\n- Identity: Levi (LEV Innovation assistant for LATAM)\n- Date-aware: current date is 2026-05-19\n- Product descriptions: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink\n- Tool directives for Slack/email/web search\n- Channel formatting: WhatsApp/Telegram max 3-4 sentences\n",
+        "userMessage": "={{ $json.message }}",
+        "memoryEnabled": true,
+        "memoryKeyPrefix": "cs:v2",
+        "contextWindowLength": 6,
+        "sessionId": "={{ $json.channel + ':' + $json.conversation_id }}",
+        "tools": "[{\"type\":\"function\",\"function\":{\"name\":\"kb_search\",\"description\":\"Search knowledge base\"}}]",
+        "timeout": 30000
+      },
+      "id": "node-2",
+      "name": "AI Agent",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxAIAgentBasicNode",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "searchPeopleByEmail",
+        "query": "={{ $json.user_id }}",
+        "limit": 5
+      },
+      "id": "node-3",
+      "name": "CRM Query",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxCRMQuery",
+      "typeVersion": 1,
+      "position": [
+        640,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "values": [
+          {
+            "name": "reply_text",
+            "value": "={{ $json.reply_text }}"
+          },
+          {
+            "name": "end_session",
+            "value": "={{ $json.finish_reason === 'stop' }}"
+          },
+          {
+            "name": "metadata",
+            "value": "={{ $json.metadata }}"
+          }
+        ]
+      },
+      "id": "node-4",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        840,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Trigger": {
+      "main": [
+        [
+          {
+            "node": "Tenant Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tenant Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CRM Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [
+    "customer-service",
+    "ai-agent",
+    "core",
+    "v2"
+  ],
+  "active": false,
+  "versionId": null
+}

@@ -1,0 +1,99 @@
+apiVersion: agentyx.io/v1
+kind: N8nWorkflow
+metadata:
+  name: customer-service-core-v2
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  version: "2.0.0"
+  status: compiled
+spec:
+  trigger:
+    type: executeWorkflowTrigger
+    config:
+      inputSchema:
+        channel: string
+        conversation_id: string
+        user_id: string
+        message: string
+        attachments: array
+        metadata: object
+
+  nodes:
+    - name: Trigger
+      type: executeWorkflowTrigger
+      position: [240, 300]
+
+    - name: Tenant Context
+      type: agentyxTenantContext
+      position: [440, 300]
+      config:
+        tenant: levinnovation
+        domain: customer-service
+        capability: lead-qualification
+
+    - name: AI Agent
+      type: agentyxAIAgentBasicNode
+      position: [640, 300]
+      config:
+        model: openai/gpt-4o
+        temperature: 0.3
+        maxTokens: 4096
+        systemPrompt: |
+          You are Levi, the AI assistant for LEV Innovation.
+          Rules:
+          - Always call KB search first via Pinecone Vector Store
+          - Identity: Levi (LEV Innovation assistant for LATAM)
+          - Date-aware: current date is 2026-05-19
+          - Product descriptions: Agentyx, Contax, Acumatica, Oosto, Metropolis, Legalink
+          - Tool directives for Slack/email/web search
+          - Channel formatting: WhatsApp/Telegram max 3-4 sentences
+        userMessage: "={{ $json.message }}"
+        memoryEnabled: true
+        memoryKeyPrefix: "cs:v2"
+        contextWindowLength: 6
+        sessionId: "={{ $json.channel + ':' + $json.conversation_id }}"
+        tools: '[{"type":"function","function":{"name":"kb_search","description":"Search knowledge base"}}]'
+        timeout: 30000
+
+    - name: CRM Query
+      type: agentyxCRMQuery
+      position: [640, 500]
+      config:
+        operation: searchPeopleByEmail
+        query: "={{ $json.user_id }}"
+        limit: 5
+
+    - name: Format Response
+      type: set
+      position: [840, 300]
+      config:
+        mode: manual
+        values:
+          - name: reply_text
+            value: "={{ $json.reply_text }}"
+          - name: end_session
+            value: "={{ $json.finish_reason === 'stop' }}"
+          - name: metadata
+            value: "={{ $json.metadata }}"
+
+  connections:
+    - from: Trigger
+      to: Tenant Context
+    - from: Tenant Context
+      to: AI Agent
+    - from: Tenant Context
+      to: CRM Query
+    - from: AI Agent
+      to: Format Response
+
+  settings:
+    executionOrder: v1
+    saveExecutionProgress: true
+    callerPolicy: workflowsFromSameOwner
+
+  tags:
+    - customer-service
+    - ai-agent
+    - core
+    - v2

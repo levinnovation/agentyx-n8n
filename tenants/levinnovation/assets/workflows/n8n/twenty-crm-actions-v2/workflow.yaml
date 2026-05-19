@@ -1,0 +1,87 @@
+apiVersion: agentyx.io/v1
+kind: N8nWorkflow
+metadata:
+  name: twenty-crm-actions-v2
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  version: "2.0.0"
+  status: compiled
+spec:
+  trigger:
+    type: executeWorkflowTrigger
+    config:
+      inputSchema:
+        operation: string
+        email: string
+        personData: object
+        companyData: object
+
+  nodes:
+    - name: Trigger
+      type: executeWorkflowTrigger
+      position: [240, 300]
+
+    - name: Search Person
+      type: agentyxCRMQuery
+      position: [440, 300]
+      config:
+        operation: searchPeopleByEmail
+        query: "={{ $json.email }}"
+        limit: 1
+
+    - name: Create or Update Person
+      type: agentyxCRMUpdate
+      position: [640, 300]
+      config:
+        operation: "={{ $json.data && $json.data.length > 0 ? 'updatePerson' : 'createPerson' }}"
+        recordId: "={{ $json.data && $json.data[0] ? $json.data[0].id : '' }}"
+        payload: "={{ JSON.stringify($json.personData || {}) }}"
+
+    - name: Search Company
+      type: agentyxCRMQuery
+      position: [440, 500]
+      config:
+        operation: searchCompaniesByName
+        query: "={{ $json.companyData ? $json.companyData.name : '' }}"
+        limit: 1
+
+    - name: Create Company
+      type: agentyxCRMUpdate
+      position: [640, 500]
+      config:
+        operation: "={{ $json.data && $json.data.length > 0 ? 'updateCompany' : 'createCompany' }}"
+        recordId: "={{ $json.data && $json.data[0] ? $json.data[0].id : '' }}"
+        payload: "={{ JSON.stringify($json.companyData || {}) }}"
+
+    - name: Link Person to Company
+      type: agentyxCRMUpdate
+      position: [840, 400]
+      config:
+        operation: linkPersonToCompany
+        recordId: "={{ $('Create or Update Person').item.json.id }}"
+        payload: "={{ JSON.stringify({ companyId: $('Create Company').item.json.id }) }}"
+
+  connections:
+    - from: Trigger
+      to: Search Person
+    - from: Trigger
+      to: Search Company
+    - from: Search Person
+      to: Create or Update Person
+    - from: Search Company
+      to: Create Company
+    - from: Create or Update Person
+      to: Link Person to Company
+    - from: Create Company
+      to: Link Person to Company
+
+  settings:
+    executionOrder: v1
+    callerPolicy: workflowsFromSameOwner
+
+  tags:
+    - crm
+    - twenty
+    - automation
+    - v2

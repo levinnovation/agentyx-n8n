@@ -13,57 +13,13 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "name": "debug_input",
-              "value": "={{ JSON.stringify($json) }}",
-              "type": "string"
-            },
-            {
-              "name": "to",
-              "value": "={{ $json.query?.to || $json.to || '' }}",
-              "type": "string"
-            },
-            {
-              "name": "from",
-              "value": "={{ $json.query?.from || $json.from || 'me' }}",
-              "type": "string"
-            },
-            {
-              "name": "subject",
-              "value": "={{ $json.query?.subject || $json.subject || '' }}",
-              "type": "string"
-            },
-            {
-              "name": "html",
-              "value": "={{ $json.query?.html || $json.query?.body || $json.html || $json.body || $json.text || '<p>No content</p>' }}",
-              "type": "string"
-            },
-            {
-              "name": "cc",
-              "value": "={{ JSON.stringify($json.query?.cc || $json.cc || []) }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "const raw = $input.first().json || {};\nlet data = raw;\n\n// Try to extract from query (AI Agent toolWorkflow passes arguments as 'query')\nif (raw.query) {\n  if (typeof raw.query === 'string') {\n    try {\n      data = JSON.parse(raw.query);\n    } catch (e) {\n      data = raw;\n    }\n  } else if (typeof raw.query === 'object') {\n    data = raw.query;\n  }\n}\n\nreturn [{\n  json: {\n    to: data.to || '',\n    from: data.from || 'noreply@levinnovation.com',\n    subject: data.subject || '',\n    html: data.html || data.body || data.text || '<p>No content</p>',\n    cc: data.cc || []\n  }\n}];"
       },
-      "id": "map-fields",
-      "name": "Map Fields",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [464, 240]
-    },
-    {
-      "parameters": {
-        "jsCode": "const item = $input.first().json || {};\nconst to = item.to || '';\nconst from_addr = item.from || 'me';\nconst subject = item.subject || '';\nconst html = item.html || '<p>No content</p>';\nconst ccStr = item.cc || '[]';\n\nlet cc = [];\ntry {\n  cc = JSON.parse(ccStr);\n} catch (e) {\n  cc = [];\n}\n\nconst payload = {\n  to: to,\n  from: from_addr,\n  subject: subject,\n  html: html\n};\n\nif (cc && Array.isArray(cc) && cc.length > 0) {\n  payload.cc = cc;\n}\n\nreturn [{ json: payload }];"
-      },
-      "id": "build-payload",
-      "name": "Build Payload",
+      "id": "parse-input",
+      "name": "Parse Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [704, 240]
+      "position": [464, 240]
     },
     {
       "parameters": {
@@ -93,7 +49,7 @@
       "name": "Send via Resend API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [944, 240]
+      "position": [704, 240]
     }
   ],
   "connections": {
@@ -101,25 +57,14 @@
       "main": [
         [
           {
-            "node": "Map Fields",
+            "node": "Parse Input",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Map Fields": {
-      "main": [
-        [
-          {
-            "node": "Build Payload",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Payload": {
+    "Parse Input": {
       "main": [
         [
           {

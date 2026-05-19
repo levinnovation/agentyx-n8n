@@ -1,0 +1,29 @@
+asset:
+  name: chan-kapso-wa-customer-service-v2
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  status: compiled
+  version: 2.0.0
+  description: 'Migrated channel adapter using Agentyx community nodes.
+
+    Replaces: Manual JS code nodes → AgentyxChannelFormattedInputNode + AgentyxChannelFormattedOutputNode
+
+    Calls: customer-service-core-v2
+
+    Does NOT touch live chan-kapso-wa-customer-service. This is a v2 parallel workflow.
+
+    '
+  inputs:
+  - kapso webhook payload
+  outputs:
+  - kapso outbound reply
+  dependencies:
+  - service: kapso
+    auth: kapsoApi
+  files:
+  - workflow.yaml
+  - workflow.json
+  - asset.yaml
+  - README.md

@@ -1,0 +1,29 @@
+asset:
+  name: demo-agentyx-nodes
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  status: compiled
+  version: 1.0.0
+  description: 'Demo workflow showcasing all Agentyx custom community nodes.
+
+    Uses: AgentyxChannelFormattedInputNode, AgentyxAIAgentBasicNode, AgentyxChannelFormattedOutputNode.
+
+    Deploy to n8n to verify nodes are loaded correctly.
+
+    '
+  inputs:
+  - message
+  - user_id
+  outputs:
+  - reply_text
+  - channel
+  dependencies:
+  - service: openrouter
+    auth: openrouterApi
+  files:
+  - workflow.yaml
+  - workflow.json
+  - asset.yaml
+  - README.md

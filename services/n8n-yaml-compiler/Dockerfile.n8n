@@ -10,7 +10,8 @@ USER root
 # Install the Agentyx custom nodes package from the local build context
 # This expects the built n8n-node-sdk to be copied into the build context
 # under ./custom-nodes/
-COPY --chown=node:node ./custom-nodes/@levinnovation/n8n-nodes-agentyx /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx
+COPY --chown=node:node ./custom-nodes/@levinnovation/n8n-nodes-agentyx/dist /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist
+COPY --chown=node:node ./custom-nodes/@levinnovation/n8n-nodes-agentyx/package.json /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json
 
 # Alternative: if published to GHCR/npm, use npm install instead:
 # RUN cd /usr/local/lib/node_modules/n8n && npm install @levinnovation/n8n-nodes-agentyx --production
@@ -20,7 +21,7 @@ RUN cat /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-ag
   || (echo "ERROR: custom nodes package missing n8n registration" && exit 1)
 
 # Verify node files exist
-RUN ls -la /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/
+RUN ls -la /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/
 
 USER node
 

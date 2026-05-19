@@ -1,0 +1,29 @@
+asset:
+  name: composio-calendar-demo
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  status: compiled
+  version: 1.0.0
+  description: 'Demo workflow showcasing AgentyxComposioMcpToolNode for Google Calendar
+    integration.
+
+    Creates calendar events via Composio MCP with toolkit filtering.
+
+    '
+  inputs:
+  - meeting_title
+  - meeting_date
+  - attendees
+  outputs:
+  - event_id
+  - message
+  dependencies:
+  - service: composio-mcp
+    auth: composioMcp
+  files:
+  - workflow.yaml
+  - workflow.json
+  - asset.yaml
+  - README.md
