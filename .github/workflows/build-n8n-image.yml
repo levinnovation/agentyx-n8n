@@ -106,7 +106,7 @@ jobs:
   deploy-railway-main:
     needs: build-image
     if: ${{ inputs.deploy_to_railway != false }}
-    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    uses: ./.github/workflows/railway-deploy.yml
     with:
       tenant: levinnovation
       service: n8n-main
@@ -118,7 +118,7 @@ jobs:
   deploy-railway-worker:
     needs: build-image
     if: ${{ inputs.deploy_to_railway != false }}
-    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    uses: ./.github/workflows/railway-deploy.yml
     with:
       tenant: levinnovation
       service: n8n-worker
@@ -130,7 +130,7 @@ jobs:
   deploy-railway-webhook:
     needs: build-image
     if: ${{ inputs.deploy_to_railway != false }}
-    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    uses: ./.github/workflows/railway-deploy.yml
     with:
       tenant: levinnovation
       service: n8n-webhook

@@ -31,7 +31,7 @@ jobs:
     strategy:
       matrix:
         service: ${{ fromJson(needs.detect-changes.outputs.services) }}
-    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    uses: ./.github/workflows/railway-deploy.yml
     with:
       tenant: euromobilia
       service: ${{ matrix.service }}
