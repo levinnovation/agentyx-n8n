@@ -20,7 +20,7 @@ outreach:
 email:
   from_name: "LEV Innovation"
   from_email: "prospector@levinnovation.com"
-  reply_to: "ventas@levinnovation.com"
+  reply_to: "evargas@levinnovation.com"
   subject_template: "Reduce 60% del tiempo legal en {{company}} con Legalink"
 
 knowledge_base:
@@ -29,7 +29,7 @@ knowledge_base:
 
 sales_team:
   notification_emails:
-    - "ventas@levinnovation.com"
+    - "evargas@levinnovation.com"
   interest_keywords:
     - "interesado"
     - "demo"
