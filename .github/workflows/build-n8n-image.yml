@@ -103,16 +103,37 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-railway:
+  deploy-railway-main:
     needs: build-image
     if: ${{ inputs.deploy_to_railway != false }}
-    strategy:
-      matrix:
-        service: [n8n-main, n8n-worker, n8n-webhook]
     uses: ./.github/workflows/_reusable/railway-deploy.yml
     with:
       tenant: levinnovation
-      service: ${{ matrix.service }}
+      service: n8n-main
+      image_ref: ghcr.io/levinnovation/agentyx-n8n:latest
+      environment: production
+    secrets:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  deploy-railway-worker:
+    needs: build-image
+    if: ${{ inputs.deploy_to_railway != false }}
+    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    with:
+      tenant: levinnovation
+      service: n8n-worker
+      image_ref: ghcr.io/levinnovation/agentyx-n8n:latest
+      environment: production
+    secrets:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  deploy-railway-webhook:
+    needs: build-image
+    if: ${{ inputs.deploy_to_railway != false }}
+    uses: ./.github/workflows/_reusable/railway-deploy.yml
+    with:
+      tenant: levinnovation
+      service: n8n-webhook
       image_ref: ghcr.io/levinnovation/agentyx-n8n:latest
       environment: production
     secrets:

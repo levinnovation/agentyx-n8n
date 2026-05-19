@@ -6,7 +6,8 @@
 - `.github/workflows/build-n8n-image.yml`
   - Fixed `REGISTRY` env from `ghcr` → `ghcr.io`.  
     `docker/login-action` and `docker/metadata-action` require the full hostname; `ghcr` alone caused registry resolution failures.
-  - Replaced inline `deploy-railway` job with a call to `_reusable/railway-deploy.yml`.  
+  - Replaced inline `deploy-railway` job with three calls to `_reusable/railway-deploy.yml`.  
+    `strategy.matrix` is not compatible with `uses:` (reusable workflow call), so the matrix was expanded into three separate jobs: `deploy-railway-main`, `deploy-railway-worker`, `deploy-railway-webhook`.  
     This guarantees correct `LEVINNOVATION_RAILWAY_PROJECT_ID` resolution (via `${tenant}_RAILWAY_PROJECT_ID` env-var pattern), includes `sync-vars.sh`, and runs `smoke-test.sh` after each redeploy.
 
 ### Build / validation
