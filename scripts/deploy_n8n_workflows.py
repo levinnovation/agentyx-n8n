@@ -12,6 +12,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 from urllib.parse import urljoin
 
 import httpx
@@ -49,9 +50,8 @@ def deploy_workflow(client: httpx.Client, n8n_url: str, api_key: str, workflow_p
     # Remove server-managed fields
     for field in ["versionId", "createdAt", "updatedAt", "isArchived", "meta", 
                    "staticData", "pinData", "tags", "shared", "activeVersion", 
-                   "activeVersionId", "triggerCount", "versionCounter"]:
+                   "activeVersionId", "triggerCount", "versionCounter", "id", "active", "description"]:
         payload.pop(field, None)
-    payload.pop("description", None)
     
     settings = payload.get("settings")
     if isinstance(settings, dict):
@@ -78,7 +78,7 @@ def deploy_workflow(client: httpx.Client, n8n_url: str, api_key: str, workflow_p
     return resp.json()
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="Deploy compiled n8n workflows")
     parser.add_argument("--tenant", required=True, help="Tenant slug")
     parser.add_argument("--env", default="dev", help="Environment")
