@@ -1,20 +1,38 @@
 # syntax=docker/dockerfile:1
 # Custom n8n image with Agentyx community nodes baked in.
 # Extends the upstream n8n image and installs @levinnovation/n8n-nodes-agentyx.
+# Supports both CI (with ./custom-nodes/ pre-built) and repo-linked Railway builds.
 
 ARG N8N_VERSION=2.21.2
 FROM n8nio/n8n:${N8N_VERSION}
 
 USER root
 
-# Install the Agentyx custom nodes package from the local build context
-# This expects the built n8n-node-sdk to be copied into the build context
-# under ./custom-nodes/
-COPY --chown=node:node ./custom-nodes/@levinnovation/n8n-nodes-agentyx/dist /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist
-COPY --chown=node:node ./custom-nodes/@levinnovation/n8n-nodes-agentyx/package.json /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json
+# Copy the n8n-node-sdk source (always available in repo context)
+COPY --chown=node:node ./services/n8n-node-sdk /tmp/n8n-node-sdk
 
-# Alternative: if published to GHCR/npm, use npm install instead:
-# RUN cd /usr/local/lib/node_modules/n8n && npm install @levinnovation/n8n-nodes-agentyx --production
+# Copy optional pre-built custom nodes (created by CI workflow)
+COPY --chown=node:node ./custom-nodes /tmp/custom-nodes
+
+# Build and install the custom nodes
+RUN if [ -d /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx ]; then \
+      echo "Installing from pre-built custom-nodes/ (CI path)"; \
+      mkdir -p /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx; \
+      cp -r /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/dist /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist; \
+      cp /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/package.json /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json; \
+    else \
+      echo "Building from source (repo linked build path)"; \
+      cd /tmp/n8n-node-sdk && npm ci && npm run build; \
+      for node_dir in src/nodes/*/; do \
+        cp "$$node_dir"*.svg "dist/nodes/$$(basename $$node_dir)/" 2>/dev/null || true; \
+      done; \
+      mkdir -p /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx; \
+      cp -r dist /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist; \
+      cp package.json /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json; \
+    fi
+
+# Clean up temp files
+RUN rm -rf /tmp/n8n-node-sdk /tmp/custom-nodes
 
 # Ensure n8n discovers the nodes by verifying the package.json "n8n" property exists
 RUN cat /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json | grep -q '"n8n"' \
