@@ -2,7 +2,6 @@
   "name": "@levinnovation/n8n-nodes-agentyx",
   "version": "1.0.0",
   "description": "Custom n8n community nodes for Agentyx deterministic SDLC",
-  "type": "module",
   "keywords": ["n8n-community-node-package"],
   "files": ["dist"],
   "engines": {

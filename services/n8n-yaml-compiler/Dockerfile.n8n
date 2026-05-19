@@ -38,8 +38,12 @@ RUN rm -rf /tmp/n8n-node-sdk /tmp/custom-nodes
 RUN cat /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json | grep -q '"n8n"' \
   || (echo "ERROR: custom nodes package missing n8n registration" && exit 1)
 
-# Verify node files exist
-RUN ls -la /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/
+# Verify node files exist in the image
+RUN test -f /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.node.js && echo "node.js OK" || exit 1
+RUN test -f /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.svg && echo "node.svg OK" || exit 1
+
+# Tell n8n where to find custom nodes
+ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes
 
 USER node
 
