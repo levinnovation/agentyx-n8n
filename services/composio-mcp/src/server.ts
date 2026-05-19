@@ -10,6 +10,27 @@ import { ComposioClient, StructuredToolError } from './composio.js';
 import { logLine } from './logger.js';
 import { inputParametersToJsonSchema } from './schema-utils.js';
 
+/**
+ * Strip fields from GMAIL_SEND_EMAIL schema that the LLM commonly passes as null,
+ * causing n8n MCP client to reject them before the request reaches the server.
+ * These fields are stripped at runtime by hardenGmailSendArgs() anyway.
+ */
+function sanitizeGmailSendSchema(slug: string, schema: Record<string, unknown>): Record<string, unknown> {
+	if (slug !== 'GMAIL_SEND_EMAIL') return schema;
+	const next = { ...schema };
+	const props = next.properties as Record<string, unknown> | undefined;
+	if (!props) return next;
+	const stripped = new Set(['from_email', 'attachment']);
+	for (const key of stripped) {
+		delete props[key];
+	}
+	if (Array.isArray(next.required)) {
+		next.required = (next.required as string[]).filter((k) => !stripped.has(k));
+	}
+	next.properties = props;
+	return next;
+}
+
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const COMPOSIO_API_KEY = process.env.COMPOSIO_API_KEY ?? '';
 const COMPOSIO_API_BASE =
@@ -243,7 +264,7 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 						inputSchema:
 							verbosity === 'none'
 								? { type: 'object', properties: {} }
-								: inputParametersToJsonSchema(t.input_parameters),
+								: sanitizeGmailSendSchema(t.slug, inputParametersToJsonSchema(t.input_parameters)),
 					};
 				});
 				formattedTools = [
@@ -256,7 +277,7 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 				formattedTools = boundedTools.map((t) => ({
 					name: t.slug,
 					description: t.description || t.human_description || t.name || `Composio tool ${t.slug}`,
-					inputSchema: inputParametersToJsonSchema(t.input_parameters),
+					inputSchema: sanitizeGmailSendSchema(t.slug, inputParametersToJsonSchema(t.input_parameters)),
 				}));
 			}
 			logLine('info', 'mcp_list_tools', {
@@ -336,7 +357,7 @@ function createMcpServer(client: ComposioClient, correlationId: string, ctx?: Mc
 					name: tool.name,
 					description: tool.description || tool.human_description || '',
 					toolkit: tool.toolkit?.slug ?? null,
-					inputSchema: inputParametersToJsonSchema(tool.input_parameters),
+					inputSchema: sanitizeGmailSendSchema(tool.slug, inputParametersToJsonSchema(tool.input_parameters)),
 					search_source: search.source,
 				}));
 			} else if (name === 'composio_execute_tool') {
