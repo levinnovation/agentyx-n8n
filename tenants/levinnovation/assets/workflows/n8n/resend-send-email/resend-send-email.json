@@ -13,7 +13,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json || {};\nlet data = raw;\n\n// Try to extract from query (AI Agent toolWorkflow passes arguments as 'query')\nif (raw.query) {\n  if (typeof raw.query === 'string') {\n    try {\n      data = JSON.parse(raw.query);\n    } catch (e) {\n      data = raw;\n    }\n  } else if (typeof raw.query === 'object') {\n    data = raw.query;\n  }\n}\n\nreturn [{\n  json: {\n    to: data.to || '',\n    from: data.from || 'noreply@levinnovation.com',\n    subject: data.subject || '',\n    html: data.html || data.body || data.text || '<p>No content</p>',\n    cc: data.cc || []\n  }\n}];"
+        "jsCode": "const raw = $input.first().json || {};\nlet data = raw;\n\n// Try to extract from query (AI Agent toolWorkflow passes arguments as 'query')\nif (raw.query) {\n  if (typeof raw.query === 'string') {\n    try {\n      data = JSON.parse(raw.query);\n    } catch (e) {\n      data = raw;\n    }\n  } else if (typeof raw.query === 'object') {\n    data = raw.query;\n  }\n}\n\nreturn [{\n  json: {\n    to: data.to || '',\n    from: 'noreply@levinnovation.com',\n    subject: data.subject || '',\n    html: data.html || data.body || data.text || '<p>No content</p>',\n    cc: data.cc || []\n  }\n}];"
       },
       "id": "parse-input",
       "name": "Parse Input",
