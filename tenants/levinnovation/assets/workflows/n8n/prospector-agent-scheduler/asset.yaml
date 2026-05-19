@@ -18,10 +18,10 @@ spec:
     - id: i06Dfr3BkClgMgT2
       name: Prospector Agent Core v2 (Levinnovation)
       purpose: actual prospecting pipeline
-    - id: TBD
+    - id: BgCtuiJJ2Zi7Q13U
       name: Prospector Agent Messenger (Levinnovation)
       purpose: email outreach to qualified leads
-    - id: TBD
+    - id: exiCpSQ5rQwPwzq5
       name: Prospector Inbound Handler (Levinnovation)
       purpose: analyze replies and notify sales
   env_optional:
