@@ -5,13 +5,13 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "6fd132d9-77fa-4835-b117-cd17af6e4be8",
+      "id": "6c475ba3-4a02-472a-aa46-e8b2c7d7e562",
       "name": "Execute Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        3232,
-        16
+        3648,
+        80
       ]
     },
     {
@@ -20,13 +20,13 @@
         "sessionKey": "={{ $json.conversation_id || $json.user_id || ($json.metadata || {}).chat_id || $json.chat_id || 'session:default' }}",
         "contextWindowLength": 6
       },
-      "id": "b25945ac-b000-4eed-9b36-508c62e4f2f1",
+      "id": "d146857c-ba23-4ad2-bc30-eba293ecba5d",
       "name": "Redis Chat Memory (Tools)1",
       "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
       "typeVersion": 1.5,
       "position": [
-        3984,
-        512
+        4400,
+        576
       ],
       "credentials": {
         "redis": {
@@ -39,16 +39,16 @@
       "parameters": {
         "model": "openai/gpt-4o-mini",
         "options": {
-          "temperature": 0.2
+          "temperature": 0.6
         }
       },
-      "id": "97a8ebc1-f9cd-43e6-82ed-52eea90576b4",
+      "id": "83d86e36-21c9-4f36-ba46-0847fdf8e1b5",
       "name": "OpenRouter Chat Model1",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        4112,
-        544
+        4528,
+        608
       ],
       "credentials": {
         "openRouterApi": {
@@ -89,33 +89,15 @@
           "GOOGLEDRIVE_CREATE_DRIVE",
           "GOOGLEDRIVE_CREATE_COMMENT"
         ],
-        "options": {
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "x-max-tools",
-                "value": "200"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "googledrive"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "1"
-              }
-            ]
-          }
-        }
+        "options": {}
       },
-      "id": "39e63eae-26d1-4206-b488-b7b5c3abef3e",
+      "id": "1a3a0513-cd3f-41ed-9086-45b99e835444",
       "name": "MCP Client Tool (Google Drive)1",
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.2,
       "position": [
-        4256,
-        912
+        4624,
+        768
       ],
       "credentials": {
         "httpMultipleHeadersAuth": {
@@ -146,33 +128,15 @@
           "GOOGLEDOCS_REPLACE_ALL_TEXT",
           "GOOGLEDOCS_GET_DOCUMENT_PLAINTEXT"
         ],
-        "options": {
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "x-max-tools",
-                "value": "200"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "googledocs"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "1"
-              }
-            ]
-          }
-        }
+        "options": {}
       },
-      "id": "b40e3696-9690-410f-9185-b6158974cf30",
+      "id": "705dd598-72bd-47f9-9f9b-44d8138690f2",
       "name": "MCP Client Tool (Google Docs)1",
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.2,
       "position": [
-        4256,
-        784
+        4752,
+        704
       ],
       "credentials": {
         "httpMultipleHeadersAuth": {
@@ -212,32 +176,14 @@
           "GMAIL_DELETE_MESSAGE",
           "GMAIL_ADD_LABEL_TO_EMAIL"
         ],
-        "options": {
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "x-max-tools",
-                "value": "200"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "gmail"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "1"
-              }
-            ]
-          }
-        }
+        "options": {}
       },
-      "id": "8c740840-d524-4554-bc5b-e4de372691d5",
+      "id": "c5664dbe-0702-41b8-9046-b0dd42cef723",
       "name": "MCP Client Tool (Gmail)1",
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.2,
       "position": [
-        4256,
+        4896,
         640
       ],
       "credentials": {
@@ -271,33 +217,15 @@
           "GOOGLECALENDAR_QUICK_ADD",
           "GOOGLECALENDAR_REMOVE_ATTENDEE"
         ],
-        "options": {
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "x-max-tools",
-                "value": "200"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "googlecalendar"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "1"
-              }
-            ]
-          }
-        }
+        "options": {}
       },
-      "id": "5d355cd1-9fcb-4179-8fbc-a57cfe2b46cb",
+      "id": "ffb7a0c6-46f5-42b3-85b3-25e9b23e171c",
       "name": "MCP Client Tool (Composio)1",
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.2,
       "position": [
-        4272,
-        512
+        5040,
+        592
       ],
       "credentials": {
         "httpMultipleHeadersAuth": {
@@ -350,33 +278,15 @@
           "SLACK_LEAVE_CONVERSATION",
           "SLACK_RENAME_CONVERSATION"
         ],
-        "options": {
-          "sendHeaders": true,
-          "headerParameters": {
-            "parameters": [
-              {
-                "name": "x-max-tools",
-                "value": "200"
-              },
-              {
-                "name": "x-allowed-toolkits",
-                "value": "slack"
-              },
-              {
-                "name": "x-compressed-tools",
-                "value": "1"
-              }
-            ]
-          }
-        }
+        "options": {}
       },
-      "id": "2b10704d-0c28-47bb-95a3-090bb9f4e5b7",
+      "id": "17a82ca4-26f4-4b72-9417-b64f06779eb4",
       "name": "MCP Client Tool (Slack)1",
       "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
       "typeVersion": 1.2,
       "position": [
-        4384,
-        512
+        5168,
+        544
       ],
       "credentials": {
         "httpMultipleHeadersAuth": {
@@ -388,44 +298,44 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{\n'Channel: ' + ($json.channel || 'unknown') +\n'\\nConversation ID: ' + ($json.conversation_id || '') +\n'\\nUser ID: ' + ($json.user_id || '') +\n'\\nIntent Type: ' + ($json.intent_type || 'general_chat') +\n'\\nAction Target Hint: ' + ($json.action_target_hint || '') +\n'\\nAction Message: ' + ($json.action_message || '') +\n'\\nDefault Slack Channel ID: ' + ($json.slack_default_channel_id || '') +\n'\\nDefault Slack Channel Name: ' + ($json.slack_default_channel_name || '') +\n'\\nExtracted Email Recipient: ' + ($json.email_recipient || '') +\n'\\nExtracted Email Subject: ' + ($json.email_subject || '') +\n'\\nExtracted Email Body: ' + ($json.email_body || '') +\n'\\n\\nUser message:\\n' + ($json.message || '') +\n'\\n\\n[EMAIL_TEMPLATE_HTML]\\n' + (($json.html || '').slice(0, 6000)) +\n'\\n\\n[EMAIL_TEMPLATE_RULE]\\nIf intent_type is gmail_send_action and email_recipient is provided, call GMAIL_SEND_EMAIL immediately with: recipient_email=extracted value, subject=extracted value, body=email body converted to HTML and injected into template, is_html=true. Do NOT ask for confirmation or additional details.'\n}}",
+        "text": "={{\n'Channel: ' + ($json.channel || 'unknown') + '\\n' +\n'Conversation ID: ' + ($json.conversation_id || '') + '\\n' +\n'User ID: ' + ($json.user_id || '') + '\\n' +\n'Intent Type: ' + ($json.intent_type || 'general_chat') + '\\n' +\n'Action Target Hint: ' + ($json.action_target_hint || '') + '\\n' +\n'Action Message: ' + ($json.action_message || '') + '\\n' +\n'Default Slack Channel ID: ' + ($json.slack_default_channel_id || '') + '\\n' +\n'Default Slack Channel Name: ' + ($json.slack_default_channel_name || '') + '\\n' +\n'Extracted Email Recipient: ' + ($json.email_recipient || '') + '\\n' +\n'Extracted Email Subject: ' + ($json.email_subject || '') + '\\n' +\n'Extracted Email Body: ' + ($json.email_body || '') + '\\n\\n' +\n'User message:\\n' + ($json.message || '') +\n($json.email_template_section || '')\n}}",
         "options": {
-          "systemMessage": "You are a helpful Personal Assistant for the Levinnovation team.\n\nCRITICAL Gmail rules (always follow these, errors break the app):\n- When user provides email recipient/subject/body, call GMAIL_SEND_EMAIL IMMEDIATELY with ONLY: recipient_email, subject, body, is_html. No other keys.\n- Example: {\"recipient_email\":\"john@doe.com\",\"subject\":\"Hello\",\"body\":\"<p>test</p>\",\"is_html\":true}\n- Do NOT include from_email, attachments, attachment, to, cc, bcc, or recipient.\n- Convert body to HTML before sending. Use the [EMAIL_TEMPLATE_HTML] template. Replace {{body_html}} with converted body.\n- If Extracted Email Recipient, Subject, Body are already provided in the prompt, DO NOT ask the user -- just send.\n\nOperational rules:\n1) For channel=kapso-wa (WhatsApp inbound), default behavior is to reply directly to the same sender and same conversation.\n2) Never ask the user for phone_number_id, recipient number, or delivery channel when they are just chatting.\n3) For clear action requests, execute immediately with tools in the same turn. Default to DOING.\n\nSlack rules:\n- Prefer channel all-lev-innovation (id C0AHR6GK2S0). If unavailable, use first writable public channel.\n- Send sequence: SLACK_SEND_MESSAGE, then SLACK_SEND_ME_MESSAGE as fallback.\n- Discover channels/users via tools before asking for IDs.\n\nCalendar rules:\n- First call GOOGLECALENDAR_EVENTS_LIST. Do NOT use GOOGLECALENDAR_GET_CURRENT_DATE_TIME.\n- Default to authenticated primary calendar if no calendar_id is provided.\n\nGeneral rules:\n- For requests matching available tools, you MUST call the tool before final response.\n- Never claim an action completed unless tool output confirms success.\n- Be concise, action-oriented, and explicit about what you executed.\n"
+          "systemMessage": "You are a helpful Personal Assistant for the Levinnovation team.\n\nCRITICAL Gmail rules:\n- ONLY call GMAIL_SEND_EMAIL when the user explicitly asks to send an email or intent_type is gmail_send_action.\n- NEVER call Gmail tools for greetings, general chat, or unrelated topics.\n- Gmail payload must ONLY contain: recipient_email, subject, body, is_html. Nothing else.\n- Example: {\"recipient_email\":\"a@b.com\",\"subject\":\"Hi\",\"body\":\"<p>test</p>\",\"is_html\":true}\n- Do NOT include from_email, attachments, attachment, to, cc, bcc, or recipient.\n- If user says just \"hello\", answer conversationally. Do NOT ask for email details.\n\nActions:\n- For Slack: prefer channel all-lev-innovation (C0AHR6GK2S0).\n- For Calendar: first call GOOGLECALENDAR_EVENTS_LIST.\n- General: execute clearly stated actions immediately. Be concise.\n"
         }
       },
-      "id": "d5fb3891-daa7-4ba8-b32f-2efa106cf84d",
+      "id": "8d471385-031e-46e7-bfb9-3e8df7db027c",
       "name": "AI Agent (Tools Enabled)1",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.8,
       "position": [
-        4128,
-        208
+        4544,
+        272
       ]
     },
     {
       "parameters": {
         "jsCode": "const item = $input.first(); return [{ json: { ...(item.json || {}), template_intercept_applied: false } }];"
       },
-      "id": "866265c3-e54f-4139-8ba2-66a3e61853c2",
+      "id": "ef7c467a-a3c9-40e4-8381-c932418eb897",
       "name": "Skip Template Intercept1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4512,
-        192
+        4928,
+        256
       ]
     },
     {
       "parameters": {
         "jsCode": "const item = $input.first();\nconst data = item.json || {};\nconst templateHtml = String(data.email_template_html || data.html || \"\").trim();\nconst markdownCandidate = String(data.generated_email_markdown || data.message || data.enriched_message || \"\").trim();\nconst fallbackBody = markdownCandidate\n  ? `<p style=\"margin:0 0 12px 0;\">${markdownCandidate.replace(/\\n/g, \"<br />\")}</p>`\n  : `<p style=\"margin:0;\">No body content provided.</p>`;\nconst htmlBody = templateHtml && templateHtml.includes(\"{{body_html}}\")\n  ? templateHtml.replace(/\\{\\{body_html\\}\\}/g, fallbackBody)\n  : fallbackBody;\nreturn [{ json: { ...data, template_intercept_applied: true, intercepted_email_html: htmlBody, composio_email_payload: { body: htmlBody, is_html: true } } }];"
       },
-      "id": "59677265-829c-4b8b-a8e6-958778e585a6",
+      "id": "c48ecdbb-e251-488d-ba28-7f74eb149135",
       "name": "Apply Template Intercept1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4608,
-        -16
+        5024,
+        48
       ]
     },
     {
@@ -452,13 +362,13 @@
         },
         "options": {}
       },
-      "id": "d6637d12-eb74-4c83-b83b-2135a68909ff",
+      "id": "85eec9f3-4acd-443a-9ad8-a2c5bf20e53c",
       "name": "Template Intercept Enabled?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        4176,
-        0
+        4592,
+        64
       ]
     },
     {
@@ -467,26 +377,26 @@
         "combinationMode": "mergeByPosition",
         "options": {}
       },
-      "id": "fb91b1fe-60ab-4b78-bc7c-b36c0e08f351",
+      "id": "9a9e0242-95db-4a28-b1fa-713b44d3c32c",
       "name": "Merge Template Context1",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 2.1,
       "position": [
-        3920,
-        16
+        4336,
+        80
       ]
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst raw = String(item.message || '').trim();\nconst lower = raw.toLowerCase();\n\nconst isSlackIntent = /\\bslack\\b/.test(lower) && /(envi|manda|mandar|post|send|mensaje|message|avisa|notifica)/.test(lower);\nconst isGmailIntent = /\\b(gmail|email|correo|e-mail|enviar mail|send mail|send an email|send email)\\b/.test(lower);\nconst isCalendarIntent = /(calendar|calendario|evento|eventos|meeting|reunion)/.test(lower);\n\nlet targetHint = '';\nlet actionMessage = '';\nlet emailRecipient = '';\nlet emailSubject = '';\nlet emailBody = '';\n\n// Extract quoted text\nconst quoted = raw.match(/[\"\\u201C\\u201D'\"]([^\"\\u201C\\u201D'\"]{3,})[\"\\u201C\\u201D'\"]/u);\nif (quoted) actionMessage = quoted[1].trim();\n\n// Slack target extraction\nconst targetMatch = raw.match(/(?:a|to)\\s+([A-Za-z\\u00C0-\\u00FF0-9._@\\-\\s]{2,60}?)(?:\\s+(?:que\\s+diga|diga|saying\\s+that|that)|\\s*:|\\$)/i);\nif (targetMatch) targetHint = targetMatch[1].trim();\n\nif (!actionMessage) {\n  const sayMatch = raw.match(/(?:que\\s+diga|diga|saying\\s+that|saying)\\s+(.+)\\$/i);\n  if (sayMatch) actionMessage = sayMatch[1].trim();\n}\n\nif (!actionMessage && isSlackIntent) actionMessage = raw;\n\n// Email field extraction (structured text from user)\nconst recipientMatch = raw.match(/(?:recipient|to|para|destinatario)[\\s:]*([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})/i);\nif (recipientMatch) emailRecipient = recipientMatch[1].trim().toLowerCase();\n\nconst subjectMatch = raw.match(/(?:subject|asunto|tema)[\\s:]*(.{2,200}?)(?:\\n|\\$|email body|body|mensaje|contenido)/i);\nif (subjectMatch) emailSubject = subjectMatch[1].trim();\n\nconst bodyMatch = raw.match(/(?:email body|body|mensaje|contenido)[\\s:]*(.{2,2000})/i);\nif (bodyMatch) emailBody = bodyMatch[1].trim();\n\n// Fallback: if structured fields missing but email intent detected, try to find raw email\nif (isGmailIntent && !emailRecipient) {\n  const rawEmail = raw.match(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})/i);\n  if (rawEmail) emailRecipient = rawEmail[1].trim().toLowerCase();\n}\n\nlet intentType = 'general_chat';\nif (isSlackIntent) intentType = 'slack_send_action';\nelse if (isGmailIntent) intentType = 'gmail_send_action';\nelse if (/(clickup|tarea|task|asignad|assigned)/.test(lower)) intentType = 'clickup_lookup';\nelse if (isCalendarIntent) intentType = 'calendar_lookup';\n\nreturn [{ json: { \n  ...item, \n  intent_type: intentType, \n  action_target_hint: targetHint, \n  action_message: actionMessage,\n  email_recipient: emailRecipient,\n  email_subject: emailSubject,\n  email_body: emailBody\n} }];\n"
+        "jsCode": "const item = $input.first().json;\nconst raw = String(item.message || '').trim();\nconst lower = raw.toLowerCase();\n\nconst isSlackIntent = /\\bslack\\b/.test(lower) && /(envi|manda|mandar|post|send|mensaje|message|avisa|notifica)/.test(lower);\nconst isGmailIntent = /\\b(gmail|email|correo|e-mail|enviar mail|send mail|send an email|send email)\\b/.test(lower);\nconst isCalendarIntent = /(calendar|calendario|evento|eventos|meeting|reunion)/.test(lower);\n\nlet targetHint = '';\nlet actionMessage = '';\nlet emailRecipient = '';\nlet emailSubject = '';\nlet emailBody = '';\n\n// Extract quoted text\nconst quoted = raw.match(/[\"\\u201C\\u201D'\"]([^\"\\u201C\\u201D'\"]{3,})[\"\\u201C\\u201D'\"]/u);\nif (quoted) actionMessage = quoted[1].trim();\n\n// Slack target extraction\nconst targetMatch = raw.match(/(?:a|to)\\s+([A-Za-z\\u00C0-\\u00FF0-9._@\\-\\s]{2,60}?)(?:\\s+(?:que\\s+diga|diga|saying\\s+that|that)|\\s*:|\\$)/i);\nif (targetMatch) targetHint = targetMatch[1].trim();\n\nif (!actionMessage) {\n  const sayMatch = raw.match(/(?:que\\s+diga|diga|saying\\s+that|saying)\\s+(.+)\\$/i);\n  if (sayMatch) actionMessage = sayMatch[1].trim();\n}\n\nif (!actionMessage && isSlackIntent) actionMessage = raw;\n\n// Email field extraction (structured text from user)\nconst recipientMatch = raw.match(/(?:recipient|to|para|destinatario)[\\s:]*([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})/i);\nif (recipientMatch) emailRecipient = recipientMatch[1].trim().toLowerCase();\n\nconst subjectMatch = raw.match(/(?:subject|asunto|tema)[\\s:]*(.{2,200}?)(?:\\n|\\$|email body|body|mensaje|contenido)/i);\nif (subjectMatch) emailSubject = subjectMatch[1].trim();\n\nconst bodyMatch = raw.match(/(?:email body|body|mensaje|contenido)[\\s:]*(.{2,2000})/i);\nif (bodyMatch) emailBody = bodyMatch[1].trim();\n\n// Fallback: if structured fields missing but email intent detected, try to find raw email\nif (isGmailIntent && !emailRecipient) {\n  const rawEmail = raw.match(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,})/i);\n  if (rawEmail) emailRecipient = rawEmail[1].trim().toLowerCase();\n}\n\nlet intentType = 'general_chat';\nif (isSlackIntent) intentType = 'slack_send_action';\nelse if (isGmailIntent) intentType = 'gmail_send_action';\nelse if (/(clickup|tarea|task|asignad|assigned)/.test(lower)) intentType = 'clickup_lookup';\nelse if (isCalendarIntent) intentType = 'calendar_lookup';\n\n// Pre-compute email template section for AI prompt\nconst html = item.html || '';\nconst emailTemplateSection = intentType === 'gmail_send_action' && html\n  ? '\\n\\n[EMAIL_TEMPLATE_HTML]\\n' + html.slice(0, 6000) + '\\n\\n[EMAIL_TEMPLATE_RULE]\\nIf you call Gmail send, convert markdown body to valid HTML, inject it into template placeholder body_html, and pass the resulting HTML body with is_html=true.'\n  : '';\n\nreturn [{ json: { \n  ...item, \n  intent_type: intentType, \n  action_target_hint: targetHint, \n  action_message: actionMessage,\n  email_recipient: emailRecipient,\n  email_subject: emailSubject,\n  email_body: emailBody,\n  email_template_section: emailTemplateSection\n} }];\n"
       },
-      "id": "2058df64-9f79-4dc9-8c71-62ca01ae97cf",
+      "id": "113f7edd-59ba-42e9-8dce-da0d4bf04207",
       "name": "Intent Preprocessor1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3648,
-        16
+        4064,
+        80
       ]
     },
     {
@@ -537,13 +447,13 @@
         },
         "options": {}
       },
-      "id": "d3a71cb7-8e06-4776-941b-f3651bd0c46c",
+      "id": "fffc5eb2-7d2e-47eb-8938-179bab33c7e4",
       "name": "Normalize Envelope1",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3440,
-        16
+        3856,
+        80
       ]
     },
     {
@@ -562,13 +472,13 @@
           "timeout": 15000
         }
       },
-      "id": "ab061104-f26e-43af-b99a-8019a783ec49",
+      "id": "49550f6c-66c6-4872-a5f5-7af29b0be8a3",
       "name": "Fetch Tenant Email Template1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        3792,
-        192
+        4208,
+        256
       ],
       "continueOnFail": true
     },
@@ -595,13 +505,13 @@
         },
         "options": {}
       },
-      "id": "da9c3cc5-e960-4af5-9c68-82c8d94a08dd",
+      "id": "f1178b73-9f8c-489b-8df3-0aa6ac70ef29",
       "name": "Build Response1",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4496,
-        -176
+        4912,
+        -112
       ]
     }
   ],
@@ -809,7 +719,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": true
   },
-  "versionId": "3689646f-0629-48cf-b00a-8f0b48e29358",
+  "versionId": "8254a9dc-c4c0-4578-b8ce-94559380f144",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5884bef4e55de9055aac9badc39acc7412aa3809fde913cf95ebd084e6c2ffc2"
