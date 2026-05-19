@@ -30,6 +30,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Python deps
+        run: pip install typer httpx
+
       - name: Compile n8n assets
         run: |
           if [ -n "${{ inputs.asset }}" ]; then
@@ -65,6 +68,7 @@ jobs:
 
       - name: Deploy to n8n
         run: |
+          pip install httpx
           N8N_URL="${{ inputs.environment == 'prod' && secrets.N8N_URL_PROD || secrets.N8N_URL_DEV }}"
           N8N_API_KEY="${{ inputs.environment == 'prod' && secrets.N8N_API_KEY_PROD || secrets.N8N_API_KEY_DEV }}"
           if [ "${{ inputs.dry_run }}" = "true" ]; then
