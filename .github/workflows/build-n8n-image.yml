@@ -40,6 +40,13 @@ jobs:
         run: |
           cd services/n8n-node-sdk
           npm run build
+          # Copy SVG icons alongside compiled JS (tsc doesn't handle .svg)
+          for node_dir in src/nodes/*/; do
+            node_name=$(basename "$node_dir")
+            mkdir -p "dist/nodes/$node_name"
+            cp "$node_dir"*.svg "dist/nodes/$node_name/" 2>/dev/null || true
+          done
+          ls -la dist/nodes/
 
       - name: Upload built nodes
         uses: actions/upload-artifact@v4
