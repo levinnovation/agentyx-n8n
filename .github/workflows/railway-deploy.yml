@@ -39,6 +39,7 @@ jobs:
       - name: Link project
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        shell: bash
         run: |
           PROJECT_VAR="${{ inputs.tenant }}_RAILWAY_PROJECT_ID"
           PROJECT_ID="${!PROJECT_VAR}"
