@@ -128,12 +128,14 @@ jobs:
       - name: Verify Railway CLI
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           railway whoami
 
       - name: Link project
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           PROJECT_ID=$(printenv LEVINNOVATION_RAILWAY_PROJECT_ID)
           if [ -z "$PROJECT_ID" ]; then
@@ -145,12 +147,14 @@ jobs:
       - name: Sync variables
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           bash scripts/railway/sync-vars.sh --tenant levinnovation --service ${{ matrix.service }}
 
       - name: Deploy service
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           bash scripts/railway/deploy-service.sh \
             --tenant levinnovation \
@@ -161,6 +165,7 @@ jobs:
       - name: Smoke test
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           bash scripts/railway/smoke-test.sh \
             --tenant levinnovation \
