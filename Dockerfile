@@ -25,3 +25,6 @@ LABEL org.opencontainers.image.title="n8n" \
       org.opencontainers.image.description="Workflow Automation Tool (Agentyx fork with SSO)" \
       org.opencontainers.image.source="https://github.com/levinnovation/agentyx-n8n" \
       org.opencontainers.image.url="https://n8n.io"
+
+# Tell n8n where to find the baked-in custom community nodes
+ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes
