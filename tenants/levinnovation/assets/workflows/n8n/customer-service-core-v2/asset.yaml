@@ -1,0 +1,37 @@
+asset:
+  name: customer-service-core-v2
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  status: compiled
+  version: 2.0.0
+  description: 'Migrated customer-service-core using Agentyx community nodes.
+
+    Replaces: AI Agent + OpenRouter + Redis combo → AgentyxAIAgentBasicNode
+
+    Replaces: Manual HTTP Request CRM queries → AgentyxCRMQuery
+
+    Does NOT touch live customer-service-core. This is a v2 parallel workflow.
+
+    '
+  inputs:
+  - channel
+  - conversation_id
+  - user_id
+  - message
+  outputs:
+  - reply_text
+  - metadata
+  dependencies:
+  - service: openrouter
+    auth: openrouterApi
+  - service: redis
+    auth: redisAccount
+  - service: twenty-crm
+    auth: twentyCrmApi
+  files:
+  - workflow.yaml
+  - workflow.json
+  - asset.yaml
+  - README.md

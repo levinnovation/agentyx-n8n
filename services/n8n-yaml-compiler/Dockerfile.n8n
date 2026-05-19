@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+# Custom n8n image with Agentyx community nodes baked in.
+# Extends the upstream n8n image and installs @levinnovation/n8n-nodes-agentyx.
+
+ARG N8N_VERSION=2.21.2
+FROM n8nio/n8n:${N8N_VERSION}
+
+USER root
+
+# Install the Agentyx custom nodes package from the local build context
+# This expects the built n8n-node-sdk to be copied into the build context
+# under ./custom-nodes/
+COPY --chown=node:node ./custom-nodes/@levinnovation/n8n-nodes-agentyx/dist /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist
+COPY --chown=node:node ./custom-nodes/@levinnovation/n8n-nodes-agentyx/package.json /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json
+
+# Alternative: if published to GHCR/npm, use npm install instead:
+# RUN cd /usr/local/lib/node_modules/n8n && npm install @levinnovation/n8n-nodes-agentyx --production
+
+# Ensure n8n discovers the nodes by verifying the package.json "n8n" property exists
+RUN cat /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/package.json | grep -q '"n8n"' \
+  || (echo "ERROR: custom nodes package missing n8n registration" && exit 1)
+
+# Verify node files exist
+RUN ls -la /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/
+
+USER node
+
+# Standard n8n ports and healthcheck
+EXPOSE 5678
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -sf http://127.0.0.1:5678/healthz >/dev/null || exit 1

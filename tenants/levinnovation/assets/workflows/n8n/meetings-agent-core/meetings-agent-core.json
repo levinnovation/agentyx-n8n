@@ -30,6 +30,23 @@
     },
     {
       "parameters": {
+        "httpMethod": "POST",
+        "path": "sofer-transcript",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "meetings-core-webhook-trigger",
+      "name": "Webhook (Transcript Callback)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        420
+      ],
+      "webhookId": "sofer-transcript"
+    },
+    {
+      "parameters": {
         "assignments": {
           "assignments": [
             {
@@ -875,6 +892,17 @@
           {
             "node": "AI Agent (MCP Actions)",
             "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook (Transcript Callback)": {
+      "main": [
+        [
+          {
+            "node": "Normalize Envelope",
+            "type": "main",
             "index": 0
           }
         ]

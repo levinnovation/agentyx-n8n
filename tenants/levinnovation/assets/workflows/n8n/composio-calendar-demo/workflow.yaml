@@ -1,0 +1,90 @@
+apiVersion: agentyx.io/v1
+kind: N8nWorkflow
+metadata:
+  name: composio-calendar-demo
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  version: "1.0.0"
+  status: compiled
+spec:
+  trigger:
+    type: webhook
+    config:
+      httpMethod: POST
+      path: composio-calendar-demo
+      responseMode: responseNode
+
+  nodes:
+    - name: Webhook
+      type: webhook
+      position: [240, 300]
+      config:
+        httpMethod: POST
+        path: composio-calendar-demo
+        responseMode: responseNode
+
+    - name: Parse Input
+      type: set
+      position: [440, 300]
+      config:
+        mode: manual
+        values:
+          - name: meeting_title
+            value: "={{ $json.meeting_title || 'Demo Meeting' }}"
+          - name: meeting_date
+            value: "={{ $json.meeting_date || $now.toISO() }}"
+          - name: attendees
+            value: "={{ $json.attendees || [] }}"
+
+    - name: Create Calendar Event
+      type: agentyxComposioMcpToolNode
+      position: [640, 300]
+      config:
+        toolkit: GOOGLECALENDAR
+        maxTools: 3
+        entityId: levinnovation-user-id
+        userPrompt: "={{ $json.meeting_title }}"
+        method: tools/call
+        toolName: GOOGLECALENDAR_CREATE_EVENT
+        toolArguments: '{"summary":"={{ $json.meeting_title }}","start":{"dateTime":"={{ $json.meeting_date }}"},"attendees":"={{ JSON.stringify($json.attendees) }}"}'
+
+    - name: Format Response
+      type: set
+      position: [840, 300]
+      config:
+        mode: manual
+        values:
+          - name: status
+            value: success
+          - name: event_id
+            value: "={{ $json.result ? $json.result.id : null }}"
+          - name: message
+            value: "={{ 'Calendar event created: ' + ($json.result ? $json.result.summary : 'N/A') }}"
+
+    - name: Respond
+      type: respondToWebhook
+      position: [1040, 300]
+      config:
+        respondWith: json
+        responseBody: "={{ JSON.stringify($json) }}"
+
+  connections:
+    - from: Webhook
+      to: Parse Input
+    - from: Parse Input
+      to: Create Calendar Event
+    - from: Create Calendar Event
+      to: Format Response
+    - from: Format Response
+      to: Respond
+
+  settings:
+    executionOrder: v1
+    callerPolicy: workflowsFromSameOwner
+
+  tags:
+    - demo
+    - composio
+    - calendar
+    - agentyx-nodes

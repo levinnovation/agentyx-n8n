@@ -1,0 +1,34 @@
+asset:
+  name: twenty-crm-actions-v2
+  type: n8n-workflow
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  status: compiled
+  version: 2.0.0
+  description: 'Migrated Twenty CRM workflow using Agentyx community nodes.
+
+    Replaces: Manual HTTP Request nodes → AgentyxCRMQuery + AgentyxCRMUpdate
+
+    Does NOT touch live twenty-crm-write-actions or twenty-crm-on-update-interactions.
+
+    This is a v2 consolidated replacement.
+
+    '
+  inputs:
+  - operation
+  - email
+  - personData
+  - companyData
+  outputs:
+  - person_id
+  - company_id
+  - success
+  dependencies:
+  - service: twenty-crm
+    auth: twentyCrmApi
+  files:
+  - workflow.yaml
+  - workflow.json
+  - asset.yaml
+  - README.md

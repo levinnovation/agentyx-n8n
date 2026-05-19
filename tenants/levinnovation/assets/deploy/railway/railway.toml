@@ -23,7 +23,8 @@ startCommand = "redis-server --appendonly yes --requirepass $REDIS_PASSWORD"
 REDIS_PASSWORD = "${{secret(48)}}"
 
 [n8n-main]
-# Runtime parity invariant: main/worker/webhook must use the same n8n image.
+# Custom image with Agentyx community nodes baked in.
+# Built by .github/workflows/build-n8n-image.yml in the assets repo.
 image = "ghcr.io/levinnovation/agentyx-n8n:latest"
 startCommand = "n8n start"
 

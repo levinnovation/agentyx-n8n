@@ -1,0 +1,80 @@
+{
+  "name": "Resend Send Email",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "trigger",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [224, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json || {};\nlet data = raw;\n\n// Try to extract from query (AI Agent toolWorkflow passes arguments as 'query')\nif (raw.query) {\n  if (typeof raw.query === 'string') {\n    try {\n      data = JSON.parse(raw.query);\n    } catch (e) {\n      data = raw;\n    }\n  } else if (typeof raw.query === 'object') {\n    data = raw.query;\n  }\n}\n\nreturn [{\n  json: {\n    to: data.to || '',\n    from: data.from || 'noreply@levinnovation.com',\n    subject: data.subject || '',\n    html: data.html || data.body || data.text || '<p>No content</p>',\n    cc: data.cc || []\n  }\n}];"
+      },
+      "id": "parse-input",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [464, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer re_q8mwDvFD_BgTcBXWwsdhFTN7YKEZ9KQMC"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "send-request",
+      "name": "Send via Resend API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [704, 240]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Send via Resend API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

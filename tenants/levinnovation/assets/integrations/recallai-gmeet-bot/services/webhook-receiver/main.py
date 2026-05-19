@@ -22,6 +22,7 @@ MEETINGS_AGENT_CORE_URL = os.environ.get(
     "MEETINGS_AGENT_CORE_URL",
     "https://levinnovation.n8n.agentyx.one/webhook/sofer-transcript"
 )
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_MEETINGS_BOT_TOKEN")
 
 _secret_client = None
 
@@ -100,29 +101,46 @@ async def handle_transcript_ready(bot_id: str, bot_data: dict):
             logger.error("transcript_fetch_failed", bot_id=bot_id, error=str(exc))
             return
 
-    # Normalize transcript into plain text
+    # Normalize transcript into plain text (per Recall.ai transcript schema)
     transcript_text = ""
     if isinstance(transcript_data, list):
+        # Each item is typically an utterance with {speaker, text, ...}
         transcript_text = "\n".join(
             f"{chunk.get('speaker', 'Unknown')}: {chunk.get('text', '')}"
             for chunk in transcript_data
         )
-    elif isinstance(transcript_data, dict) and "text" in transcript_data:
-        transcript_text = transcript_data["text"]
+    elif isinstance(transcript_data, dict):
+        if "text" in transcript_data:
+            # Simple flat transcript
+            transcript_text = transcript_data["text"]
+        elif "words" in transcript_data:
+            # Word-level payload; join words
+            transcript_text = " ".join(w.get("text", "") for w in transcript_data.get("words", []))
+        else:
+            transcript_text = json.dumps(transcript_data, indent=2)
     else:
-        transcript_text = json.dumps(transcript_data)
+        transcript_text = json.dumps(transcript_data, indent=2)
 
-    # Forward to meetings-agent-core
+    # Extract original metadata the orchestrator stored when creating the bot
+    bot_metadata = bot_data.get("metadata", {})
+    chat_id = bot_metadata.get("chat_id") or bot_metadata.get("conversation_id", "")
+    original_meeting_url = bot_data.get("meeting_url", "")
+    original_meeting_title = bot_metadata.get("meeting_title", "Reunion sin titulo")
+    source_channel = bot_metadata.get("source", "unknown")
+
+    # Forward to meetings-agent-core via its Webhook (Transcript Callback) endpoint
     forward_payload = {
         "trigger_source": "recallai-webhook",
         "meeting_id": bot_id,
-        "meeting_url": bot_data.get("meeting_url", ""),
+        "meeting_url": original_meeting_url,
+        "meeting_title": original_meeting_title,
         "transcript_text": transcript_text,
         "metadata": {
             "recall_bot_id": bot_id,
             "recall_event": "bot.transcript_completed",
             "recall_status": bot_data.get("status"),
             "transcript_raw": transcript_data,
+            "source_channel": source_channel,
         },
     }
 
@@ -131,9 +149,43 @@ async def handle_transcript_ready(bot_id: str, bot_data: dict):
             resp = await client.post(
                 MEETINGS_AGENT_CORE_URL,
                 json=forward_payload,
-                timeout=60.0,
+                timeout=120.0,
             )
             resp.raise_for_status()
+            core_data = resp.json()
             logger.info("forwarded_to_core", bot_id=bot_id, status=resp.status_code)
         except Exception as exc:
             logger.error("forward_to_core_failed", bot_id=bot_id, error=str(exc))
+            return
+
+    # Optionally reply to Telegram if a chat_id was stored in the bot metadata
+    if source_channel == "telegram" and chat_id and TELEGRAM_BOT_TOKEN:
+        await reply_telegram(chat_id, core_data)
+
+async def reply_telegram(chat_id: str, core_data: dict):
+    user_message = core_data.get("user_message", "")
+    if not user_message and core_data.get("transcript_valid"):
+        user_message = (
+            f"Transcripcion terminada.\n\n"
+            f"Resumen: {core_data.get('executive_summary', '')[:400]}\n..."
+        )
+    if not user_message:
+        logger.info("no_telegram_reply_needed", chat_id=chat_id)
+        return
+
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": user_message,
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": True,
+                },
+                timeout=30.0,
+            )
+            resp.raise_for_status()
+            logger.info("telegram_reply_sent", chat_id=chat_id)
+        except Exception as exc:
+            logger.error("telegram_reply_failed", chat_id=chat_id, error=str(exc))

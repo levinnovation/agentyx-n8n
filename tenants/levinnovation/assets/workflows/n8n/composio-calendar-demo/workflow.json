@@ -1,0 +1,167 @@
+{
+  "name": "composio-calendar-demo",
+  "id": "composio-calendar-demo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "composio-calendar-demo",
+        "responseMode": "responseNode"
+      },
+      "id": "node-0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "composio-calendar-demo"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "values": [
+          {
+            "name": "meeting_title",
+            "value": "={{ $json.meeting_title || 'Demo Meeting' }}"
+          },
+          {
+            "name": "meeting_date",
+            "value": "={{ $json.meeting_date || $now.toISO() }}"
+          },
+          {
+            "name": "attendees",
+            "value": "={{ $json.attendees || [] }}"
+          }
+        ]
+      },
+      "id": "node-1",
+      "name": "Parse Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "toolkit": "GOOGLECALENDAR",
+        "maxTools": 3,
+        "entityId": "levinnovation-user-id",
+        "userPrompt": "={{ $json.meeting_title }}",
+        "method": "tools/call",
+        "toolName": "GOOGLECALENDAR_CREATE_EVENT",
+        "toolArguments": "{\"summary\":\"={{ $json.meeting_title }}\",\"start\":{\"dateTime\":\"={{ $json.meeting_date }}\"},\"attendees\":\"={{ JSON.stringify($json.attendees) }}\"}"
+      },
+      "id": "node-2",
+      "name": "Create Calendar Event",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxComposioMcpToolNode",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "values": [
+          {
+            "name": "status",
+            "value": "success"
+          },
+          {
+            "name": "event_id",
+            "value": "={{ $json.result ? $json.result.id : null }}"
+          },
+          {
+            "name": "message",
+            "value": "={{ 'Calendar event created: ' + ($json.result ? $json.result.summary : 'N/A') }}"
+          }
+        ]
+      },
+      "id": "node-3",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "node-4",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "tags": [
+    "demo",
+    "composio",
+    "calendar",
+    "agentyx-nodes"
+  ],
+  "active": false,
+  "versionId": null
+}

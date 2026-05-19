@@ -45,7 +45,9 @@ REDIS_PASSWORD = "${{secret(48)}}"
 # and pushed to GHCR. Railway pulls the pre-built image.
 # See .github/workflows/build-image.yml in the fork repo.
 [n8n-main]
-# Runtime parity invariant: main/worker/webhook must use the same n8n image.
+# NOTE: Custom image built by .github/workflows/build-n8n-image.yml
+# Includes @levinnovation/n8n-nodes-agentyx community nodes.
+# See services/n8n-node-sdk/ for node source code.
 image = "ghcr.io/levinnovation/agentyx-n8n:latest"
 startCommand = "n8n start"
 

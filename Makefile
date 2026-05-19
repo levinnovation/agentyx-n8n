@@ -10,18 +10,21 @@ TARGET    ?= langgraph
 ENV       ?= dev
 ASSET     ?= quotation-assistant
 
-.PHONY: help validate validate-specs validate-agent-context knowledge-index test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords scaffold-fork sync-fork rebase-agentyx build-forks connect-railway-scratch build-fork-images deploy-ghcr-images
+.PHONY: help validate validate-specs validate-agent-context validate-credentials knowledge-index test scaffold-tenant scaffold-domain scaffold-capability scaffold-asset compile-langgraph compile-n8n compile-codewords n8n-compile n8n-deploy n8n-diff n8n-migrate n8n-audit n8n-credentials-encrypt scaffold-fork sync-fork rebase-agentyx build-forks connect-railway-scratch build-fork-images deploy-ghcr-images
 
 help:
-	@echo "Targets: validate, validate-specs, validate-agent-context, knowledge-index, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords, scaffold-fork, sync-fork, rebase-agentyx, build-forks, connect-railway-scratch, build-fork-images, deploy-ghcr-images"
+	@echo "Targets: validate, validate-specs, validate-agent-context, validate-credentials, knowledge-index, test, scaffold-tenant, scaffold-domain, scaffold-capability, scaffold-asset, compile-langgraph, compile-n8n, compile-codewords, n8n-compile, n8n-deploy, n8n-diff, n8n-migrate, n8n-audit, n8n-credentials-encrypt, scaffold-fork, sync-fork, rebase-agentyx, build-forks, connect-railway-scratch, build-fork-images, deploy-ghcr-images"
 
-validate: validate-specs validate-agent-context
+validate: validate-specs validate-agent-context validate-credentials
 
 validate-specs:
 	$(PYTHON) scripts/validate_specs.py
 
 validate-agent-context:
 	$(PYTHON) scripts/validate_agent_context.py
+
+validate-credentials:
+	$(PYTHON) scripts/validate_credentials.py --tenant $(TENANT)
 
 knowledge-index:
 	$(PYTHON) scripts/knowledge_index.py
@@ -49,6 +52,24 @@ compile-n8n:
 
 compile-codewords:
 	$(PYTHON) scripts/compile_codewords_prompt.py --tenant $(TENANT) --domain $(DOMAIN) --capability $(CAPABILITY)
+
+n8n-compile:
+	agentyx n8n compile --tenant $(TENANT) --asset $(ASSET)
+
+n8n-deploy:
+	agentyx n8n deploy --tenant $(TENANT) --env $(ENV) --commit $(shell git rev-parse HEAD)
+
+n8n-diff:
+	agentyx n8n diff --tenant $(TENANT) --env $(ENV)
+
+n8n-migrate:
+	agentyx n8n migrate --tenant $(TENANT) --env $(ENV) --direction live-to-repo
+
+n8n-audit:
+	agentyx n8n audit --tenant $(TENANT) --since $(shell date -d '7 days ago' +%Y-%m-%d)
+
+n8n-credentials-encrypt:
+	agentyx n8n credentials encrypt --tenant $(TENANT) --file $(FILE)
 
 scaffold-fork:
 	bash scripts/forks/bootstrap-fork.sh --upstream $(UPSTREAM) --name $(APP)

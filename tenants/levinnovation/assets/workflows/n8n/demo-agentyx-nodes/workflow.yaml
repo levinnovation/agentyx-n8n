@@ -1,0 +1,81 @@
+apiVersion: agentyx.io/v1
+kind: N8nWorkflow
+metadata:
+  name: demo-agentyx-nodes
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  version: "1.0.0"
+  status: compiled
+spec:
+  trigger:
+    type: webhook
+    config:
+      httpMethod: POST
+      path: demo-agentyx-nodes
+      responseMode: responseNode
+
+  nodes:
+    - name: Webhook Trigger
+      type: webhook
+      position: [240, 300]
+      config:
+        httpMethod: POST
+        path: demo-agentyx-nodes
+        responseMode: responseNode
+
+    - name: Channel Input
+      type: agentyxChannelFormattedInputNode
+      position: [440, 300]
+      config:
+        channel: generic
+        payload: "={{ JSON.stringify($json) }}"
+        coreWorkflowId: demo-agentyx-nodes
+
+    - name: AI Agent
+      type: agentyxAIAgentBasicNode
+      position: [640, 300]
+      config:
+        model: openai/gpt-4o-mini
+        temperature: 0.3
+        maxTokens: 1024
+        systemPrompt: "You are a helpful AI assistant for a demo. Be concise and friendly."
+        userMessage: "={{ $json.message }}"
+        memoryEnabled: false
+        timeout: 15000
+
+    - name: Channel Output
+      type: agentyxChannelFormattedOutputNode
+      position: [840, 300]
+      config:
+        channel: generic
+        replyText: "={{ $json.reply_text }}"
+        recipientId: "={{ $json.user_id }}"
+        sendMethod: payload
+
+    - name: Respond to Webhook
+      type: respondToWebhook
+      position: [1040, 300]
+      config:
+        respondWith: json
+        responseBody: "={ \"reply\": $json.reply_text, \"channel\": $json.channel, \"user\": $json.user_id }"
+
+  connections:
+    - from: Webhook Trigger
+      to: Channel Input
+    - from: Channel Input
+      to: AI Agent
+    - from: AI Agent
+      to: Channel Output
+    - from: Channel Output
+      to: Respond to Webhook
+
+  settings:
+    executionOrder: v1
+    saveExecutionProgress: true
+    callerPolicy: workflowsFromSameOwner
+
+  tags:
+    - demo
+    - agentyx-nodes
+    - ai-agent

@@ -1,0 +1,76 @@
+apiVersion: agentyx.io/v1
+kind: N8nWorkflow
+metadata:
+  name: chan-kapso-wa-customer-service-v2
+  tenant: levinnovation
+  domain: customer-service
+  capability: lead-qualification
+  version: "2.0.0"
+  status: compiled
+spec:
+  trigger:
+    type: webhook
+    config:
+      httpMethod: POST
+      path: kapso-customer-service-v2
+      responseMode: responseNode
+
+  nodes:
+    - name: Kapso Webhook
+      type: webhook
+      position: [240, 300]
+      config:
+        httpMethod: POST
+        path: kapso-customer-service-v2
+        responseMode: responseNode
+
+    - name: Channel Input
+      type: agentyxChannelFormattedInputNode
+      position: [440, 300]
+      config:
+        channel: kapso-wa
+        payload: "={{ JSON.stringify($json) }}"
+        coreWorkflowId: customer-service-core-v2
+        dedupTtlMinutes: 15
+
+    - name: Execute Core
+      type: executeWorkflow
+      position: [640, 300]
+      config:
+        workflowId: customer-service-core-v2
+
+    - name: Channel Output
+      type: agentyxChannelFormattedOutputNode
+      position: [840, 300]
+      config:
+        channel: kapso-wa
+        replyText: "={{ $json.reply_text }}"
+        recipientId: "={{ $json.user_id }}"
+        sendMethod: api
+
+    - name: Respond to Kapso
+      type: respondToWebhook
+      position: [1040, 300]
+      config:
+        respondWith: json
+        responseBody: '{ "status": "ok" }'
+
+  connections:
+    - from: Kapso Webhook
+      to: Channel Input
+    - from: Channel Input
+      to: Execute Core
+    - from: Execute Core
+      to: Channel Output
+    - from: Channel Output
+      to: Respond to Kapso
+
+  settings:
+    executionOrder: v1
+    callerPolicy: workflowsFromSameOwner
+
+  tags:
+    - channel-adapter
+    - kapso
+    - whatsapp
+    - v2
