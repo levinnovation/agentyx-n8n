@@ -1,0 +1,10 @@
+{
+  "name": "log-to-audit",
+  "id": "log-to-audit",
+  "nodes": [],
+  "connections": {},
+  "settings": {},
+  "tags": [],
+  "active": false,
+  "versionId": null
+}

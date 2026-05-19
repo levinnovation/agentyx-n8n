@@ -1,0 +1,31 @@
+name: log-to-audit
+description: >
+  Record every execution with full provenance — tenant, domain, capability,
+  sub-workflows called, git hash. Uses Agentyx Audit Logger node.
+
+trigger:
+  type: webhook
+  httpMethod: POST
+
+nodes:
+  - name: Webhook Trigger
+    type: n8n-nodes-base.webhook
+    parameters:
+      httpMethod: POST
+      path: log-audit
+      responseMode: lastNode
+
+  - name: Audit Logger
+    type: "@levinnovation/n8n-nodes-agentyx.agentyxAuditLogger"
+    parameters:
+      action: "={{ $json.action || 'execute' }}"
+      tenant: "={{ $json.tenant || 'levinnovation' }}"
+      domain: "={{ $json.domain || '' }}"
+      capability: "={{ $json.capability || '' }}"
+      subWorkflows: "={{ JSON.stringify($json.sub_workflows || []) }}"
+      gitHash: "={{ $json.git_hash || '' }}"
+      storeMode: "={{ $json.store_mode || 'payload' }}"
+
+connections:
+  - from: Webhook Trigger
+    to: Audit Logger

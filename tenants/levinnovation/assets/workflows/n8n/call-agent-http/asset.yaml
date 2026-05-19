@@ -1,0 +1,9 @@
+id: levinnovation-call-agent-http
+name: call-agent-http
+type: n8n-workflow
+tenant: levinnovation
+description: call agent http — core pipeline sub-workflow
+tags:
+- sub-workflow
+- core-pipeline
+- levinnovation
