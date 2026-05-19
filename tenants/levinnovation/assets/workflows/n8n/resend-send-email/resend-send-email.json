@@ -13,13 +13,57 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json || {};\nlet item = raw;\n\n// AI Agent passes tool arguments as 'query' (sometimes JSON string)\nif (raw.query) {\n  if (typeof raw.query === 'string') {\n    try {\n      item = JSON.parse(raw.query);\n    } catch (e) {\n      item = raw;\n    }\n  } else if (typeof raw.query === 'object') {\n    item = raw.query;\n  }\n}\n\n// Build clean payload\nconst payload = {};\n\nconst to = item.to || item.recipient_email || item.to_email || '';\nconst from_addr = item.from || item.from_email || 'me';\nconst subject = item.subject || item.email_subject || '';\nconst html = item.html || item.body || item.text || item.content || '<p>No content</p>';\n\nif (!to) throw new Error('Missing required field: to');\nif (!subject) throw new Error('Missing required field: subject');\n\npayload.to = to;\npayload.from = from_addr;\npayload.subject = subject;\npayload.html = html;\n\nconst cc = item.cc || item.cc_emails || [];\nif (cc && (Array.isArray(cc) ? cc.length > 0 : String(cc).trim().length > 0)) {\n  payload.cc = cc;\n}\n\nreturn [{ json: payload }];"
+        "assignments": {
+          "assignments": [
+            {
+              "name": "debug_input",
+              "value": "={{ JSON.stringify($json) }}",
+              "type": "string"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.query?.to || $json.to || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "from",
+              "value": "={{ $json.query?.from || $json.from || 'me' }}",
+              "type": "string"
+            },
+            {
+              "name": "subject",
+              "value": "={{ $json.query?.subject || $json.subject || '' }}",
+              "type": "string"
+            },
+            {
+              "name": "html",
+              "value": "={{ $json.query?.html || $json.query?.body || $json.html || $json.body || $json.text || '<p>No content</p>' }}",
+              "type": "string"
+            },
+            {
+              "name": "cc",
+              "value": "={{ JSON.stringify($json.query?.cc || $json.cc || []) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "parse",
-      "name": "Parse Input",
+      "id": "map-fields",
+      "name": "Map Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [464, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst to = item.to || '';\nconst from_addr = item.from || 'me';\nconst subject = item.subject || '';\nconst html = item.html || '<p>No content</p>';\nconst ccStr = item.cc || '[]';\n\nlet cc = [];\ntry {\n  cc = JSON.parse(ccStr);\n} catch (e) {\n  cc = [];\n}\n\nconst payload = {\n  to: to,\n  from: from_addr,\n  subject: subject,\n  html: html\n};\n\nif (cc && Array.isArray(cc) && cc.length > 0) {\n  payload.cc = cc;\n}\n\nreturn [{ json: payload }];"
+      },
+      "id": "build-payload",
+      "name": "Build Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [464, 240]
+      "position": [704, 240]
     },
     {
       "parameters": {
@@ -49,7 +93,7 @@
       "name": "Send via Resend API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [704, 240]
+      "position": [944, 240]
     }
   ],
   "connections": {
@@ -57,14 +101,25 @@
       "main": [
         [
           {
-            "node": "Parse Input",
+            "node": "Map Fields",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Input": {
+    "Map Fields": {
+      "main": [
+        [
+          {
+            "node": "Build Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payload": {
       "main": [
         [
           {
