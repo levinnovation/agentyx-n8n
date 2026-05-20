@@ -22,7 +22,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/agentyx-n8n
+  IMAGE_NAME: levinnovation/agentyx-vertical-assets/agentyx-n8n
 
 jobs:
   build-nodes:
