@@ -1,1 +1,1339 @@
-{"name":"Prospector Inbound Handler (Levinnovation)","nodes":[{"id":"trg-schedule","name":"Schedule Trigger","type":"n8n-nodes-base.scheduleTrigger","typeVersion":1.2,"position":[-2400,0],"parameters":{"rule":{"interval":[{"field":"hours","hoursInterval":2}]}}},{"id":"gmail-get","name":"Gmail: Get Replies","type":"n8n-nodes-base.gmail","typeVersion":2,"position":[-2160,0],"parameters":{"operation":"getAll","resource":"message","limit":50,"q":"newer_than:1d -from:me","format":"minimal","options":{}},"credentials":{"gmailOAuth2":{"id":"InxG3sBcs52s9ri6","name":"Gmail account"}}},{"id":"parse-emails","name":"Parse Emails","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1920,0],"parameters":{"jsCode":"const inputs = $input.all();\nconst emails = [];\n\nfor (const input of inputs) {\n  const raw = input.json || {};\n  const msgs = raw.messages || raw.data || [raw];\n  for (const msg of (Array.isArray(msgs) ? msgs : [])) {\n    const headers = msg.payload?.headers || msg.headers || [];\n    const getHeader = (name) => {\n      const h = headers.find(x => String(x.name || x.key || '').toLowerCase() === name.toLowerCase());\n      return h ? (h.value || h.val || '') : '';\n    };\n    const from = getHeader('From');\n    const to = getHeader('To');\n    const subject = getHeader('Subject');\n    const threadId = msg.threadId || '';\n    const id = msg.id || '';\n    const snippet = msg.snippet || '';\n    // Extract plain text from payload if available\n    let body = '';\n    if (msg.payload?.parts) {\n      const textPart = msg.payload.parts.find(p => p.mimeType === 'text/plain');\n      if (textPart && textPart.body && textPart.body.data) {\n        try {\n          body = Buffer.from(textPart.body.data, 'base64').toString('utf-8').substring(0, 4000);\n        } catch (e) { body = snippet; }\n      }\n    }\n    if (!body) body = snippet;\n    \n    // Extract email address from From header\n    const emailMatch = from.match(/<([^>]+)>/);\n    const fromEmail = emailMatch ? emailMatch[1] : from;\n    \n    emails.push({\n      json: {\n        message_id: id,\n        thread_id: threadId,\n        from_email: String(fromEmail).toLowerCase().trim(),\n        from_name: from.replace(/<[^>]+>/, '').trim(),\n        to_email: to,\n        subject: subject,\n        body: body,\n        snippet: snippet,\n        received_at: msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : '',\n        is_reply: /^re:/i.test(subject),\n      }\n    });\n  }\n}\n\nreturn emails.filter(e => e.json.is_reply && e.json.from_email);\n"}},{"id":"has-replies","name":"Has Replies?","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-1680,0],"parameters":{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"cond-has-replies","leftValue":"={{ $input.all().length > 0 }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}}},{"id":"split","name":"Split In Batches","type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[-1440,0],"parameters":{"batchSize":1,"options":{}}},{"id":"load-campaign","name":"Load Campaign Config","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-1200,0],"parameters":{"method":"GET","url":"={{ String($env.CAMPAIGNS_API_BASE || 'https://raw.githubusercontent.com/levinnovation/agentyx-vertical-assets/main/tenants/levinnovation/domains/sales-prospecting/campaigns') + '/' + String($json.campaign_id || $env.DEFAULT_CAMPAIGN_ID || 'agentyx') + '/campaign.yaml' }}","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Accept","value":"text/yaml,application/json"}]},"options":{"timeout":15000}},"continueOnFail":true},{"id":"parse-campaign","name":"Parse Campaign YAML","type":"n8n-nodes-base.code","typeVersion":2,"position":[-960,0],"parameters":{"jsCode":"const raw = $input.first().json || {};\nconst yamlText = raw.data || raw.body || raw.yaml || JSON.stringify(raw);\n\nfunction parseYaml(text) {\n  const lines = text.split('\\n');\n  const result = {};\n  let section = null;\n  for (let line of lines) {\n    const trimmed = line.trim();\n    if (!trimmed || trimmed.startsWith('#')) continue;\n    if (trimmed.startsWith('- ')) {\n      const arrName = section || 'root';\n      if (!result[arrName]) result[arrName] = [];\n      result[arrName].push(trimmed.replace('- ', '').trim());\n      continue;\n    }\n    if (line.startsWith('  ') && !line.startsWith('    ') && section) {\n      const match = trimmed.match(/^([\\w_]+):\\s*(.*)$/);\n      if (match) {\n        if (!result[section]) result[section] = {};\n        let val = match[2].trim();\n        if (val.startsWith('\"') && val.endsWith('\"')) val = val.slice(1,-1);\n        if (val === 'true') val = true;\n        if (val === 'false') val = false;\n        if (!isNaN(Number(val)) && val !== '') val = Number(val);\n        result[section][match[1]] = val;\n      }\n      continue;\n    }\n    const match = trimmed.match(/^([\\w_]+):\\s*(.*)$/);\n    if (match) {\n      let val = match[2].trim();\n      if (val === '') { section = match[1]; continue; }\n      if (val.startsWith('\"') && val.endsWith('\"')) val = val.slice(1,-1);\n      if (val === 'true') val = true;\n      if (val === 'false') val = false;\n      if (!isNaN(Number(val)) && val !== '') val = Number(val);\n      result[match[1]] = val;\n      section = null;\n    }\n  }\n  return result;\n}\n\nlet campaign = {};\ntry {\n  campaign = parseYaml(yamlText);\n} catch (e) {\n  campaign = { _parse_error: e.message };\n}\n\nconst email = $('Split In Batches').item.json || {};\nreturn [{ json: { ...email, campaign } }];\n"}},{"id":"compose-agent-input","name":"Compose Agent Input","type":"n8n-nodes-base.code","typeVersion":2,"position":[-720,0],"parameters":{"jsCode":"const email = $('Split In Batches').item.json || {};\nconst campaign = email.campaign || {};\nconst product = campaign.product || {};\n\nconst inputText = [\n  `EMAIL RECIBIDO DE: ${email.from_name} <${email.from_email}>`,\n  `ASUNTO: ${email.subject}`,\n  `CUERPO: ${email.body || email.snippet || ''}`,\n  ``,\n  `PRODUCTO DE CAMPA\u00d1A: ${product.name || 'LEV Innovation'}`,\n  `DESCRIPCI\u00d3N: ${product.description || ''}`,\n  ``,\n  `KEYWORDS DE INTER\u00c9S: ${(campaign.sales_team?.interest_keywords || []).join(', ')}`,\n  ``,\n  `Analiza si este email muestra inter\u00e9s genuino en el producto.`\n].join('\\n');\n\nreturn [{ json: { ...email, _agent_input: inputText } }];\n"}},{"id":"ai-agent","name":"AI Agent: Analyze Interest","type":"@n8n/n8n-nodes-langchain.agent","typeVersion":1.8,"position":[0,0],"parameters":{"promptType":"define","text":"={{ $json._agent_input }}","options":{"systemMessage":"Eres el analizador de inter\u00e9s de LEV Innovation. Recibes un email de respuesta de un lead a nuestro outreach.\n\nREGLAS:\n1. Determina si el lead muestra inter\u00e9s GENUINO (no respuesta autom\u00e1tica, no rechazo directo)\n2. Mide confianza 0-100\n3. Extrae raz\u00f3n del an\u00e1lisis\n4. Sugiere acci\u00f3n para el equipo de ventas\n\nOUTPUT JSON estricto:\n{\"interested\":true,\"confidence\":85,\"reason\":\"...\",\"suggested_action\":\"...\",\"risk_flags\":[]}\n\nMODO: solo analiza, no env\u00edas emails ni usas tools de acci\u00f3n.\n\nPRODUCTOS LEV (para medir interes del lead):\n- Agentyx, Oosto, Acumatica, Legalink, Contax"}}},{"id":"openrouter-model","name":"OpenRouter Chat Model","type":"@n8n/n8n-nodes-langchain.lmChatOpenRouter","typeVersion":1,"position":[-240,488],"parameters":{"model":"openai/gpt-4o","options":{"maxTokens":2048,"temperature":0.3}},"credentials":{"openRouterApi":{"id":"xzxfrVCi8DyMDND6","name":"OpenRouter account"}}},{"id":"parse-result","name":"Parse Interest Result","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const item = $input.first().json || {};\nconst raw = String(item.output || item.text || '').trim();\nlet parsed = {};\n\ntry {\n  const match = raw.match(/{[\\s\\S]*}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  }\n} catch (e) {\n  parsed = { _parse_error: e.message };\n}\n\nconst interested = Boolean(parsed.interested);\nconst confidence = Number(parsed.confidence || 0);\n\nreturn [{ json: {\n  ...item,\n  interested: interested,\n  confidence: confidence,\n  interest_reason: parsed.reason || '',\n  suggested_action: parsed.suggested_action || '',\n  risk_flags: parsed.risk_flags || [],\n  _parse_error: parsed._parse_error || null,\n} }];\n"}},{"id":"is-interested","name":"Is Interested?","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[480,0],"parameters":{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"cond-interested","leftValue":"={{ $json.interested === true && Number($json.confidence || 0) >= 70 }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}}},{"id":"prep-sales-email","name":"Prepare Sales Email","type":"n8n-nodes-base.code","typeVersion":2,"position":[720,0],"parameters":{"jsCode":"const item = $input.first().json || {};\nconst campaign = item.campaign || {};\nconst product = campaign.product || {};\n\nconst html = `<html><body>\n<h3>\ud83c\udfaf Lead Interesado Detectado</h3>\n<p><strong>Lead:</strong> ${item.from_name} &lt;${item.from_email}&gt;</p>\n<p><strong>Producto:</strong> ${product.name || 'LEV Innovation'}</p>\n<p><strong>Confianza:</strong> ${item.confidence}%</p>\n<p><strong>Raz\u00f3n:</strong> ${item.interest_reason || ''}</p>\n<p><strong>Acci\u00f3n sugerida:</strong> ${item.suggested_action || ''}</p>\n<hr/>\n<p><strong>Asunto original:</strong> ${item.subject}</p>\n<p><strong>Respuesta del lead:</strong></p>\n<blockquote>${(item.body || item.snippet || '').substring(0, 2000)}</blockquote>\n<p><a href=\"${$env.TWENTY_WEB_URL || 'https://twenty-levinnovation.railway.app'}\">Ver en Twenty CRM</a></p>\n</body></html>`;\n\nreturn [{ json: { ...item, sales_email_html: html } }];\n"}},{"id":"resend-sales","name":"Resend: Notify Sales Team","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[960,0],"parameters":{"method":"POST","url":"https://api.resend.com/emails","authentication":"none","genericAuthType":"httpHeaderAuth","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Authorization","value":"=Bearer {{ $env.RESEND_API_KEY }}"},{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({\n  from: ($env.RESEND_FROM_EMAIL || 'prospector@levinnovation.com'),\n  to: ($env.SALES_TEAM_EMAIL || 'evargas@levinnovation.com'),\n  subject: `[LEV Prospector] Lead interesado - ${$json.from_name} | ${$json.campaign?.product?.name || 'LEV'}`,\n  html: $json.sales_email_html\n}) }}","options":{"timeout":30000}},"continueOnFail":true},{"id":"update-crm-interested","name":"Update CRM: Interested","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[1200,0],"parameters":{"workflowId":{"__rl":true,"value":"8DwIA1gB946zMl7B","mode":"id"},"options":{}},"continueOnFail":true},{"id":"slack-interested","name":"Slack: Lead Interested","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1440,0],"parameters":{"method":"POST","url":"={{ $env.SLACK_WEBHOOK_URL }}","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `\ud83c\udfaf *Lead Interesado*\\n\u2022 Nombre: ${$json.from_name}\\n\u2022 Email: ${$json.from_email}\\n\u2022 Producto: ${$json.campaign?.product?.name || 'LEV'}\\n\u2022 Confianza: ${$json.confidence}%\\n\u2022 Raz\u00f3n: ${$json.interest_reason}\\n\u2022 Acci\u00f3n: ${$json.suggested_action}`\n}) }}","options":{"timeout":15000}},"continueOnFail":true},{"id":"update-crm-no","name":"Update CRM: Not Interested","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[720,200],"parameters":{"workflowId":{"__rl":true,"value":"8DwIA1gB946zMl7B","mode":"id"},"options":{}},"continueOnFail":true},{"id":"next-batch","name":"Next Batch","type":"n8n-nodes-base.noOp","typeVersion":1,"position":[1680,0]},{"id":"build-summary","name":"Build Summary","type":"n8n-nodes-base.code","typeVersion":2,"position":[1920,0],"parameters":{"jsCode":"const runs = $input.all().map(i => i.json || {});\nconst interested = runs.filter(r => r.interested === true && r.confidence >= 70).length;\nconst notInterested = runs.filter(r => r.interested === false).length;\nconst errors = runs.filter(r => r._parse_error).length;\n\nreturn [{ json: {\n  inbound_run_id: `inbound-${Date.now()}`,\n  interested,\n  not_interested: notInterested,\n  errors,\n  total: runs.length,\n} }];\n"}},{"id":"slack-summary","name":"Slack: Inbound Summary","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[2160,0],"parameters":{"method":"POST","url":"={{ $env.SLACK_WEBHOOK_URL }}","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `\ud83d\udcec Inbound Handler Run Complete\\n\u2022 Interesados: ${$json.interested}\\n\u2022 No interesados: ${$json.not_interested}\\n\u2022 Errores: ${$json.errors}\\n\u2022 Total procesados: ${$json.total}`\n}) }}","options":{"timeout":15000}},"continueOnFail":true}],"connections":{"Schedule Trigger":{"main":[[{"node":"Gmail: Get Replies","type":"main","index":0}]]},"Gmail: Get Replies":{"main":[[{"node":"Parse Emails","type":"main","index":0}]]},"Parse Emails":{"main":[[{"node":"Has Replies?","type":"main","index":0}]]},"Has Replies?":{"main":[[{"node":"Split In Batches","type":"main","index":0}],[]]},"Split In Batches":{"main":[[{"node":"Load Campaign Config","type":"main","index":0}]]},"Load Campaign Config":{"main":[[{"node":"Parse Campaign YAML","type":"main","index":0}]]},"Parse Campaign YAML":{"main":[[{"node":"Compose Agent Input","type":"main","index":0}]]},"Compose Agent Input":{"main":[[{"node":"AI Agent: Analyze Interest","type":"main","index":0}]]},"AI Agent: Analyze Interest":{"main":[[{"node":"Parse Interest Result","type":"main","index":0}]]},"Parse Interest Result":{"main":[[{"node":"Is Interested?","type":"main","index":0}]]},"Is Interested?":{"main":[[{"node":"Prepare Sales Email","type":"main","index":0}],[{"node":"Update CRM: Not Interested","type":"main","index":0}]]},"Prepare Sales Email":{"main":[[{"node":"Resend: Notify Sales Team","type":"main","index":0}]]},"Resend: Notify Sales Team":{"main":[[{"node":"Update CRM: Interested","type":"main","index":0}]]},"Update CRM: Interested":{"main":[[{"node":"Slack: Lead Interested","type":"main","index":0}]]},"Slack: Lead Interested":{"main":[[{"node":"Next Batch","type":"main","index":0}]]},"Update CRM: Not Interested":{"main":[[{"node":"Next Batch","type":"main","index":0}]]},"Next Batch":{"main":[[{"node":"Build Summary","type":"main","index":0}],[{"node":"Split In Batches","type":"main","index":0}]]},"Build Summary":{"main":[[{"node":"Slack: Inbound Summary","type":"main","index":0}]]},"OpenRouter Chat Model":{"ai_languageModel":[[{"node":"AI Agent: Analyze Interest","type":"ai_languageModel","index":0}]]}},"settings":{"executionOrder":"v1","saveDataErrorExecution":"all","saveDataSuccessExecution":"all","saveManualExecutions":true,"saveExecutionProgress":true,"timezone":"America/Costa_Rica","binaryMode":"separate"},"meta":{"templateCredsSetupCompleted":true},"tags":[]}
+{
+  "updatedAt": "2026-05-19T19:04:30.328Z",
+  "createdAt": "2026-05-19T17:26:01.921Z",
+  "id": "exiCpSQ5rQwPwzq5",
+  "name": "Prospector Inbound Handler (Levinnovation)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "trg-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2400,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "gmail-get",
+      "name": "Gmail: Get Replies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2160,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://backend.composio.dev/api/v2/actions/GMAIL_FETCH_EMAILS/execute",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "ak_zEracyzEImO2z2-1CFT2"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"input\":{\"query\":\"newer_than:1d -from:me\",\"max_results\":50,\"include_raw_email\":false},\"entityId\":\"levinnovation-user-id\"}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "webhookId": "d0ef6aff-8862-4002-81b6-499a2d545591"
+    },
+    {
+      "id": "parse-emails",
+      "name": "Parse Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// Parsea respuesta de Composio GMAIL_FETCH_EMAILS\nconst inputs = $input.all();\nconst emails = [];\n\nfor (const input of inputs) {\n  const raw = input.json || {};\n  // Composio response: { data: { messages: [...] }, successful: true }\n  // Gmail native response: { messages: [...] } or { data: [...] }\n  const msgs = raw.messages\n    || raw.data?.messages\n    || (Array.isArray(raw.data) ? raw.data : null)\n    || [];\n\n  for (const msg of (Array.isArray(msgs) ? msgs : [])) {\n    const headers = msg.payload?.headers || msg.headers || [];\n    const getHeader = (name) => {\n      const h = headers.find(x => String(x.name || x.key || '').toLowerCase() === name.toLowerCase());\n      return h ? (h.value || h.val || '') : '';\n    };\n    const from = getHeader('From');\n    const to = getHeader('To');\n    const subject = getHeader('Subject');\n    const threadId = msg.threadId || '';\n    const id = msg.id || '';\n    const snippet = msg.snippet || '';\n\n    let body = '';\n    if (msg.payload?.parts) {\n      const textPart = msg.payload.parts.find(p => p.mimeType === 'text/plain');\n      if (textPart && textPart.body && textPart.body.data) {\n        try {\n          body = Buffer.from(textPart.body.data, 'base64').toString('utf-8').substring(0, 4000);\n        } catch (e) { body = snippet; }\n      }\n    }\n    if (!body) body = msg.body?.data ? Buffer.from(msg.body.data, 'base64').toString('utf-8').substring(0, 4000) : snippet;\n\n    const emailMatch = from.match(/<([^>]+)>/);\n    const fromEmail = emailMatch ? emailMatch[1] : from;\n\n    emails.push({\n      json: {\n        message_id: id,\n        thread_id: threadId,\n        from_email: String(fromEmail).toLowerCase().trim(),\n        from_name: from.replace(/<[^>]+>/, '').trim(),\n        to_email: to,\n        subject: subject,\n        body: body,\n        snippet: snippet,\n        received_at: msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : new Date().toISOString(),\n        is_reply: /^re:/i.test(subject),\n        campaign_id: msg.campaign_id || 'agentyx'\n      }\n    });\n  }\n}\n\nreturn emails.filter(e => e.json.is_reply && e.json.from_email);\n"
+      }
+    },
+    {
+      "id": "has-replies",
+      "name": "Has Replies?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1680,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-has-replies",
+              "leftValue": "={{ $input.all().length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "split",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1440,
+        0
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "load-campaign",
+      "name": "Load Campaign Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1200,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://levinnovation-kb-i5orcls.svc.aped-4627-b74a.pinecone.io/vectors/fetch?ids={{ $json.campaign_id || 'agentyx' }}&namespace=campaigns",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "pcsk_5eyNUV_RfAX261NvTzrAshfGeaUxLnTUK7q1hGPZtcyqLtcSMdfGRSYce65k92gAaxcFa7"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "parse-campaign",
+      "name": "Parse Campaign YAML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -960,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// Extrae config de campaña desde Pinecone y combina con datos del email\nconst pinecone = $input.first().json || {};\nconst vectors = pinecone.vectors || {};\nconst campaignId = Object.keys(vectors)[0] || 'agentyx';\nconst vector = vectors[campaignId] || {};\nconst m = vector.metadata || {};\n\nconst fallbackMeta = {\n  campaign_id: 'agentyx',\n  product_name: 'Agentyx',\n  product_desc: 'Plataforma de automatizacion inteligente con IA y agentes digitales para empresas LATAM',\n  sales_email: 'fleon@levinnovation.com',\n  interest_keywords: ['interesado','demo','cotizacion','reunion','precio','quiero saber mas','meeting','agenda','automatizacion']\n};\nconst meta = Object.keys(m).length > 0 ? m : fallbackMeta;\n\nconst campaign = {\n  id: meta.campaign_id || campaignId,\n  campaign_id: meta.campaign_id || campaignId,\n  product: {\n    name: meta.product_name || 'Agentyx',\n    description: meta.product_desc || ''\n  },\n  email: {\n    from_name: meta.from_name || 'LEV Innovation',\n    from_email: meta.from_email || 'prospector@levinnovation.com'\n  },\n  sales_team: {\n    notification_emails: [meta.sales_email || 'fleon@levinnovation.com'],\n    interest_keywords: Array.isArray(meta.interest_keywords) ? meta.interest_keywords : ['interesado','demo']\n  }\n};\n\n// Email data del batch loop\nconst emailData = $('Split In Batches').item.json || {};\nreturn [{ json: { ...emailData, campaign } }];\n"
+      }
+    },
+    {
+      "id": "compose-agent-input",
+      "name": "Compose Agent Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// Lee email + campaign del nodo anterior (Parse Campaign → Pinecone extractor)\nconst item = $input.first().json || {};\nconst email = item;\nconst campaign = item.campaign || {};\nconst product = campaign.product || {};\n\nconst inputText = [\n  `EMAIL RECIBIDO DE: ${email.from_name} <${email.from_email}>`,\n  `ASUNTO: ${email.subject}`,\n  `CUERPO: ${email.body || email.snippet || ''}`,\n  ``,\n  `PRODUCTO DE CAMPANA: ${product.name || 'LEV Innovation'}`,\n  `DESCRIPCION: ${product.description || ''}`,\n  ``,\n  `KEYWORDS DE INTERES: ${(campaign.sales_team?.interest_keywords || []).join(', ')}`,\n  ``,\n  `Analiza si este email muestra interes genuino en el producto.`\n].join('\\n');\n\nreturn [{ json: { ...email, _agent_input: inputText } }];\n"
+      }
+    },
+    {
+      "id": "ai-agent",
+      "name": "AI Agent: Analyze Interest",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json._agent_input }}",
+        "options": {
+          "systemMessage": "Eres el analizador de interés de LEV Innovation. Recibes un email de respuesta de un lead a nuestro outreach.\n\nREGLAS:\n1. Determina si el lead muestra interés GENUINO (no respuesta automática, no rechazo directo)\n2. Mide confianza 0-100\n3. Extrae razón del análisis\n4. Sugiere acción para el equipo de ventas\n\nOUTPUT JSON estricto:\n{\"interested\":true,\"confidence\":85,\"reason\":\"...\",\"suggested_action\":\"...\",\"risk_flags\":[]}\n\nMODO: solo analiza, no envías emails ni usas tools de acción.\n\nPRODUCTOS LEV (para medir interes del lead):\n- Agentyx, Oosto, Acumatica, Legalink, Contax"
+        }
+      }
+    },
+    {
+      "id": "openrouter-model",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        488
+      ],
+      "parameters": {
+        "model": "openai/gpt-4o",
+        "options": {
+          "maxTokens": 2048,
+          "temperature": 0.3
+        }
+      },
+      "credentials": {
+        "openRouterApi": {
+          "id": "xzxfrVCi8DyMDND6",
+          "name": "OpenRouter (Prospector)"
+        }
+      }
+    },
+    {
+      "id": "parse-result",
+      "name": "Parse Interest Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst raw = String(item.output || item.text || '').trim();\nlet parsed = {};\n\ntry {\n  const match = raw.match(/{[\\s\\S]*}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  }\n} catch (e) {\n  parsed = { _parse_error: e.message };\n}\n\nconst interested = Boolean(parsed.interested);\nconst confidence = Number(parsed.confidence || 0);\n\nreturn [{ json: {\n  ...item,\n  interested: interested,\n  confidence: confidence,\n  interest_reason: parsed.reason || '',\n  suggested_action: parsed.suggested_action || '',\n  risk_flags: parsed.risk_flags || [],\n  _parse_error: parsed._parse_error || null,\n} }];\n"
+      }
+    },
+    {
+      "id": "is-interested",
+      "name": "Is Interested?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-interested",
+              "leftValue": "={{ $json.interested === true && Number($json.confidence || 0) >= 70 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "prep-sales-email",
+      "name": "Prepare Sales Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst campaign = item.campaign || {};\nconst product = campaign.product || {};\n\nconst html = `<html><body>\n<h3>🎯 Lead Interesado Detectado</h3>\n<p><strong>Lead:</strong> ${item.from_name} &lt;${item.from_email}&gt;</p>\n<p><strong>Producto:</strong> ${product.name || 'LEV Innovation'}</p>\n<p><strong>Confianza:</strong> ${item.confidence}%</p>\n<p><strong>Razón:</strong> ${item.interest_reason || ''}</p>\n<p><strong>Acción sugerida:</strong> ${item.suggested_action || ''}</p>\n<hr/>\n<p><strong>Asunto original:</strong> ${item.subject}</p>\n<p><strong>Respuesta del lead:</strong></p>\n<blockquote>${(item.body || item.snippet || '').substring(0, 2000)}</blockquote>\n<p><a href=\"${$env.TWENTY_WEB_URL || 'https://twenty-levinnovation.railway.app'}\">Ver en Twenty CRM</a></p>\n</body></html>`;\n\nreturn [{ json: { ...item, sales_email_html: html } }];\n"
+      }
+    },
+    {
+      "id": "resend-sales",
+      "name": "Resend: Notify Sales Team",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "none",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer re_q8mwDvFD_BgTcBXWwsdhFTN7YKEZ9KQMC"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  from: ($env.RESEND_FROM_EMAIL || 'prospector@levinnovation.com'),\n  to: ($env.SALES_TEAM_EMAIL || 'evargas@levinnovation.com'),\n  subject: `[LEV Prospector] Lead interesado - ${$json.from_name} | ${$json.campaign?.product?.name || 'LEV'}`,\n  html: $json.sales_email_html\n}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "update-crm-interested",
+      "name": "Update CRM: Interested",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8DwIA1gB946zMl7B",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "slack-interested",
+      "name": "Slack: Lead Interested",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `🎯 *Lead Interesado*\\n• Nombre: ${$json.from_name}\\n• Email: ${$json.from_email}\\n• Producto: ${$json.campaign?.product?.name || 'LEV'}\\n• Confianza: ${$json.confidence}%\\n• Razón: ${$json.interest_reason}\\n• Acción: ${$json.suggested_action}`\n}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "update-crm-no",
+      "name": "Update CRM: Not Interested",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        200
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8DwIA1gB946zMl7B",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "next-batch",
+      "name": "Next Batch",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        0
+      ]
+    },
+    {
+      "id": "build-summary",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const runs = $input.all().map(i => i.json || {});\nconst interested = runs.filter(r => r.interested === true && r.confidence >= 70).length;\nconst notInterested = runs.filter(r => r.interested === false).length;\nconst errors = runs.filter(r => r._parse_error).length;\n\nreturn [{ json: {\n  inbound_run_id: `inbound-${Date.now()}`,\n  interested,\n  not_interested: notInterested,\n  errors,\n  total: runs.length,\n} }];\n"
+      }
+    },
+    {
+      "id": "slack-summary",
+      "name": "Slack: Inbound Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `📬 Inbound Handler Run Complete\\n• Interesados: ${$json.interested}\\n• No interesados: ${$json.not_interested}\\n• Errores: ${$json.errors}\\n• Total procesados: ${$json.total}`\n}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gmail: Get Replies",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail: Get Replies": {
+      "main": [
+        [
+          {
+            "node": "Parse Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Emails": {
+      "main": [
+        [
+          {
+            "node": "Has Replies?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Replies?": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Load Campaign Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Campaign Config": {
+      "main": [
+        [
+          {
+            "node": "Parse Campaign YAML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Campaign YAML": {
+      "main": [
+        [
+          {
+            "node": "Compose Agent Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Agent Input": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Analyze Interest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Analyze Interest": {
+      "main": [
+        [
+          {
+            "node": "Parse Interest Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Interest Result": {
+      "main": [
+        [
+          {
+            "node": "Is Interested?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Interested?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Sales Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update CRM: Not Interested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Sales Email": {
+      "main": [
+        [
+          {
+            "node": "Resend: Notify Sales Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resend: Notify Sales Team": {
+      "main": [
+        [
+          {
+            "node": "Update CRM: Interested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update CRM: Interested": {
+      "main": [
+        [
+          {
+            "node": "Slack: Lead Interested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Lead Interested": {
+      "main": [
+        [
+          {
+            "node": "Next Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update CRM: Not Interested": {
+      "main": [
+        [
+          {
+            "node": "Next Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Batch": {
+      "main": [
+        [
+          {
+            "node": "Build Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary": {
+      "main": [
+        [
+          {
+            "node": "Slack: Inbound Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Analyze Interest",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": [
+        6
+      ]
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "7af46453-1a6b-46aa-8ee2-d6d70fbafeef",
+  "activeVersionId": "7af46453-1a6b-46aa-8ee2-d6d70fbafeef",
+  "versionCounter": 74,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-19T17:26:01.921Z",
+      "createdAt": "2026-05-19T17:26:01.921Z",
+      "role": "workflow:owner",
+      "workflowId": "exiCpSQ5rQwPwzq5",
+      "projectId": "TmYwZDHM30iJvG04",
+      "project": {
+        "updatedAt": "2026-05-07T11:14:16.687Z",
+        "createdAt": "2026-05-07T02:27:14.790Z",
+        "id": "TmYwZDHM30iJvG04",
+        "name": "Evargas Levinnovation <evargas@levinnovation.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "650331ab-3922-4ff0-b727-6b387a60495f"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-19T19:04:30.330Z",
+    "createdAt": "2026-05-19T19:04:30.330Z",
+    "versionId": "7af46453-1a6b-46aa-8ee2-d6d70fbafeef",
+    "workflowId": "exiCpSQ5rQwPwzq5",
+    "nodes": [
+      {
+        "id": "trg-schedule",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          -2400,
+          0
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 2
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "gmail-get",
+        "name": "Gmail: Get Replies",
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2,
+        "position": [
+          -2160,
+          0
+        ],
+        "parameters": {
+          "operation": "getAll",
+          "resource": "message",
+          "limit": 50,
+          "q": "newer_than:1d -from:me",
+          "format": "minimal",
+          "options": {}
+        },
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "InxG3sBcs52s9ri6",
+            "name": "Gmail account"
+          }
+        },
+        "webhookId": "d0ef6aff-8862-4002-81b6-499a2d545591"
+      },
+      {
+        "id": "parse-emails",
+        "name": "Parse Emails",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1920,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const inputs = $input.all();\nconst emails = [];\n\nfor (const input of inputs) {\n  const raw = input.json || {};\n  const msgs = raw.messages || raw.data || [raw];\n  for (const msg of (Array.isArray(msgs) ? msgs : [])) {\n    const headers = msg.payload?.headers || msg.headers || [];\n    const getHeader = (name) => {\n      const h = headers.find(x => String(x.name || x.key || '').toLowerCase() === name.toLowerCase());\n      return h ? (h.value || h.val || '') : '';\n    };\n    const from = getHeader('From');\n    const to = getHeader('To');\n    const subject = getHeader('Subject');\n    const threadId = msg.threadId || '';\n    const id = msg.id || '';\n    const snippet = msg.snippet || '';\n    // Extract plain text from payload if available\n    let body = '';\n    if (msg.payload?.parts) {\n      const textPart = msg.payload.parts.find(p => p.mimeType === 'text/plain');\n      if (textPart && textPart.body && textPart.body.data) {\n        try {\n          body = Buffer.from(textPart.body.data, 'base64').toString('utf-8').substring(0, 4000);\n        } catch (e) { body = snippet; }\n      }\n    }\n    if (!body) body = snippet;\n    \n    // Extract email address from From header\n    const emailMatch = from.match(/<([^>]+)>/);\n    const fromEmail = emailMatch ? emailMatch[1] : from;\n    \n    emails.push({\n      json: {\n        message_id: id,\n        thread_id: threadId,\n        from_email: String(fromEmail).toLowerCase().trim(),\n        from_name: from.replace(/<[^>]+>/, '').trim(),\n        to_email: to,\n        subject: subject,\n        body: body,\n        snippet: snippet,\n        received_at: msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : '',\n        is_reply: /^re:/i.test(subject),\n      }\n    });\n  }\n}\n\nreturn emails.filter(e => e.json.is_reply && e.json.from_email);\n"
+        }
+      },
+      {
+        "id": "has-replies",
+        "name": "Has Replies?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1680,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "cond-has-replies",
+                "leftValue": "={{ $input.all().length > 0 }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "split",
+        "name": "Split In Batches",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          -1440,
+          0
+        ],
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        }
+      },
+      {
+        "id": "load-campaign",
+        "name": "Load Campaign Config",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -1200,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ String($env.CAMPAIGNS_API_BASE || 'https://raw.githubusercontent.com/levinnovation/agentyx-vertical-assets/main/tenants/levinnovation/domains/sales-prospecting/campaigns') + '/' + String($json.campaign_id || $env.DEFAULT_CAMPAIGN_ID || 'agentyx') + '/campaign.yaml' }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Accept",
+                "value": "text/yaml,application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 15000
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "parse-campaign",
+        "name": "Parse Campaign YAML",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -960,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const raw = $input.first().json || {};\nconst yamlText = raw.data || raw.body || raw.yaml || JSON.stringify(raw);\n\nfunction parseYaml(text) {\n  const lines = text.split('\\n');\n  const result = {};\n  let section = null;\n  for (let line of lines) {\n    const trimmed = line.trim();\n    if (!trimmed || trimmed.startsWith('#')) continue;\n    if (trimmed.startsWith('- ')) {\n      const arrName = section || 'root';\n      if (!result[arrName]) result[arrName] = [];\n      result[arrName].push(trimmed.replace('- ', '').trim());\n      continue;\n    }\n    if (line.startsWith('  ') && !line.startsWith('    ') && section) {\n      const match = trimmed.match(/^([\\w_]+):\\s*(.*)$/);\n      if (match) {\n        if (!result[section]) result[section] = {};\n        let val = match[2].trim();\n        if (val.startsWith('\"') && val.endsWith('\"')) val = val.slice(1,-1);\n        if (val === 'true') val = true;\n        if (val === 'false') val = false;\n        if (!isNaN(Number(val)) && val !== '') val = Number(val);\n        result[section][match[1]] = val;\n      }\n      continue;\n    }\n    const match = trimmed.match(/^([\\w_]+):\\s*(.*)$/);\n    if (match) {\n      let val = match[2].trim();\n      if (val === '') { section = match[1]; continue; }\n      if (val.startsWith('\"') && val.endsWith('\"')) val = val.slice(1,-1);\n      if (val === 'true') val = true;\n      if (val === 'false') val = false;\n      if (!isNaN(Number(val)) && val !== '') val = Number(val);\n      result[match[1]] = val;\n      section = null;\n    }\n  }\n  return result;\n}\n\nlet campaign = {};\ntry {\n  campaign = parseYaml(yamlText);\n} catch (e) {\n  campaign = { _parse_error: e.message };\n}\n\nconst email = $('Split In Batches').item.json || {};\nreturn [{ json: { ...email, campaign } }];\n"
+        }
+      },
+      {
+        "id": "compose-agent-input",
+        "name": "Compose Agent Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -720,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const email = $('Split In Batches').item.json || {};\nconst campaign = email.campaign || {};\nconst product = campaign.product || {};\n\nconst inputText = [\n  `EMAIL RECIBIDO DE: ${email.from_name} <${email.from_email}>`,\n  `ASUNTO: ${email.subject}`,\n  `CUERPO: ${email.body || email.snippet || ''}`,\n  ``,\n  `PRODUCTO DE CAMPAÑA: ${product.name || 'LEV Innovation'}`,\n  `DESCRIPCIÓN: ${product.description || ''}`,\n  ``,\n  `KEYWORDS DE INTERÉS: ${(campaign.sales_team?.interest_keywords || []).join(', ')}`,\n  ``,\n  `Analiza si este email muestra interés genuino en el producto.`\n].join('\\n');\n\nreturn [{ json: { ...email, _agent_input: inputText } }];\n"
+        }
+      },
+      {
+        "id": "ai-agent",
+        "name": "AI Agent: Analyze Interest",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.8,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json._agent_input }}",
+          "options": {
+            "systemMessage": "Eres el analizador de interés de LEV Innovation. Recibes un email de respuesta de un lead a nuestro outreach.\n\nREGLAS:\n1. Determina si el lead muestra interés GENUINO (no respuesta automática, no rechazo directo)\n2. Mide confianza 0-100\n3. Extrae razón del análisis\n4. Sugiere acción para el equipo de ventas\n\nOUTPUT JSON estricto:\n{\"interested\":true,\"confidence\":85,\"reason\":\"...\",\"suggested_action\":\"...\",\"risk_flags\":[]}\n\nMODO: solo analiza, no envías emails ni usas tools de acción.\n\nPRODUCTOS LEV (para medir interes del lead):\n- Agentyx, Oosto, Acumatica, Legalink, Contax"
+          }
+        }
+      },
+      {
+        "id": "openrouter-model",
+        "name": "OpenRouter Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "typeVersion": 1,
+        "position": [
+          -240,
+          488
+        ],
+        "parameters": {
+          "model": "openai/gpt-4o",
+          "options": {
+            "maxTokens": 2048,
+            "temperature": 0.3
+          }
+        },
+        "credentials": {
+          "openRouterApi": {
+            "id": "xzxfrVCi8DyMDND6",
+            "name": "OpenRouter (Prospector)"
+          }
+        }
+      },
+      {
+        "id": "parse-result",
+        "name": "Parse Interest Result",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const item = $input.first().json || {};\nconst raw = String(item.output || item.text || '').trim();\nlet parsed = {};\n\ntry {\n  const match = raw.match(/{[\\s\\S]*}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  }\n} catch (e) {\n  parsed = { _parse_error: e.message };\n}\n\nconst interested = Boolean(parsed.interested);\nconst confidence = Number(parsed.confidence || 0);\n\nreturn [{ json: {\n  ...item,\n  interested: interested,\n  confidence: confidence,\n  interest_reason: parsed.reason || '',\n  suggested_action: parsed.suggested_action || '',\n  risk_flags: parsed.risk_flags || [],\n  _parse_error: parsed._parse_error || null,\n} }];\n"
+        }
+      },
+      {
+        "id": "is-interested",
+        "name": "Is Interested?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          480,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "cond-interested",
+                "leftValue": "={{ $json.interested === true && Number($json.confidence || 0) >= 70 }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "prep-sales-email",
+        "name": "Prepare Sales Email",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          720,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const item = $input.first().json || {};\nconst campaign = item.campaign || {};\nconst product = campaign.product || {};\n\nconst html = `<html><body>\n<h3>🎯 Lead Interesado Detectado</h3>\n<p><strong>Lead:</strong> ${item.from_name} &lt;${item.from_email}&gt;</p>\n<p><strong>Producto:</strong> ${product.name || 'LEV Innovation'}</p>\n<p><strong>Confianza:</strong> ${item.confidence}%</p>\n<p><strong>Razón:</strong> ${item.interest_reason || ''}</p>\n<p><strong>Acción sugerida:</strong> ${item.suggested_action || ''}</p>\n<hr/>\n<p><strong>Asunto original:</strong> ${item.subject}</p>\n<p><strong>Respuesta del lead:</strong></p>\n<blockquote>${(item.body || item.snippet || '').substring(0, 2000)}</blockquote>\n<p><a href=\"${$env.TWENTY_WEB_URL || 'https://twenty-levinnovation.railway.app'}\">Ver en Twenty CRM</a></p>\n</body></html>`;\n\nreturn [{ json: { ...item, sales_email_html: html } }];\n"
+        }
+      },
+      {
+        "id": "resend-sales",
+        "name": "Resend: Notify Sales Team",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          960,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.resend.com/emails",
+          "authentication": "none",
+          "genericAuthType": "httpHeaderAuth",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer re_q8mwDvFD_BgTcBXWwsdhFTN7YKEZ9KQMC"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({\n  from: ($env.RESEND_FROM_EMAIL || 'prospector@levinnovation.com'),\n  to: ($env.SALES_TEAM_EMAIL || 'evargas@levinnovation.com'),\n  subject: `[LEV Prospector] Lead interesado - ${$json.from_name} | ${$json.campaign?.product?.name || 'LEV'}`,\n  html: $json.sales_email_html\n}) }}",
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "update-crm-interested",
+        "name": "Update CRM: Interested",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          1200,
+          0
+        ],
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "8DwIA1gB946zMl7B",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "slack-interested",
+        "name": "Slack: Lead Interested",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1440,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `🎯 *Lead Interesado*\\n• Nombre: ${$json.from_name}\\n• Email: ${$json.from_email}\\n• Producto: ${$json.campaign?.product?.name || 'LEV'}\\n• Confianza: ${$json.confidence}%\\n• Razón: ${$json.interest_reason}\\n• Acción: ${$json.suggested_action}`\n}) }}",
+          "options": {
+            "timeout": 15000
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "update-crm-no",
+        "name": "Update CRM: Not Interested",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          720,
+          200
+        ],
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "8DwIA1gB946zMl7B",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "next-batch",
+        "name": "Next Batch",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1680,
+          0
+        ]
+      },
+      {
+        "id": "build-summary",
+        "name": "Build Summary",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1920,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const runs = $input.all().map(i => i.json || {});\nconst interested = runs.filter(r => r.interested === true && r.confidence >= 70).length;\nconst notInterested = runs.filter(r => r.interested === false).length;\nconst errors = runs.filter(r => r._parse_error).length;\n\nreturn [{ json: {\n  inbound_run_id: `inbound-${Date.now()}`,\n  interested,\n  not_interested: notInterested,\n  errors,\n  total: runs.length,\n} }];\n"
+        }
+      },
+      {
+        "id": "slack-summary",
+        "name": "Slack: Inbound Summary",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2160,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `📬 Inbound Handler Run Complete\\n• Interesados: ${$json.interested}\\n• No interesados: ${$json.not_interested}\\n• Errores: ${$json.errors}\\n• Total procesados: ${$json.total}`\n}) }}",
+          "options": {
+            "timeout": 15000
+          }
+        },
+        "continueOnFail": true
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Gmail: Get Replies",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gmail: Get Replies": {
+        "main": [
+          [
+            {
+              "node": "Parse Emails",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Emails": {
+        "main": [
+          [
+            {
+              "node": "Has Replies?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has Replies?": {
+        "main": [
+          [
+            {
+              "node": "Split In Batches",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Split In Batches": {
+        "main": [
+          [
+            {
+              "node": "Load Campaign Config",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Load Campaign Config": {
+        "main": [
+          [
+            {
+              "node": "Parse Campaign YAML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Campaign YAML": {
+        "main": [
+          [
+            {
+              "node": "Compose Agent Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compose Agent Input": {
+        "main": [
+          [
+            {
+              "node": "AI Agent: Analyze Interest",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent: Analyze Interest": {
+        "main": [
+          [
+            {
+              "node": "Parse Interest Result",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Interest Result": {
+        "main": [
+          [
+            {
+              "node": "Is Interested?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Is Interested?": {
+        "main": [
+          [
+            {
+              "node": "Prepare Sales Email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Update CRM: Not Interested",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Sales Email": {
+        "main": [
+          [
+            {
+              "node": "Resend: Notify Sales Team",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Resend: Notify Sales Team": {
+        "main": [
+          [
+            {
+              "node": "Update CRM: Interested",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update CRM: Interested": {
+        "main": [
+          [
+            {
+              "node": "Slack: Lead Interested",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Lead Interested": {
+        "main": [
+          [
+            {
+              "node": "Next Batch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update CRM: Not Interested": {
+        "main": [
+          [
+            {
+              "node": "Next Batch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Next Batch": {
+        "main": [
+          [
+            {
+              "node": "Build Summary",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Split In Batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Summary": {
+        "main": [
+          [
+            {
+              "node": "Slack: Inbound Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenRouter Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent: Analyze Interest",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Evargas Levinnovation",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-19T19:04:30.423Z",
+        "id": 1469,
+        "workflowId": "exiCpSQ5rQwPwzq5",
+        "versionId": "7af46453-1a6b-46aa-8ee2-d6d70fbafeef",
+        "event": "deactivated",
+        "userId": "650331ab-3922-4ff0-b727-6b387a60495f"
+      },
+      {
+        "createdAt": "2026-05-19T19:04:30.444Z",
+        "id": 1470,
+        "workflowId": "exiCpSQ5rQwPwzq5",
+        "versionId": "7af46453-1a6b-46aa-8ee2-d6d70fbafeef",
+        "event": "activated",
+        "userId": "650331ab-3922-4ff0-b727-6b387a60495f"
+      }
+    ]
+  }
+}
