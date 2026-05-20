@@ -1,0 +1,40 @@
+# Files NOT needed in any docker build context from this repo.
+# Keep this conservative — only exclude what we know is heavy and unused.
+
+# VCS / IDE / OS
+.git
+.github
+.gitignore
+.cursor
+.claude
+.opencode
+.open-codex
+.pytest_cache
+.vscode
+.idea
+.DS_Store
+
+# Local virtual envs / caches
+venv
+.venv
+__pycache__
+*.pyc
+.tmp-*
+
+# n8n SDK transient artifacts — Dockerfile rebuilds these from source when needed,
+# and the prebuilt `custom-nodes/@levinnovation/n8n-nodes-agentyx/dist/` is what
+# the CI path consumes.
+services/n8n-node-sdk/node_modules
+
+# Heavy services unrelated to the n8n image build
+better-auth-deploy
+services/composio-mcp/node_modules
+services/linkedin-mcp/node_modules
+services/auth-proxy/node_modules
+services/better-auth/node_modules
+services/n8n-mcp-bridge/node_modules
+services/n8n-yaml-compiler/node_modules
+
+# Logs / OS scratch
+*.log
+*.tmp
