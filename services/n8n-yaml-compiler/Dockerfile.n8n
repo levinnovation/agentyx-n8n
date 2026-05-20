@@ -9,8 +9,9 @@ FROM n8nio/n8n:${N8N_VERSION}
 
 USER root
 
-# Debian base: ensure bash is available for Railway's startCommand runner
-RUN apt-get update && apt-get install -y --no-install-recommends bash && rm -rf /var/lib/apt/lists/*
+# Hardened Alpine base: Railway's startCommand runner uses /bin/bash.
+# This image has no package manager, so create a sh-compatible stub.
+RUN ln -sf /bin/sh /bin/bash
 
 # Copy the n8n-node-sdk source (always available in repo context)
 COPY --chown=node:node ./services/n8n-node-sdk /tmp/n8n-node-sdk
