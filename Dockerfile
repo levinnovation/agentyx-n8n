@@ -15,16 +15,14 @@ RUN chmod +x /patch-auth-runtime.js /docker-entrypoint-wrapper.sh && \
 RUN npm install -g n8n-nodes-mcp
 
 # Pre-built Agentyx custom community nodes (compiled in agentyx-vertical-assets CI)
-COPY custom-nodes/@levinnovation/n8n-nodes-agentyx /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx
+# Install in n8n's own node_modules so n8n discovers the package at startup
+COPY custom-nodes/@levinnovation/n8n-nodes-agentyx /usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx
 
-# n8n community node discovery symlink
-RUN mkdir -p /home/node/.n8n/nodes && \
-    ln -sf /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx /home/node/.n8n/nodes/@levinnovation-n8n-nodes-agentyx && \
-    chown -R node:node /home/node
+# n8n community node discovery via custom extensions directory
+ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/n8n/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes
 
+RUN chown -R node:node /home/node /usr/local/lib/node_modules/n8n/node_modules/@levinnovation
 USER node
 
 EXPOSE 5678/tcp
 ENTRYPOINT ["tini", "--", "/docker-entrypoint-wrapper.sh"]
-
-ENV N8N_CUSTOM_EXTENSIONS=/usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes
