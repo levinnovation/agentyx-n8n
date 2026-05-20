@@ -6,6 +6,9 @@ on:
     paths:
       - 'services/n8n-node-sdk/**'
       - 'services/n8n-yaml-compiler/Dockerfile.n8n'
+      - '.github/workflows/build-n8n-image.yml'
+      - '.github/workflows/_reusable/**'
+      - '.github/workflows/railway-deploy.yml'
   workflow_dispatch:
     inputs:
       n8n_version:

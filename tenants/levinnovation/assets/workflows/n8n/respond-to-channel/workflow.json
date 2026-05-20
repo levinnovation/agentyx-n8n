@@ -1,8 +1,56 @@
 {
   "name": "respond-to-channel",
   "id": "respond-to-channel",
-  "nodes": [],
-  "connections": {},
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "respond-channel",
+        "responseMode": "lastNode"
+      },
+      "id": "node-0",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "respond-channel"
+    },
+    {
+      "parameters": {
+        "channel": "={{ $json.channel || 'generic' }}",
+        "replyText": "={{ $json.reply_text || $json.message }}",
+        "recipientId": "={{ $json.recipient_id || $json.sender || $json.user_id }}",
+        "replyAttachments": "={{ JSON.stringify($json.attachments || []) }}",
+        "parseMode": "={{ $json.parse_mode || 'HTML' }}",
+        "sendMethod": "={{ $json.send_method || 'api' }}",
+        "timeout": "={{ $json.timeout || 15000 }}"
+      },
+      "id": "node-1",
+      "name": "Channel Output",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxChannelFormattedOutputNode",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Channel Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "settings": {},
   "tags": [],
   "active": false,
