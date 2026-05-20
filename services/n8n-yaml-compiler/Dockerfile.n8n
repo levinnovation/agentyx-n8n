@@ -36,10 +36,9 @@ RUN if [ -d /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx ]; then \
     fi
 
 # Stage 2: install into the n8n-expected canonical layout as a local file dependency
-RUN mkdir -p /home/node/.n8n/nodes && \
-    cd /home/node/.n8n/nodes && \
-    echo '{"name":"installed-nodes","private":true,"dependencies":{}}' > package.json && \
-    npm install --omit=dev --no-audit --no-fund /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx && \
+# We symlink directly instead of using npm install to avoid npm scoping/resolution issues
+RUN mkdir -p /home/node/.n8n/nodes/node_modules/@levinnovation && \
+    cp -r /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx /home/node/.n8n/nodes/node_modules/@levinnovation/n8n-nodes-agentyx && \
     chown -R node:node /home/node/.n8n
 
 # Clean up temp files
