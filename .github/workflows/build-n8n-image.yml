@@ -1,4 +1,4 @@
-name: Build and Push Custom n8n Image
+name: Build and Push n8n Image
 
 on:
   push:
