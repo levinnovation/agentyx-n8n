@@ -1,1 +1,1361 @@
-{"name":"Prospector Agent Messenger (Levinnovation)","nodes":[{"id":"trg-exec","name":"Execute Workflow Trigger","type":"n8n-nodes-base.executeWorkflowTrigger","typeVersion":1.1,"position":[-2400,0],"parameters":{"inputSource":"passthrough"}},{"id":"read-crm","name":"Read CRM Leads","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[-2160,0],"parameters":{"method":"GET","url":"={{ String($env.TWENTY_API_BASE || 'https://twenty-levinnovation.railway.app/rest') + '/opportunities?filter=stage[eq]=NEW&limit=50' }}","authentication":"genericCredentialType","genericAuthType":"httpHeaderAuth","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Content-Type","value":"application/json"}]},"options":{"timeout":30000}},"credentials":{"httpHeaderAuth":{"id":"8UlHXKvhdd4luxVZ","name":"Tavily API Key"}},"continueOnFail":true},{"id":"parse-crm","name":"Parse CRM Leads","type":"n8n-nodes-base.code","typeVersion":2,"position":[-1920,0],"parameters":{"jsCode":"const raw = $input.first().json || {};\nconst data = raw.data || raw || {};\nconst edges = data.data || data.edges || data.items || data.results || [];\n\nconst leads = (Array.isArray(edges) ? edges : []).map((edge, idx) => {\n  const node = edge.node || edge;\n  const person = node.person || {};\n  const company = node.company || person.company || {};\n  const email = String(person.email || node.email || person.pointOfContact?.email || '').toLowerCase().trim();\n  return {\n    lead_id: `messenger-${Date.now()}-${idx}`,\n    opportunity_id: node.id || '',\n    person_id: person.id || '',\n    company_id: company.id || '',\n    full_name: person.name || person.displayName || '',\n    email: email,\n    company: company.name || node.companyName || '',\n    role: person.jobTitle || '',\n    campaign_id: node.campaign_id || node.customFields?.campaign_id || '',\n    product_name: node.product_name || node.customFields?.product_name || '',\n    stage: node.stage || 'NEW',\n  };\n}).filter(l => l.email && l.full_name);\n\nreturn leads.map(l => ({ json: l }));\n"}},{"id":"has-leads","name":"Has Leads?","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-1680,0],"parameters":{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"cond-has-leads","leftValue":"={{ $input.all().length > 0 }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}}},{"id":"split","name":"Split In Batches","type":"n8n-nodes-base.splitInBatches","typeVersion":3,"position":[-1440,0],"parameters":{"batchSize":1,"options":{}}},{"id":"check-email","name":"Check Email Status","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[-1200,0],"parameters":{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"cond-has-email","leftValue":"={{ Boolean($('Split In Batches').item.json.email) }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}}},{"id":"skip-no-email","name":"Skip No Email","type":"n8n-nodes-base.noOp","typeVersion":1,"position":[-1200,200]},{"id":"load-campaign","name":"Select Campaign Config","type":"n8n-nodes-base.code","typeVersion":2,"position":[-960,0],"parameters":{"jsCode":"// ===== CAMPAIGN CONFIGS =====\n// Edit the JSON below to change queries, scores, etc.\n// Changes take effect immediately.\n// ============================\nconst CAMPAIGNS = {\n  \"agentyx\": {\"id\":\"agentyx\",\"product_name\":\"Agentyx\",\"product_desc\":\"Automatizacion inteligente con IA y agentes digitales\",\"linkedin_query\":\"operations manager ai automation latam\",\"leads_per_run\":25,\"fit_threshold\":75,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"IA = 40% menos costos operativos\"},\n  \"oosto\": {\"id\":\"oosto\",\"product_name\":\"Oosto\",\"product_desc\":\"Reconocimiento facial avanzado para seguridad\",\"linkedin_query\":\"security director facilities manager access control latam\",\"leads_per_run\":20,\"fit_threshold\":70,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Seguridad sin friccion para [COMPANY]\"},\n  \"acumatica\": {\"id\":\"acumatica\",\"product_name\":\"Acumatica\",\"product_desc\":\"ERP cloud para manufactura y distribucion\",\"linkedin_query\":\"cfo finance director erp manufacturing distribution latam\",\"leads_per_run\":20,\"fit_threshold\":70,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Moderniza el ERP de [COMPANY] con Acumatica Cloud\"},\n  \"legalink\": {\"id\":\"legalink\",\"product_name\":\"Legalink\",\"product_desc\":\"Automatizacion legal y gestion documental con IA\",\"linkedin_query\":\"legal operations manager general counsel legal tech latam\",\"leads_per_run\":15,\"fit_threshold\":75,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Reduce 60% del tiempo legal en [COMPANY] con Legalink\"},\n  \"contax\": {\"id\":\"contax\",\"product_name\":\"Contax\",\"product_desc\":\"Automatizacion contable y fiscal con IA\",\"linkedin_query\":\"accounting manager cfo tax automation contabilidad latam\",\"leads_per_run\":20,\"fit_threshold\":70,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Automatizacion fiscal para [COMPANY] sin errores humanos\"}\n};\n\nconst input = $input.first().json || {};\nconst cid = String(input.campaign_id || 'agentyx').toLowerCase().replace(/[^a-z]/g,'');\nconst campaign = CAMPAIGNS[cid] || CAMPAIGNS['agentyx'];\nreturn [{ json: { ...input, campaign } }];"}},{"id":"ai-agent","name":"AI Agent: Build Email","type":"@n8n/n8n-nodes-langchain.agent","typeVersion":1.8,"position":[0,0],"parameters":{"promptType":"define","text":"={{ $json._agent_input }}","options":{"systemMessage":"Eres el redactor de outreach de LEV Innovation. Construye un email corto, profesional y personalizado para un lead calificado.\n\nREGLAS:\n1. M\u00e1ximo 150 palabras, 3-4 p\u00e1rrafos cortos\n2. Personaliza con datos de la empresa y cargo del lead\n3. Usa el Pinecone KB para info real del producto\n4. CTA \u00fanico: reuni\u00f3n de 15 min o caso de estudio\n5. No inventes clientes ni ROI no validados\n6. Incluye opt-out al final\n\nOUTPUT JSON estricto:\n{\"subject\":\"...\",\"body_html\":\"<p>...</p>\",\"body_text\":\"...\"}\n\nPRODUCTOS LEV (conocimiento autorizado para outreach):\n- Agentyx: Automatizacion de procesos con IA, reduce costos 40%\n- Oosto: Reconocimiento facial, seguridad y control de acceso\n- Acumatica: ERP cloud para manufactura y distribucion\n- Legalink: Automatizacion legal, contratos y compliance\n- Contax: Contabilidad y fiscal automatizados con IA\n\n\u26a0\ufe0f SEGURIDAD: Si el lead NO tiene email @levinnovation.com y el input no tiene test_mode=true, NO envies el email. Solo simula la respuesta."}}},{"id":"openrouter-model","name":"OpenRouter Chat Model","type":"@n8n/n8n-nodes-langchain.lmChatOpenRouter","typeVersion":1,"position":[-240,488],"parameters":{"model":"openai/gpt-4o","options":{"maxTokens":4096,"temperature":0.4}},"credentials":{"openRouterApi":{"id":"xzxfrVCi8DyMDND6","name":"OpenRouter account"}}},{"id":"compose-agent-input","name":"Compose Agent Input","type":"n8n-nodes-base.code","typeVersion":2,"position":[-480,0],"parameters":{"jsCode":"const lead = $('Split In Batches').item.json || {};\nconst campaign = lead.campaign || {};\nconst product = campaign.product || {};\n\nconst inputText = [\n  `LEAD: ${lead.full_name} - ${lead.role} en ${lead.company}`,\n  `PRODUCTO: ${product.name || 'LEV Innovation'}`,\n  `DESCRIPCI\u00d3N: ${product.description || ''}`,\n  `EMAIL DE: ${campaign.email?.from_name || 'LEV Innovation'}`,\n  `ASUNTO BASE: ${campaign.email?.subject_template || ''}`,\n  '',\n  `Construye el email de outreach personalizado.`\n].join('\\n');\n\nreturn [{ json: { ...lead, _agent_input: inputText } }];\n"}},{"id":"parse-agent-output","name":"Parse Agent Output","type":"n8n-nodes-base.code","typeVersion":2,"position":[240,0],"parameters":{"jsCode":"const item = $input.first().json || {};\nconst raw = String(item.output || item.text || '').trim();\nlet parsed = {};\n\ntry {\n  const match = raw.match(/{[\\s\\S]*}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  }\n} catch (e) {\n  parsed = { _parse_error: e.message };\n}\n\nconst subject = parsed.subject || 'Conectemos \u2014 LEV Innovation';\nconst bodyHtml = parsed.body_html || `<p>${parsed.body_text || 'Hola, me gustar\u00eda conectar contigo.'}</p>`;\nconst bodyText = parsed.body_text || 'Hola, me gustar\u00eda conectar contigo.';\n\nreturn [{ json: {\n  ...item,\n  email_subject: subject,\n  email_body_html: bodyHtml,\n  email_body_text: bodyText,\n  _parse_error: parsed._parse_error || null,\n} }];\n"}},{"id":"resend-email","name":"Resend: Send Email","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[480,0],"parameters":{"method":"POST","url":"https://api.resend.com/emails","authentication":"none","genericAuthType":"httpHeaderAuth","sendHeaders":true,"headerParameters":{"parameters":[{"name":"Authorization","value":"=Bearer {{ $env.RESEND_API_KEY }}"},{"name":"Content-Type","value":"application/json"}]},"sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({\n  from: ($json.campaign?.email?.from_email || $env.RESEND_FROM_EMAIL || 'prospector@levinnovation.com'),\n  to: $json.email,\n  subject: $json.email_subject,\n  html: $json.email_body_html,\n  reply_to: ($json.campaign?.email?.reply_to || $env.SALES_TEAM_EMAIL || 'evargas@levinnovation.com')\n}) }}","options":{"timeout":30000}},"continueOnFail":true},{"id":"log-crm","name":"Log CRM Update","type":"n8n-nodes-base.executeWorkflow","typeVersion":1.3,"position":[720,0],"parameters":{"workflowId":{"__rl":true,"value":"8DwIA1gB946zMl7B","mode":"id"},"options":{}},"continueOnFail":true},{"id":"slack-log","name":"Slack: Email Sent","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[960,0],"parameters":{"method":"POST","url":"={{ $env.SLACK_WEBHOOK_URL }}","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `\ud83d\udce7 Email enviado a ${$json.full_name} (${$json.email}) | Producto: ${$json.product_name || $json.campaign?.product?.name || 'LEV'} | Stage: CONTACTED`\n}) }}","options":{"timeout":15000}},"continueOnFail":true},{"id":"next-batch","name":"Next Batch","type":"n8n-nodes-base.noOp","typeVersion":1,"position":[1200,0]},{"id":"build-summary","name":"Build Summary","type":"n8n-nodes-base.code","typeVersion":2,"position":[1440,0],"parameters":{"jsCode":"const runs = $input.all().map(i => i.json || {});\nconst sent = runs.filter(r => r.email_sent === true || r._parse_error === null).length;\nconst skipped = runs.filter(r => !r.email).length;\nconst errors = runs.filter(r => r._parse_error).length;\n\nreturn [{ json: {\n  messenger_run_id: `messenger-${Date.now()}`,\n  sent,\n  skipped,\n  errors,\n  total: runs.length,\n} }];\n"}},{"id":"slack-summary","name":"Slack: Run Summary","type":"n8n-nodes-base.httpRequest","typeVersion":4.2,"position":[1680,0],"parameters":{"method":"POST","url":"={{ $env.SLACK_WEBHOOK_URL }}","sendBody":true,"specifyBody":"json","jsonBody":"={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `\ud83d\udcca Prospector Messenger Run Complete\\n\u2022 Enviados: ${$json.sent}\\n\u2022 Skipped (sin email): ${$json.skipped}\\n\u2022 Errores: ${$json.errors}\\n\u2022 Total procesados: ${$json.total}`\n}) }}","options":{"timeout":15000}},"continueOnFail":true},{"id":"campaign-config-store","name":"Campaign Configs","type":"n8n-nodes-base.set","typeVersion":3.4,"position":[-600,0],"parameters":{"values":{"object":[{"name":"campaigns","value":"{\n  \"agentyx\": {\n    \"id\": \"agentyx\",\n    \"product_name\": \"Agentyx\",\n    \"product_desc\": \"Plataforma de automatizacion inteligente con IA y agentes digitales\",\n    \"linkedin_query\": \"operations manager ai automation latam\",\n    \"leads_per_run\": 25,\n    \"fit_threshold\": 75,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"[COMPANY] + IA = 40% menos costos operativos\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"cotizacion\",\"reunion\",\"precio\"]\n  },\n  \"oosto\": {\n    \"id\": \"oosto\",\n    \"product_name\": \"Oosto\",\n    \"product_desc\": \"Reconocimiento facial avanzado para seguridad y control de acceso\",\n    \"linkedin_query\": \"security director facilities manager access control latam\",\n    \"leads_per_run\": 20,\n    \"fit_threshold\": 70,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Seguridad sin friccion para [COMPANY]\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"seguridad\",\"acceso\"]\n  },\n  \"acumatica\": {\n    \"id\": \"acumatica\",\n    \"product_name\": \"Acumatica\",\n    \"product_desc\": \"ERP cloud para manufactura, distribucion y servicios\",\n    \"linkedin_query\": \"cfo finance director erp manufacturing distribution latam\",\n    \"leads_per_run\": 20,\n    \"fit_threshold\": 70,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Moderniza el ERP de [COMPANY] con Acumatica Cloud\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"erp\",\"finanzas\"]\n  },\n  \"legalink\": {\n    \"id\": \"legalink\",\n    \"product_name\": \"Legalink\",\n    \"product_desc\": \"Automatizacion de procesos legales y gestion documental juridica\",\n    \"linkedin_query\": \"legal operations manager general counsel legal tech latam\",\n    \"leads_per_run\": 15,\n    \"fit_threshold\": 75,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Reduce 60% del tiempo legal en [COMPANY] con Legalink\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"legal\",\"contratos\"]\n  },\n  \"contax\": {\n    \"id\": \"contax\",\n    \"product_name\": \"Contax\",\n    \"product_desc\": \"Automatizacion de procesos contables y fiscales con IA\",\n    \"linkedin_query\": \"accounting manager cfo tax automation contabilidad latam\",\n    \"leads_per_run\": 20,\n    \"fit_threshold\": 70,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Automatizacion fiscal para [COMPANY] sin errores humanos\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"contabilidad\",\"fiscal\"]\n  }\n}"}]},"options":{}}},{"id":"check-test-mode","name":"Safety: Check Email Target","type":"n8n-nodes-base.if","typeVersion":2.2,"position":[360,0],"parameters":{"conditions":{"options":{"caseSensitive":false,"leftValue":"","typeValidation":"strict","version":2},"conditions":[{"id":"cond-send-ok","leftValue":"={{ $json.email && ($json.email.includes('@levinnovation.com') || $json._test_mode === true) }}","rightValue":true,"operator":{"type":"boolean","operation":"true","singleValue":true}}],"combinator":"and"},"options":{}}}],"connections":{"Execute Workflow Trigger":{"main":[[{"node":"Read CRM Leads","type":"main","index":0}]]},"Read CRM Leads":{"main":[[{"node":"Parse CRM Leads","type":"main","index":0}]]},"Parse CRM Leads":{"main":[[{"node":"Has Leads?","type":"main","index":0}]]},"Has Leads?":{"main":[[{"node":"Split In Batches","type":"main","index":0}],[]]},"Split In Batches":{"main":[[{"node":"Check Email Status","type":"main","index":0}]]},"Check Email Status":{"main":[[{"node":"Select Campaign Config","type":"main","index":0}],[{"node":"Skip No Email","type":"main","index":0}]]},"Skip No Email":{"main":[[{"node":"Next Batch","type":"main","index":0}]]},"Compose Agent Input":{"main":[[{"node":"AI Agent: Build Email","type":"main","index":0}]]},"AI Agent: Build Email":{"main":[[{"node":"Parse Agent Output","type":"main","index":0}]]},"Parse Agent Output":{"main":[[{"node":"Safety: Check Email Target","type":"main","index":0}]]},"Resend: Send Email":{"main":[[{"node":"Log CRM Update","type":"main","index":0}]]},"Log CRM Update":{"main":[[{"node":"Slack: Email Sent","type":"main","index":0}]]},"Slack: Email Sent":{"main":[[{"node":"Next Batch","type":"main","index":0}]]},"Next Batch":{"main":[[{"node":"Build Summary","type":"main","index":0}],[{"node":"Split In Batches","type":"main","index":0}]]},"Build Summary":{"main":[[{"node":"Slack: Run Summary","type":"main","index":0}]]},"OpenRouter Chat Model":{"ai_languageModel":[[{"node":"AI Agent: Build Email","type":"ai_languageModel","index":0}]]},"Campaign Configs":{"main":[[{"node":"Compose Agent Input","type":"main","index":0}]]},"Safety: Check Email Target":{"main":[[{"node":"Resend: Send Email","type":"main","index":0}],[{"node":"Slack: Email Sent","type":"main","index":0}]]},"Select Campaign Config":{"main":[[{"node":"Campaign Configs","type":"main","index":0}]]}},"settings":{"executionOrder":"v1","saveDataErrorExecution":"all","saveDataSuccessExecution":"all","saveManualExecutions":true,"saveExecutionProgress":true,"timezone":"America/Costa_Rica","binaryMode":"separate"},"meta":{"templateCredsSetupCompleted":true},"tags":[]}
+{
+  "updatedAt": "2026-05-19T19:43:22.980Z",
+  "createdAt": "2026-05-19T17:26:01.905Z",
+  "id": "BgCtuiJJ2Zi7Q13U",
+  "name": "Prospector Agent Messenger (Levinnovation)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "trg-exec",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2400,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "read-crm",
+      "name": "Read CRM Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2160,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ String($env.TWENTY_API_BASE || 'https://twenty-levinnovation.railway.app/rest') + '/opportunities?filter=stage[eq]=NEW&limit=50' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "8UlHXKvhdd4luxVZ",
+          "name": "Tavily API Key"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "parse-crm",
+      "name": "Parse CRM Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const raw = $input.first().json || {};\nconst data = raw.data || raw || {};\nconst edges = data.data || data.edges || data.items || data.results || [];\n\nconst leads = (Array.isArray(edges) ? edges : []).map((edge, idx) => {\n  const node = edge.node || edge;\n  const person = node.person || {};\n  const company = node.company || person.company || {};\n  const email = String(person.email || node.email || person.pointOfContact?.email || '').toLowerCase().trim();\n  return {\n    lead_id: `messenger-${Date.now()}-${idx}`,\n    opportunity_id: node.id || '',\n    person_id: person.id || '',\n    company_id: company.id || '',\n    full_name: person.name || person.displayName || '',\n    email: email,\n    company: company.name || node.companyName || '',\n    role: person.jobTitle || '',\n    campaign_id: node.campaign_id || node.customFields?.campaign_id || '',\n    product_name: node.product_name || node.customFields?.product_name || '',\n    stage: node.stage || 'NEW',\n  };\n}).filter(l => l.email && l.full_name);\n\nreturn leads.map(l => ({ json: l }));\n"
+      }
+    },
+    {
+      "id": "has-leads",
+      "name": "Has Leads?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1680,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-has-leads",
+              "leftValue": "={{ $input.all().length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "split",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1440,
+        0
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "check-email",
+      "name": "Check Email Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1200,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-has-email",
+              "leftValue": "={{ Boolean($('Split In Batches').item.json.email) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "skip-no-email",
+      "name": "Skip No Email",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        200
+      ]
+    },
+    {
+      "id": "load-campaign",
+      "name": "Select Campaign Config",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -960,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://levinnovation-kb-i5orcls.svc.aped-4627-b74a.pinecone.io/vectors/fetch?ids={{ $json.campaign_id || 'agentyx' }}&namespace=campaigns",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "pcsk_5eyNUV_RfAX261NvTzrAshfGeaUxLnTUK7q1hGPZtcyqLtcSMdfGRSYce65k92gAaxcFa7"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      }
+    },
+    {
+      "id": "ai-agent",
+      "name": "AI Agent: Build Email",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json._agent_input }}",
+        "options": {
+          "systemMessage": "Eres el redactor de outreach de LEV Innovation. Construye un email corto, profesional y personalizado para un lead calificado.\n\nREGLAS:\n1. Máximo 150 palabras, 3-4 párrafos cortos\n2. Personaliza con datos de la empresa y cargo del lead\n3. Usa el Pinecone KB para info real del producto\n4. CTA único: reunión de 15 min o caso de estudio\n5. No inventes clientes ni ROI no validados\n6. Incluye opt-out al final\n\nOUTPUT JSON estricto:\n{\"subject\":\"...\",\"body_html\":\"<p>...</p>\",\"body_text\":\"...\"}\n\nPRODUCTOS LEV (conocimiento autorizado para outreach):\n- Agentyx: Automatizacion de procesos con IA, reduce costos 40%\n- Oosto: Reconocimiento facial, seguridad y control de acceso\n- Acumatica: ERP cloud para manufactura y distribucion\n- Legalink: Automatizacion legal, contratos y compliance\n- Contax: Contabilidad y fiscal automatizados con IA\n\n⚠️ SEGURIDAD: Si el lead NO tiene email @levinnovation.com y el input no tiene test_mode=true, NO envies el email. Solo simula la respuesta."
+        }
+      }
+    },
+    {
+      "id": "openrouter-model",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        488
+      ],
+      "parameters": {
+        "model": "openai/gpt-4o",
+        "options": {
+          "maxTokens": 4096,
+          "temperature": 0.4
+        }
+      },
+      "credentials": {
+        "openRouterApi": {
+          "id": "xzxfrVCi8DyMDND6",
+          "name": "OpenRouter (Prospector)"
+        }
+      }
+    },
+    {
+      "id": "compose-agent-input",
+      "name": "Compose Agent Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// Lee lead + campaign del nodo anterior (Campaign Configs → Pinecone extractor)\nconst item = $input.first().json || {};\nconst lead = item;\nconst campaign = item.campaign || {};\nconst product = campaign.product || {};\n\nconst inputText = [\n  `LEAD: ${lead.full_name} - ${lead.role || lead.job_title || ''} en ${lead.company}`,\n  `PRODUCTO: ${product.name || 'LEV Innovation'}`,\n  `DESCRIPCION: ${product.description || ''}`,\n  `EMAIL DE: ${campaign.email?.from_name || 'LEV Innovation'}`,\n  `ASUNTO BASE: ${campaign.email?.subject_template || ''}`,\n  '',\n  `Construye el email de outreach personalizado.`\n].join('\\n');\n\nreturn [{ json: { ...lead, _agent_input: inputText } }];\n"
+      }
+    },
+    {
+      "id": "parse-agent-output",
+      "name": "Parse Agent Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\nconst raw = String(item.output || item.text || '').trim();\nlet parsed = {};\n\ntry {\n  const match = raw.match(/{[\\s\\S]*}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  }\n} catch (e) {\n  parsed = { _parse_error: e.message };\n}\n\nconst subject = parsed.subject || 'Conectemos — LEV Innovation';\nconst bodyHtml = parsed.body_html || `<p>${parsed.body_text || 'Hola, me gustaría conectar contigo.'}</p>`;\nconst bodyText = parsed.body_text || 'Hola, me gustaría conectar contigo.';\n\nreturn [{ json: {\n  ...item,\n  email_subject: subject,\n  email_body_html: bodyHtml,\n  email_body_text: bodyText,\n  _parse_error: parsed._parse_error || null,\n} }];\n"
+      }
+    },
+    {
+      "id": "resend-email",
+      "name": "Resend: Send Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "none",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.RESEND_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  from: ($json.campaign?.email?.from_email || $env.RESEND_FROM_EMAIL || 'prospector@levinnovation.com'),\n  to: $json.email,\n  subject: $json.email_subject,\n  html: $json.email_body_html,\n  reply_to: ($json.campaign?.email?.reply_to || $env.SALES_TEAM_EMAIL || 'evargas@levinnovation.com')\n}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "log-crm",
+      "name": "Log CRM Update",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8DwIA1gB946zMl7B",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "slack-log",
+      "name": "Slack: Email Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `📧 Email enviado a ${$json.full_name} (${$json.email}) | Producto: ${$json.product_name || $json.campaign?.product?.name || 'LEV'} | Stage: CONTACTED`\n}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "next-batch",
+      "name": "Next Batch",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        0
+      ]
+    },
+    {
+      "id": "build-summary",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const runs = $input.all().map(i => i.json || {});\nconst sent = runs.filter(r => r.email_sent === true || r._parse_error === null).length;\nconst skipped = runs.filter(r => !r.email).length;\nconst errors = runs.filter(r => r._parse_error).length;\n\nreturn [{ json: {\n  messenger_run_id: `messenger-${Date.now()}`,\n  sent,\n  skipped,\n  errors,\n  total: runs.length,\n} }];\n"
+      }
+    },
+    {
+      "id": "slack-summary",
+      "name": "Slack: Run Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `📊 Prospector Messenger Run Complete\\n• Enviados: ${$json.sent}\\n• Skipped (sin email): ${$json.skipped}\\n• Errores: ${$json.errors}\\n• Total procesados: ${$json.total}`\n}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "campaign-config-store",
+      "name": "Campaign Configs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ],
+      "parameters": {
+        "jsCode": "\n// Extrae config de campaña desde Pinecone y combina con datos del lead\nconst pinecone = $input.first().json || {};\nconst vectors = pinecone.vectors || {};\nconst campaignId = Object.keys(vectors)[0] || 'agentyx';\nconst vector = vectors[campaignId] || {};\nconst m = vector.metadata || {};\n\nconst fallbackMeta = {\n  campaign_id: 'agentyx',\n  product_name: 'Agentyx',\n  product_desc: 'Plataforma de automatizacion inteligente con IA y agentes digitales para empresas LATAM',\n  from_name: 'LEV Innovation',\n  from_email: 'prospector@levinnovation.com',\n  subject_template: '[COMPANY] + IA = 40% menos costos operativos',\n  sales_email: 'fleon@levinnovation.com',\n  leads_per_run: 25,\n  fit_threshold: 75\n};\nconst meta = Object.keys(m).length > 0 ? m : fallbackMeta;\n\nconst campaign = {\n  id: meta.campaign_id || campaignId,\n  campaign_id: meta.campaign_id || campaignId,\n  product: {\n    name: meta.product_name || 'Agentyx',\n    description: meta.product_desc || ''\n  },\n  email: {\n    from_name: meta.from_name || 'LEV Innovation',\n    from_email: meta.from_email || 'prospector@levinnovation.com',\n    subject_template: meta.subject_template || '[COMPANY] + IA'\n  },\n  sales_team: {\n    notification_emails: [meta.sales_email || 'fleon@levinnovation.com'],\n    interest_keywords: Array.isArray(meta.interest_keywords) ? meta.interest_keywords : ['interesado','demo']\n  }\n};\n\n// Lead data viene del nodo Check Email Status\nconst leadData = $('Check Email Status').item.json || {};\nreturn [{ json: { ...leadData, campaign } }];\n"
+      }
+    },
+    {
+      "id": "check-test-mode",
+      "name": "Safety: Check Email Target",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        360,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-send-ok",
+              "leftValue": "={{ $json.email && ($json.email.includes('@levinnovation.com') || $json._test_mode === true) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read CRM Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CRM Leads": {
+      "main": [
+        [
+          {
+            "node": "Parse CRM Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse CRM Leads": {
+      "main": [
+        [
+          {
+            "node": "Has Leads?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Leads?": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "Check Email Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email Status": {
+      "main": [
+        [
+          {
+            "node": "Select Campaign Config",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip No Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip No Email": {
+      "main": [
+        [
+          {
+            "node": "Next Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Agent Input": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Build Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Build Email": {
+      "main": [
+        [
+          {
+            "node": "Parse Agent Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Agent Output": {
+      "main": [
+        [
+          {
+            "node": "Safety: Check Email Target",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resend: Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log CRM Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log CRM Update": {
+      "main": [
+        [
+          {
+            "node": "Slack: Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack: Email Sent": {
+      "main": [
+        [
+          {
+            "node": "Next Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Next Batch": {
+      "main": [
+        [
+          {
+            "node": "Build Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary": {
+      "main": [
+        [
+          {
+            "node": "Slack: Run Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Build Email",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Campaign Configs": {
+      "main": [
+        [
+          {
+            "node": "Compose Agent Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Safety: Check Email Target": {
+      "main": [
+        [
+          {
+            "node": "Resend: Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: Email Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Campaign Config": {
+      "main": [
+        [
+          {
+            "node": "Campaign Configs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "timezone": "America/Costa_Rica"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "83ad30a4-bd40-4c8c-b82f-b29095af0b82",
+  "activeVersionId": "83ad30a4-bd40-4c8c-b82f-b29095af0b82",
+  "versionCounter": 63,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-05-19T17:26:01.905Z",
+      "createdAt": "2026-05-19T17:26:01.905Z",
+      "role": "workflow:owner",
+      "workflowId": "BgCtuiJJ2Zi7Q13U",
+      "projectId": "TmYwZDHM30iJvG04",
+      "project": {
+        "updatedAt": "2026-05-07T11:14:16.687Z",
+        "createdAt": "2026-05-07T02:27:14.790Z",
+        "id": "TmYwZDHM30iJvG04",
+        "name": "Evargas Levinnovation <evargas@levinnovation.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "650331ab-3922-4ff0-b727-6b387a60495f"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-19T19:43:22.983Z",
+    "createdAt": "2026-05-19T19:43:22.983Z",
+    "versionId": "83ad30a4-bd40-4c8c-b82f-b29095af0b82",
+    "workflowId": "BgCtuiJJ2Zi7Q13U",
+    "nodes": [
+      {
+        "id": "trg-exec",
+        "name": "Execute Workflow Trigger",
+        "type": "n8n-nodes-base.executeWorkflowTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -2400,
+          0
+        ],
+        "parameters": {
+          "inputSource": "passthrough"
+        }
+      },
+      {
+        "id": "read-crm",
+        "name": "Read CRM Leads",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -2160,
+          0
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "={{ String($env.TWENTY_API_BASE || 'https://twenty-levinnovation.railway.app/rest') + '/opportunities?filter=stage[eq]=NEW&limit=50' }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "8UlHXKvhdd4luxVZ",
+            "name": "Tavily API Key"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "parse-crm",
+        "name": "Parse CRM Leads",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1920,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const raw = $input.first().json || {};\nconst data = raw.data || raw || {};\nconst edges = data.data || data.edges || data.items || data.results || [];\n\nconst leads = (Array.isArray(edges) ? edges : []).map((edge, idx) => {\n  const node = edge.node || edge;\n  const person = node.person || {};\n  const company = node.company || person.company || {};\n  const email = String(person.email || node.email || person.pointOfContact?.email || '').toLowerCase().trim();\n  return {\n    lead_id: `messenger-${Date.now()}-${idx}`,\n    opportunity_id: node.id || '',\n    person_id: person.id || '',\n    company_id: company.id || '',\n    full_name: person.name || person.displayName || '',\n    email: email,\n    company: company.name || node.companyName || '',\n    role: person.jobTitle || '',\n    campaign_id: node.campaign_id || node.customFields?.campaign_id || '',\n    product_name: node.product_name || node.customFields?.product_name || '',\n    stage: node.stage || 'NEW',\n  };\n}).filter(l => l.email && l.full_name);\n\nreturn leads.map(l => ({ json: l }));\n"
+        }
+      },
+      {
+        "id": "has-leads",
+        "name": "Has Leads?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1680,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "cond-has-leads",
+                "leftValue": "={{ $input.all().length > 0 }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "split",
+        "name": "Split In Batches",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          -1440,
+          0
+        ],
+        "parameters": {
+          "batchSize": 1,
+          "options": {}
+        }
+      },
+      {
+        "id": "check-email",
+        "name": "Check Email Status",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          -1200,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "cond-has-email",
+                "leftValue": "={{ Boolean($('Split In Batches').item.json.email) }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "skip-no-email",
+        "name": "Skip No Email",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          -1200,
+          200
+        ]
+      },
+      {
+        "id": "load-campaign",
+        "name": "Select Campaign Config",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -960,
+          0
+        ],
+        "parameters": {
+          "jsCode": "// ===== CAMPAIGN CONFIGS =====\n// Edit the JSON below to change queries, scores, etc.\n// Changes take effect immediately.\n// ============================\nconst CAMPAIGNS = {\n  \"agentyx\": {\"id\":\"agentyx\",\"product_name\":\"Agentyx\",\"product_desc\":\"Automatizacion inteligente con IA y agentes digitales\",\"linkedin_query\":\"operations manager ai automation latam\",\"leads_per_run\":25,\"fit_threshold\":75,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"IA = 40% menos costos operativos\"},\n  \"oosto\": {\"id\":\"oosto\",\"product_name\":\"Oosto\",\"product_desc\":\"Reconocimiento facial avanzado para seguridad\",\"linkedin_query\":\"security director facilities manager access control latam\",\"leads_per_run\":20,\"fit_threshold\":70,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Seguridad sin friccion para [COMPANY]\"},\n  \"acumatica\": {\"id\":\"acumatica\",\"product_name\":\"Acumatica\",\"product_desc\":\"ERP cloud para manufactura y distribucion\",\"linkedin_query\":\"cfo finance director erp manufacturing distribution latam\",\"leads_per_run\":20,\"fit_threshold\":70,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Moderniza el ERP de [COMPANY] con Acumatica Cloud\"},\n  \"legalink\": {\"id\":\"legalink\",\"product_name\":\"Legalink\",\"product_desc\":\"Automatizacion legal y gestion documental con IA\",\"linkedin_query\":\"legal operations manager general counsel legal tech latam\",\"leads_per_run\":15,\"fit_threshold\":75,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Reduce 60% del tiempo legal en [COMPANY] con Legalink\"},\n  \"contax\": {\"id\":\"contax\",\"product_name\":\"Contax\",\"product_desc\":\"Automatizacion contable y fiscal con IA\",\"linkedin_query\":\"accounting manager cfo tax automation contabilidad latam\",\"leads_per_run\":20,\"fit_threshold\":70,\"email_from_name\":\"LEV Innovation\",\"email_from\":\"prospector@levinnovation.com\",\"email_subject\":\"Automatizacion fiscal para [COMPANY] sin errores humanos\"}\n};\n\nconst input = $input.first().json || {};\nconst cid = String(input.campaign_id || 'agentyx').toLowerCase().replace(/[^a-z]/g,'');\nconst campaign = CAMPAIGNS[cid] || CAMPAIGNS['agentyx'];\nreturn [{ json: { ...input, campaign } }];"
+        }
+      },
+      {
+        "id": "ai-agent",
+        "name": "AI Agent: Build Email",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 1.8,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json._agent_input }}",
+          "options": {
+            "systemMessage": "Eres el redactor de outreach de LEV Innovation. Construye un email corto, profesional y personalizado para un lead calificado.\n\nREGLAS:\n1. Máximo 150 palabras, 3-4 párrafos cortos\n2. Personaliza con datos de la empresa y cargo del lead\n3. Usa el Pinecone KB para info real del producto\n4. CTA único: reunión de 15 min o caso de estudio\n5. No inventes clientes ni ROI no validados\n6. Incluye opt-out al final\n\nOUTPUT JSON estricto:\n{\"subject\":\"...\",\"body_html\":\"<p>...</p>\",\"body_text\":\"...\"}\n\nPRODUCTOS LEV (conocimiento autorizado para outreach):\n- Agentyx: Automatizacion de procesos con IA, reduce costos 40%\n- Oosto: Reconocimiento facial, seguridad y control de acceso\n- Acumatica: ERP cloud para manufactura y distribucion\n- Legalink: Automatizacion legal, contratos y compliance\n- Contax: Contabilidad y fiscal automatizados con IA\n\n⚠️ SEGURIDAD: Si el lead NO tiene email @levinnovation.com y el input no tiene test_mode=true, NO envies el email. Solo simula la respuesta."
+          }
+        }
+      },
+      {
+        "id": "openrouter-model",
+        "name": "OpenRouter Chat Model",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+        "typeVersion": 1,
+        "position": [
+          -240,
+          488
+        ],
+        "parameters": {
+          "model": "openai/gpt-4o",
+          "options": {
+            "maxTokens": 4096,
+            "temperature": 0.4
+          }
+        },
+        "credentials": {
+          "openRouterApi": {
+            "id": "xzxfrVCi8DyMDND6",
+            "name": "OpenRouter (Prospector)"
+          }
+        }
+      },
+      {
+        "id": "compose-agent-input",
+        "name": "Compose Agent Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -480,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const lead = $('Split In Batches').item.json || {};\nconst campaign = lead.campaign || {};\nconst product = campaign.product || {};\n\nconst inputText = [\n  `LEAD: ${lead.full_name} - ${lead.role} en ${lead.company}`,\n  `PRODUCTO: ${product.name || 'LEV Innovation'}`,\n  `DESCRIPCIÓN: ${product.description || ''}`,\n  `EMAIL DE: ${campaign.email?.from_name || 'LEV Innovation'}`,\n  `ASUNTO BASE: ${campaign.email?.subject_template || ''}`,\n  '',\n  `Construye el email de outreach personalizado.`\n].join('\\n');\n\nreturn [{ json: { ...lead, _agent_input: inputText } }];\n"
+        }
+      },
+      {
+        "id": "parse-agent-output",
+        "name": "Parse Agent Output",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          240,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const item = $input.first().json || {};\nconst raw = String(item.output || item.text || '').trim();\nlet parsed = {};\n\ntry {\n  const match = raw.match(/{[\\s\\S]*}/);\n  if (match) {\n    parsed = JSON.parse(match[0]);\n  }\n} catch (e) {\n  parsed = { _parse_error: e.message };\n}\n\nconst subject = parsed.subject || 'Conectemos — LEV Innovation';\nconst bodyHtml = parsed.body_html || `<p>${parsed.body_text || 'Hola, me gustaría conectar contigo.'}</p>`;\nconst bodyText = parsed.body_text || 'Hola, me gustaría conectar contigo.';\n\nreturn [{ json: {\n  ...item,\n  email_subject: subject,\n  email_body_html: bodyHtml,\n  email_body_text: bodyText,\n  _parse_error: parsed._parse_error || null,\n} }];\n"
+        }
+      },
+      {
+        "id": "resend-email",
+        "name": "Resend: Send Email",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          480,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.resend.com/emails",
+          "authentication": "none",
+          "genericAuthType": "httpHeaderAuth",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "=Bearer {{ $env.RESEND_API_KEY }}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({\n  from: ($json.campaign?.email?.from_email || $env.RESEND_FROM_EMAIL || 'prospector@levinnovation.com'),\n  to: $json.email,\n  subject: $json.email_subject,\n  html: $json.email_body_html,\n  reply_to: ($json.campaign?.email?.reply_to || $env.SALES_TEAM_EMAIL || 'evargas@levinnovation.com')\n}) }}",
+          "options": {
+            "timeout": 30000
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "log-crm",
+        "name": "Log CRM Update",
+        "type": "n8n-nodes-base.executeWorkflow",
+        "typeVersion": 1.3,
+        "position": [
+          720,
+          0
+        ],
+        "parameters": {
+          "workflowId": {
+            "__rl": true,
+            "value": "8DwIA1gB946zMl7B",
+            "mode": "id"
+          },
+          "options": {}
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "slack-log",
+        "name": "Slack: Email Sent",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          960,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `📧 Email enviado a ${$json.full_name} (${$json.email}) | Producto: ${$json.product_name || $json.campaign?.product?.name || 'LEV'} | Stage: CONTACTED`\n}) }}",
+          "options": {
+            "timeout": 15000
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "next-batch",
+        "name": "Next Batch",
+        "type": "n8n-nodes-base.noOp",
+        "typeVersion": 1,
+        "position": [
+          1200,
+          0
+        ]
+      },
+      {
+        "id": "build-summary",
+        "name": "Build Summary",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1440,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const runs = $input.all().map(i => i.json || {});\nconst sent = runs.filter(r => r.email_sent === true || r._parse_error === null).length;\nconst skipped = runs.filter(r => !r.email).length;\nconst errors = runs.filter(r => r._parse_error).length;\n\nreturn [{ json: {\n  messenger_run_id: `messenger-${Date.now()}`,\n  sent,\n  skipped,\n  errors,\n  total: runs.length,\n} }];\n"
+        }
+      },
+      {
+        "id": "slack-summary",
+        "name": "Slack: Run Summary",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1680,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "={{ $env.SLACK_WEBHOOK_URL }}",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({\n  channel: $env.SLACK_CHANNEL || '#prospector',\n  text: `📊 Prospector Messenger Run Complete\\n• Enviados: ${$json.sent}\\n• Skipped (sin email): ${$json.skipped}\\n• Errores: ${$json.errors}\\n• Total procesados: ${$json.total}`\n}) }}",
+          "options": {
+            "timeout": 15000
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "id": "campaign-config-store",
+        "name": "Campaign Configs",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -600,
+          0
+        ],
+        "parameters": {
+          "values": {
+            "object": [
+              {
+                "name": "campaigns",
+                "value": "{\n  \"agentyx\": {\n    \"id\": \"agentyx\",\n    \"product_name\": \"Agentyx\",\n    \"product_desc\": \"Plataforma de automatizacion inteligente con IA y agentes digitales\",\n    \"linkedin_query\": \"operations manager ai automation latam\",\n    \"leads_per_run\": 25,\n    \"fit_threshold\": 75,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"[COMPANY] + IA = 40% menos costos operativos\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"cotizacion\",\"reunion\",\"precio\"]\n  },\n  \"oosto\": {\n    \"id\": \"oosto\",\n    \"product_name\": \"Oosto\",\n    \"product_desc\": \"Reconocimiento facial avanzado para seguridad y control de acceso\",\n    \"linkedin_query\": \"security director facilities manager access control latam\",\n    \"leads_per_run\": 20,\n    \"fit_threshold\": 70,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Seguridad sin friccion para [COMPANY]\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"seguridad\",\"acceso\"]\n  },\n  \"acumatica\": {\n    \"id\": \"acumatica\",\n    \"product_name\": \"Acumatica\",\n    \"product_desc\": \"ERP cloud para manufactura, distribucion y servicios\",\n    \"linkedin_query\": \"cfo finance director erp manufacturing distribution latam\",\n    \"leads_per_run\": 20,\n    \"fit_threshold\": 70,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Moderniza el ERP de [COMPANY] con Acumatica Cloud\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"erp\",\"finanzas\"]\n  },\n  \"legalink\": {\n    \"id\": \"legalink\",\n    \"product_name\": \"Legalink\",\n    \"product_desc\": \"Automatizacion de procesos legales y gestion documental juridica\",\n    \"linkedin_query\": \"legal operations manager general counsel legal tech latam\",\n    \"leads_per_run\": 15,\n    \"fit_threshold\": 75,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Reduce 60% del tiempo legal en [COMPANY] con Legalink\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"legal\",\"contratos\"]\n  },\n  \"contax\": {\n    \"id\": \"contax\",\n    \"product_name\": \"Contax\",\n    \"product_desc\": \"Automatizacion de procesos contables y fiscales con IA\",\n    \"linkedin_query\": \"accounting manager cfo tax automation contabilidad latam\",\n    \"leads_per_run\": 20,\n    \"fit_threshold\": 70,\n    \"from_name\": \"LEV Innovation\",\n    \"from_email\": \"prospector@levinnovation.com\",\n    \"subject_template\": \"Automatizacion fiscal para [COMPANY] sin errores humanos\",\n    \"interest_keywords\": [\"interesado\",\"demo\",\"contabilidad\",\"fiscal\"]\n  }\n}"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "check-test-mode",
+        "name": "Safety: Check Email Target",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          360,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "cond-send-ok",
+                "leftValue": "={{ $json.email && ($json.email.includes('@levinnovation.com') || $json._test_mode === true) }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Execute Workflow Trigger": {
+        "main": [
+          [
+            {
+              "node": "Read CRM Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Read CRM Leads": {
+        "main": [
+          [
+            {
+              "node": "Parse CRM Leads",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse CRM Leads": {
+        "main": [
+          [
+            {
+              "node": "Has Leads?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has Leads?": {
+        "main": [
+          [
+            {
+              "node": "Split In Batches",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          []
+        ]
+      },
+      "Split In Batches": {
+        "main": [
+          [
+            {
+              "node": "Check Email Status",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Email Status": {
+        "main": [
+          [
+            {
+              "node": "Select Campaign Config",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Skip No Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Skip No Email": {
+        "main": [
+          [
+            {
+              "node": "Next Batch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Compose Agent Input": {
+        "main": [
+          [
+            {
+              "node": "AI Agent: Build Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "AI Agent: Build Email": {
+        "main": [
+          [
+            {
+              "node": "Parse Agent Output",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Agent Output": {
+        "main": [
+          [
+            {
+              "node": "Safety: Check Email Target",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Resend: Send Email": {
+        "main": [
+          [
+            {
+              "node": "Log CRM Update",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Log CRM Update": {
+        "main": [
+          [
+            {
+              "node": "Slack: Email Sent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Slack: Email Sent": {
+        "main": [
+          [
+            {
+              "node": "Next Batch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Next Batch": {
+        "main": [
+          [
+            {
+              "node": "Build Summary",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Split In Batches",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Summary": {
+        "main": [
+          [
+            {
+              "node": "Slack: Run Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "OpenRouter Chat Model": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "AI Agent: Build Email",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Campaign Configs": {
+        "main": [
+          [
+            {
+              "node": "Compose Agent Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Safety: Check Email Target": {
+        "main": [
+          [
+            {
+              "node": "Resend: Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Slack: Email Sent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Select Campaign Config": {
+        "main": [
+          [
+            {
+              "node": "Campaign Configs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Evargas Levinnovation",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-19T19:43:23.074Z",
+        "id": 1491,
+        "workflowId": "BgCtuiJJ2Zi7Q13U",
+        "versionId": "83ad30a4-bd40-4c8c-b82f-b29095af0b82",
+        "event": "deactivated",
+        "userId": "650331ab-3922-4ff0-b727-6b387a60495f"
+      },
+      {
+        "createdAt": "2026-05-19T19:43:23.108Z",
+        "id": 1492,
+        "workflowId": "BgCtuiJJ2Zi7Q13U",
+        "versionId": "83ad30a4-bd40-4c8c-b82f-b29095af0b82",
+        "event": "activated",
+        "userId": "650331ab-3922-4ff0-b727-6b387a60495f"
+      }
+    ]
+  }
+}
