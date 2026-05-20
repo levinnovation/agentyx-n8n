@@ -32,17 +32,19 @@ LIBRECHAT_INTERNAL_URL = "agx-demo-librechat.railway.internal:3080"
 # This avoids the private-GHCR-pull failure (Railway has no GHCR credentials)
 # that took the cluster down on 2026-05-20.
 #
-# startCommand is the argument passed to the upstream n8n image ENTRYPOINT
-# (`tini -- /docker-entrypoint.sh`, which itself runs `exec n8n "$@"`):
-#   * "start"   → main process (HTTP + scheduler)
-#   * "worker"  → bull queue worker
-#   * "webhook" → webhook-only process
-# Do NOT prefix with `n8n` or `/docker-entrypoint.sh` — the entrypoint already
-# does that and the double-prefix produced `Command "n8n" not found` on
-# 2026-05-20 (see knowledge/change-log/).
+# startCommand: Railway executes this directly (it BYPASSES the image
+# ENTRYPOINT, so you must call the full n8n binary, not just the subcommand):
+#   * "n8n start"    → main process (HTTP + scheduler)
+#   * "n8n worker"   → bull queue worker
+#   * "n8n webhook"  → webhook-only process
+# Failure modes observed on 2026-05-20:
+#   "/docker-entrypoint.sh n8n start" → entrypoint re-prefixes `n8n` and
+#       `exec n8n n8n start` errors with `Command "n8n" not found`.
+#   "worker" alone → Railway runs the literal command and fails with
+#       `The executable "worker" could not be found`.
 
 [agx-demo-n8n]
-startCommand = "start"
+startCommand = "n8n start"
 
 [agx-demo-n8n.build]
 builder = "DOCKERFILE"
@@ -52,14 +54,14 @@ dockerfilePath = "services/n8n-yaml-compiler/Dockerfile.n8n"
 healthcheckPath = "/healthz"
 
 [agx-demo-n8n-worker]
-startCommand = "worker"
+startCommand = "n8n worker"
 
 [agx-demo-n8n-worker.build]
 builder = "DOCKERFILE"
 dockerfilePath = "services/n8n-yaml-compiler/Dockerfile.n8n"
 
 [agx-demo-n8n-webhook]
-startCommand = "webhook"
+startCommand = "n8n webhook"
 
 [agx-demo-n8n-webhook.build]
 builder = "DOCKERFILE"

@@ -10,8 +10,17 @@ FROM n8nio/n8n:${N8N_VERSION}
 USER root
 
 # Hardened Alpine base: Railway's startCommand runner uses /bin/bash.
-# This image has no package manager, so create a sh-compatible stub.
-RUN ln -sf /bin/sh /bin/bash
+# The base image has no apk/apt, so download a static bash binary.
+# Statically linked against musl so it works on any Linux.
+RUN arch=$(uname -m); \
+    case "$arch" in \
+      x86_64)  fname="bash-linux-x86_64" ;; \
+      aarch64) fname="bash-linux-aarch64" ;; \
+      armv7l)  fname="bash-linux-armv7"  ;; \
+      *)       echo "unsupported arch: $arch"; exit 1 ;; \
+    esac; \
+    wget -qO /bin/bash "https://github.com/robxu9/bash-static/releases/download/5.2.015-1.2.3-2/$fname" && \
+    chmod +x /bin/bash
 
 # Copy the n8n-node-sdk source (always available in repo context)
 COPY --chown=node:node ./services/n8n-node-sdk /tmp/n8n-node-sdk
