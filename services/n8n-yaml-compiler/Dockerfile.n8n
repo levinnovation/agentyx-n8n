@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # Custom n8n image with Agentyx community nodes baked in.
-# Extends the upstream n8n image and installs @levinnovation/n8n-nodes-agentyx.
+# Extends the upstream n8n image and installs @levinnovation/n8n-nodes-agentyx
+# into the canonical community-package layout (~/.n8n/nodes/node_modules/).
 # Supports both CI (with ./custom-nodes/ pre-built) and repo-linked Railway builds.
 
 ARG N8N_VERSION=2.21.2
@@ -14,38 +15,42 @@ COPY --chown=node:node ./services/n8n-node-sdk /tmp/n8n-node-sdk
 # Copy optional pre-built custom nodes (created by CI workflow)
 COPY --chown=node:node ./custom-nodes /tmp/custom-nodes
 
-# Build and install the custom nodes at global level (where npm install -g puts packages)
+# Stage 1: ensure @levinnovation/n8n-nodes-agentyx exists (CI path or source path)
 RUN if [ -d /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx ]; then \
       echo "Installing from pre-built custom-nodes/ (CI path)"; \
-      mkdir -p /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx; \
-      cp -r /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/dist /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist; \
-      cp /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/package.json /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/package.json; \
+      mkdir -p /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx; \
+      cp -r /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/dist /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx/dist; \
+      cp /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/package.json /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx/package.json; \
     else \
       echo "Building from source (repo linked build path)"; \
       cd /tmp/n8n-node-sdk && npm ci && npm run build; \
       for node_dir in src/nodes/*/; do \
         cp "$$node_dir"*.svg "dist/nodes/$$(basename $$node_dir)/" 2>/dev/null || true; \
       done; \
-      mkdir -p /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx; \
-      cp -r dist /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist; \
-      cp package.json /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/package.json; \
+      mkdir -p /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx; \
+      cp -r dist /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx/dist; \
+      cp package.json /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx/package.json; \
     fi
 
-# Also install in the n8n user's community nodes directory
+# Stage 2: install into the n8n-expected canonical layout as a local file dependency
 RUN mkdir -p /home/node/.n8n/nodes && \
-    ln -sf /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx /home/node/.n8n/nodes/@levinnovation-n8n-nodes-agentyx && \
+    cd /home/node/.n8n/nodes && \
+    echo '{"name":"installed-nodes","private":true,"dependencies":{}}' > package.json && \
+    npm install --omit=dev --no-audit --no-fund /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx && \
     chown -R node:node /home/node/.n8n
 
 # Clean up temp files
-RUN rm -rf /tmp/n8n-node-sdk /tmp/custom-nodes
+RUN rm -rf /tmp/n8n-node-sdk /tmp/custom-nodes /tmp/build-nodes
 
 # Verify the package.json "n8n" property exists
-RUN cat /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/package.json | grep -q '"n8n"' \
+RUN cat /home/node/.n8n/nodes/node_modules/@levinnovation/n8n-nodes-agentyx/package.json | grep -q '"n8n"' \
   || (echo "ERROR: custom nodes package missing n8n registration" && exit 1)
 
-# Verify node files exist in the image
-RUN test -f /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.node.js && echo "node.js OK" || exit 1
-RUN test -f /usr/local/lib/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.svg && echo "node.svg OK" || exit 1
+# Verify canonical layout: node files exist in the n8n-expected location
+RUN test -f /home/node/.n8n/nodes/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.node.js \
+  || (echo "ERROR: custom nodes not at canonical layout" && exit 1)
+RUN test -f /home/node/.n8n/nodes/node_modules/@levinnovation/n8n-nodes-agentyx/dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.svg \
+  || (echo "ERROR: custom node SVG not at canonical layout" && exit 1)
 
 USER node
 
