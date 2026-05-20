@@ -14,7 +14,7 @@ Operational runbook for Railway deployments using:
 - `EXECUTIONS_MODE=queue` on all n8n roles.
 - Shared `N8N_ENCRYPTION_KEY` on all n8n roles.
 - Runtime parity invariant: `n8n-main`, `n8n-worker`, and `n8n-webhook` must use the same n8n runtime source/version.
-  - Canonical image policy: `ghcr.io/levinnovation/agentyx-n8n:latest` on all three.
+  - Canonical image policy: `ghcr.io/levinnovation/agentyx-vertical-assets/agentyx-n8n:latest` on all three.
 - Shared Postgres (`DB_POSTGRESDB_*`) and schema `n8n`.
 - Shared Redis queue vars:
   - `QUEUE_BULL_REDIS_HOST`,
@@ -58,7 +58,7 @@ This command fails if any queue role drifts away from the shared runtime.
 If parity drifts in `client-demo-agentyx`, re-apply the same n8n image to all queue roles:
 
 ```bash
-N8N_RUNTIME_IMAGE=ghcr.io/levinnovation/agentyx-n8n:latest \
+N8N_RUNTIME_IMAGE=ghcr.io/levinnovation/agentyx-vertical-assets/agentyx-n8n:latest \
 bash scripts/railway/replicate-reference-to-scratch.sh
 ```
 

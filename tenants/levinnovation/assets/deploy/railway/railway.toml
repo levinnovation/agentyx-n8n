@@ -25,7 +25,7 @@ REDIS_PASSWORD = "${{secret(48)}}"
 [n8n-main]
 # Custom image with Agentyx community nodes baked in.
 # Built by .github/workflows/build-n8n-image.yml in the assets repo.
-image = "ghcr.io/levinnovation/agentyx-n8n:latest"
+image = "ghcr.io/levinnovation/agentyx-vertical-assets/agentyx-n8n:latest"
 startCommand = "n8n start"
 
 [n8n-main.variables]
@@ -51,7 +51,7 @@ N8N_REINSTALL_MISSING_PACKAGES = "false"
 
 [n8n-worker]
 # Runtime parity invariant: main/worker/webhook must use the same n8n image.
-image = "ghcr.io/levinnovation/agentyx-n8n:latest"
+image = "ghcr.io/levinnovation/agentyx-vertical-assets/agentyx-n8n:latest"
 startCommand = "n8n worker"
 
 [n8n-worker.variables]
@@ -76,7 +76,7 @@ N8N_REINSTALL_MISSING_PACKAGES = "false"
 
 [n8n-webhook]
 # Runtime parity invariant: main/worker/webhook must use the same n8n image.
-image = "ghcr.io/levinnovation/agentyx-n8n:latest"
+image = "ghcr.io/levinnovation/agentyx-vertical-assets/agentyx-n8n:latest"
 startCommand = "n8n webhook"
 
 [n8n-webhook.variables]
