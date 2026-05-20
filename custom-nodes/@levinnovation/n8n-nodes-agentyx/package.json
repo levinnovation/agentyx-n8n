@@ -2,7 +2,6 @@
   "name": "@levinnovation/n8n-nodes-agentyx",
   "version": "1.0.0",
   "description": "Custom n8n community nodes for Agentyx deterministic SDLC",
-  "type": "module",
   "keywords": ["n8n-community-node-package"],
   "files": ["dist"],
   "engines": {
@@ -32,6 +31,7 @@
     ],
     "nodes": [
       "dist/nodes/AgentyxTenantContext/AgentyxTenantContext.node.js",
+      "dist/nodes/AgentyxAuditLogger/AgentyxAuditLogger.node.js",
       "dist/nodes/AgentyxAIAgentBasicNode/AgentyxAIAgentBasicNode.node.js",
       "dist/nodes/AgentyxComposioMcpToolNode/AgentyxComposioMcpToolNode.node.js",
       "dist/nodes/AgentyxChannelFormattedInputNode/AgentyxChannelFormattedInputNode.node.js",
