@@ -25,6 +25,7 @@ NODE_TYPE_MAPPING = {
     "agentyxChannelFormattedOutputNode": "@levinnovation/n8n-nodes-agentyx.agentyxChannelFormattedOutputNode",
     "agentyxCRMQuery": "@levinnovation/n8n-nodes-agentyx.agentyxCRMQuery",
     "agentyxCRMUpdate": "@levinnovation/n8n-nodes-agentyx.agentyxCRMUpdate",
+    "agentyxAuditLogger": "@levinnovation/n8n-nodes-agentyx.agentyxAuditLogger",
 }
 
 @app.command()

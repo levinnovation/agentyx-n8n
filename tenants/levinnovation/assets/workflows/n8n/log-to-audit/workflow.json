@@ -1,8 +1,56 @@
 {
   "name": "log-to-audit",
   "id": "log-to-audit",
-  "nodes": [],
-  "connections": {},
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "log-audit",
+        "responseMode": "lastNode"
+      },
+      "id": "node-0",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "log-audit"
+    },
+    {
+      "parameters": {
+        "action": "={{ $json.action || 'execute' }}",
+        "tenant": "={{ $json.tenant || 'levinnovation' }}",
+        "domain": "={{ $json.domain || '' }}",
+        "capability": "={{ $json.capability || '' }}",
+        "subWorkflows": "={{ JSON.stringify($json.sub_workflows || []) }}",
+        "gitHash": "={{ $json.git_hash || '' }}",
+        "storeMode": "={{ $json.store_mode || 'payload' }}"
+      },
+      "id": "node-1",
+      "name": "Audit Logger",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxAuditLogger",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Audit Logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "settings": {},
   "tags": [],
   "active": false,

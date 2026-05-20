@@ -1,8 +1,77 @@
 {
   "name": "normalize-channel-payload",
   "id": "normalize-channel-payload",
-  "nodes": [],
-  "connections": {},
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "normalize-payload",
+        "responseMode": "lastNode"
+      },
+      "id": "node-0",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "normalize-payload"
+    },
+    {
+      "parameters": {
+        "channel": "={{ $json.channel || 'generic' }}",
+        "payload": "={{ JSON.stringify($json) }}",
+        "coreWorkflowId": "normalize-channel-payload",
+        "dedupTtlMinutes": 0
+      },
+      "id": "node-1",
+      "name": "Normalize Payload",
+      "type": "@levinnovation/n8n-nodes-agentyx.agentyxChannelFormattedInputNode",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const contract = $input.all()[0].json;\nconst required = ['message', 'sender', 'channel', 'thread_id'];\nconst missing = required.filter(f => contract[f] === undefined || contract[f] === null || contract[f] === '');\nif (missing.length > 0) {\n  throw new Error(`Standard data contract validation failed. Missing fields: ${missing.join(', ')}`);\n}\ncontract._normalized_at = new Date().toISOString();\ncontract._schema_version = '2.0';\nreturn { json: contract };\n"
+      },
+      "id": "node-2",
+      "name": "Contract Validation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Contract Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "settings": {},
   "tags": [],
   "active": false,

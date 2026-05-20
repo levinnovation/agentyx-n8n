@@ -1,46 +1,55 @@
-name: normalize-channel-payload
-description: >
-  Standardize all incoming channel payloads into the Agentyx standard data contract.
-  Uses Agentyx Channel Input node to normalize Kapso WA, Telegram, Meta, LibreChat,
-  Twenty Webhook, and generic payloads.
-
-trigger:
-  type: webhook
-  httpMethod: POST
-
-nodes:
-  - name: Webhook Trigger
-    type: n8n-nodes-base.webhook
-    parameters:
+apiVersion: agentyx.io/v1
+kind: N8nWorkflow
+metadata:
+  name: normalize-channel-payload
+  tenant: levinnovation
+  domain: core-pipeline
+  capability: sub-workflows
+  version: "1.0.0"
+  status: draft
+spec:
+  trigger:
+    type: webhook
+    config:
       httpMethod: POST
       path: normalize-payload
       responseMode: lastNode
 
-  - name: Normalize Payload
-    type: "@levinnovation/n8n-nodes-agentyx.agentyxChannelFormattedInputNode"
-    parameters:
-      channel: "={{ $json.channel || 'generic' }}"
-      payload: "={{ JSON.stringify($json) }}"
-      coreWorkflowId: "normalize-channel-payload"
-      dedupTtlMinutes: 0
+  nodes:
+    - name: Webhook Trigger
+      type: webhook
+      position: [240, 300]
+      config:
+        httpMethod: POST
+        path: normalize-payload
+        responseMode: lastNode
 
-  - name: Contract Validation
-    type: n8n-nodes-base.code
-    parameters:
-      jsCode: |
-        const contract = $input.all()[0].json;
-        const required = ['message', 'sender', 'channel', 'thread_id'];
-        const missing = required.filter(f => contract[f] === undefined || contract[f] === null || contract[f] === '');
-        if (missing.length > 0) {
-          throw new Error(`Standard data contract validation failed. Missing fields: ${missing.join(', ')}`);
-        }
-        // Enrich with execution metadata
-        contract._normalized_at = new Date().toISOString();
-        contract._schema_version = '2.0';
-        return { json: contract };
+    - name: Normalize Payload
+      type: agentyxChannelFormattedInputNode
+      position: [440, 300]
+      config:
+        channel: "={{ $json.channel || 'generic' }}"
+        payload: "={{ JSON.stringify($json) }}"
+        coreWorkflowId: normalize-channel-payload
+        dedupTtlMinutes: 0
 
-connections:
-  - from: Webhook Trigger
-    to: Normalize Payload
-  - from: Normalize Payload
-    to: Contract Validation
+    - name: Contract Validation
+      type: code
+      position: [640, 300]
+      config:
+        jsCode: |
+          const contract = $input.all()[0].json;
+          const required = ['message', 'sender', 'channel', 'thread_id'];
+          const missing = required.filter(f => contract[f] === undefined || contract[f] === null || contract[f] === '');
+          if (missing.length > 0) {
+            throw new Error(`Standard data contract validation failed. Missing fields: ${missing.join(', ')}`);
+          }
+          contract._normalized_at = new Date().toISOString();
+          contract._schema_version = '2.0';
+          return { json: contract };
+
+  connections:
+    - from: Webhook Trigger
+      to: Normalize Payload
+    - from: Normalize Payload
+      to: Contract Validation
