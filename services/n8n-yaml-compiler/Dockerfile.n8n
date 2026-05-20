@@ -19,17 +19,26 @@ COPY --chown=node:node ./services/n8n-node-sdk /tmp/n8n-node-sdk
 # Copy optional pre-built custom nodes (created by CI workflow)
 COPY --chown=node:node ./custom-nodes /tmp/custom-nodes
 
-# Stage 1: ensure @levinnovation/n8n-nodes-agentyx exists (CI path or source path)
-RUN if [ -d /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx ]; then \
-      echo "Installing from pre-built custom-nodes/ (CI path)"; \
+# Stage 1: produce @levinnovation/n8n-nodes-agentyx ready-to-install build.
+# Detect on the actual `dist/` subdir, not the parent: `.gitignore` excludes
+# `dist/`, so Railway/Git-linked builds will NOT see the CI-prebuilt output
+# and must rebuild from source. CI workflows that ship the prebuilt
+# `custom-nodes/@levinnovation/n8n-nodes-agentyx/dist/` will take the fast path.
+RUN set -eu; \
+    if [ -d /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/dist ]; then \
+      echo "[n8n-image] Using pre-built custom-nodes/ (CI path)"; \
       mkdir -p /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx; \
       cp -r /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/dist /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx/dist; \
       cp /tmp/custom-nodes/@levinnovation/n8n-nodes-agentyx/package.json /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx/package.json; \
     else \
-      echo "Building from source (repo linked build path)"; \
-      cd /tmp/n8n-node-sdk && npm ci && npm run build; \
+      echo "[n8n-image] Building Agentyx nodes from source (repo-linked build)"; \
+      cd /tmp/n8n-node-sdk; \
+      npm ci; \
+      npm run build; \
       for node_dir in src/nodes/*/; do \
-        cp "$$node_dir"*.svg "dist/nodes/$$(basename $$node_dir)/" 2>/dev/null || true; \
+        node_name="$(basename "$node_dir")"; \
+        mkdir -p "dist/nodes/$node_name"; \
+        cp "$node_dir"*.svg "dist/nodes/$node_name/" 2>/dev/null || true; \
       done; \
       mkdir -p /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx; \
       cp -r dist /tmp/build-nodes/@levinnovation/n8n-nodes-agentyx/dist; \

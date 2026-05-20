@@ -6,6 +6,10 @@ __pycache__/
 *.pyo
 *.egg-info/
 dist/
+# Override: ship pre-built n8n community node bundle so Railway-linked builds
+# don't need devDependencies (tsc) inside the hardened n8n base image.
+!custom-nodes/**/dist/
+!custom-nodes/**/dist/**
 build/
 .tox/
 .pytest_cache/

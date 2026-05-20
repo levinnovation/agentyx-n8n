@@ -25,3 +25,42 @@ N8N_INTERNAL_URL = "agx-demo-n8n.railway.internal:5678"
 FLOWISE_INTERNAL_URL = "agx-demo-flowise.railway.internal:3000"
 PAPERCLIP_INTERNAL_URL = "agx-demo-paperclip.railway.internal:3100"
 LIBRECHAT_INTERNAL_URL = "agx-demo-librechat.railway.internal:3080"
+
+# ─── n8n Queue-Mode Cluster ──────────────────────────────────────
+# Source: Railway-linked to levinnovation/agentyx-vertical-assets, builds the
+# Agentyx custom n8n image directly from services/n8n-yaml-compiler/Dockerfile.n8n.
+# This avoids the private-GHCR-pull failure (Railway has no GHCR credentials)
+# that took the cluster down on 2026-05-20.
+#
+# startCommand is the argument passed to the upstream n8n image ENTRYPOINT
+# (`tini -- /docker-entrypoint.sh`, which itself runs `exec n8n "$@"`):
+#   * "start"   → main process (HTTP + scheduler)
+#   * "worker"  → bull queue worker
+#   * "webhook" → webhook-only process
+# Do NOT prefix with `n8n` or `/docker-entrypoint.sh` — the entrypoint already
+# does that and the double-prefix produced `Command "n8n" not found` on
+# 2026-05-20 (see knowledge/change-log/).
+
+[agx-demo-n8n]
+startCommand = "start"
+
+[agx-demo-n8n.build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/n8n-yaml-compiler/Dockerfile.n8n"
+
+[agx-demo-n8n.deploy]
+healthcheckPath = "/healthz"
+
+[agx-demo-n8n-worker]
+startCommand = "worker"
+
+[agx-demo-n8n-worker.build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/n8n-yaml-compiler/Dockerfile.n8n"
+
+[agx-demo-n8n-webhook]
+startCommand = "webhook"
+
+[agx-demo-n8n-webhook.build]
+builder = "DOCKERFILE"
+dockerfilePath = "services/n8n-yaml-compiler/Dockerfile.n8n"
